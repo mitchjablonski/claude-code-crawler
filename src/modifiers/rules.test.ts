@@ -49,6 +49,25 @@ describe('ruleFor', () => {
   });
 });
 
+describe('snark tiers', () => {
+  it('narration differs per tier and defaults to wry', () => {
+    const dry = ruleFor(ev('tests_passed'), 0).narration;
+    const wry = ruleFor(ev('tests_passed'), 1).narration;
+    const roast = ruleFor(ev('tests_passed'), 2).narration;
+    expect(new Set([dry, wry, roast]).size).toBe(3);
+    expect(ruleFor(ev('tests_passed')).narration).toBe(wry);
+  });
+
+  it('mechanics are identical across tiers', () => {
+    for (const snark of [0, 1, 2] as const) {
+      expect(ruleFor(ev('build_failed'), snark).modifier).toEqual({
+        kind: 'queueElite',
+        enemyId: 'lint-goblin',
+      });
+    }
+  });
+});
+
 describe('limitFor', () => {
   it('has per-kind configs with a default fallback', () => {
     expect(limitFor('code_changed').capacity).toBe(2);

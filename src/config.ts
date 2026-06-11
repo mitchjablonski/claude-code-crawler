@@ -2,11 +2,20 @@ import os from 'node:os';
 import path from 'node:path';
 
 export type SnarkLevel = 0 | 1 | 2;
+export type AiProvider = 'anthropic' | 'claude-cli' | 'openai-compat' | 'static';
 
 export interface Config {
   readonly saveDir: string;
   readonly seed: string | undefined;
-  readonly snarkLevel: SnarkLevel;
+  /** Explicit flag/env snark; undefined → fall back to the in-game setting, then wry. */
+  readonly snarkLevel: SnarkLevel | undefined;
+  readonly apiKey: string | undefined;
+  /** Explicit backend choice; undefined → auto-resolve the provider ladder. */
+  readonly aiProvider: AiProvider | undefined;
+  readonly aiBaseUrl: string | undefined;
+  readonly aiModel: string | undefined;
+  readonly aiBudgetUsd: number;
+  readonly aiTranscript: boolean;
 }
 
 /** Injectable ambient sources; production callers pass nothing. */
@@ -15,6 +24,8 @@ export interface ConfigSources {
   readonly env?: Readonly<Record<string, string | undefined>>;
   readonly homedir?: string;
 }
+
+const AI_PROVIDERS: readonly AiProvider[] = ['anthropic', 'claude-cli', 'openai-compat', 'static'];
 
 /**
  * The ONLY place ambient configuration (argv, env, homedir) is ever read.
@@ -29,10 +40,39 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
   const saveDir =
     flags['save-dir'] ?? env['CCC_SAVE_DIR'] ?? path.join(home, '.claude-code-crawler');
   const seed = flags['seed'] ?? env['CCC_SEED'];
-  const snarkRaw = Number(flags['snark'] ?? env['CCC_SNARK'] ?? '1');
-  const snarkLevel: SnarkLevel = snarkRaw === 0 || snarkRaw === 2 ? snarkRaw : 1;
 
-  return Object.freeze({ saveDir, seed, snarkLevel });
+  const snarkRaw = flags['snark'] ?? env['CCC_SNARK'];
+  const snarkNum = snarkRaw === undefined ? undefined : Number(snarkRaw);
+  const snarkLevel: SnarkLevel | undefined =
+    snarkNum === 0 || snarkNum === 1 || snarkNum === 2 ? snarkNum : undefined;
+
+  const apiKey = flags['api-key'] ?? env['CCC_API_KEY'] ?? env['ANTHROPIC_API_KEY'];
+
+  const providerRaw = flags['ai-provider'] ?? env['CCC_AI_PROVIDER'];
+  const aiProvider = AI_PROVIDERS.includes(providerRaw as AiProvider)
+    ? (providerRaw as AiProvider)
+    : undefined;
+
+  const aiBaseUrl = flags['ai-base-url'] ?? env['CCC_AI_BASE_URL'];
+  const aiModel = flags['ai-model'] ?? env['CCC_AI_MODEL'];
+
+  const budgetRaw = Number(flags['ai-budget'] ?? env['CCC_AI_BUDGET'] ?? '0.05');
+  const aiBudgetUsd = Number.isFinite(budgetRaw) && budgetRaw >= 0 ? budgetRaw : 0.05;
+
+  const transcriptRaw = flags['ai-transcript'] ?? env['CCC_AI_TRANSCRIPT'];
+  const aiTranscript = transcriptRaw === 'true' || transcriptRaw === '1';
+
+  return Object.freeze({
+    saveDir,
+    seed,
+    snarkLevel,
+    apiKey,
+    aiProvider,
+    aiBaseUrl,
+    aiModel,
+    aiBudgetUsd,
+    aiTranscript,
+  });
 }
 
 function parseFlags(argv: readonly string[]): Record<string, string> {

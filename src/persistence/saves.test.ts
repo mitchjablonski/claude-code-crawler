@@ -78,4 +78,16 @@ describe('meta progression', () => {
     expect(store.loadMeta().runs).toHaveLength(0);
     expect(fs.readdirSync(dir).some((f) => f.startsWith('meta.json.corrupt-'))).toBe(true);
   });
+
+  it('persists settings without clobbering run history', () => {
+    const store = createSaveStore(dir);
+    store.recordRun({ seed: 'a', outcome: 'victory', endedAt: '2026-06-10T00:00:00Z' });
+    store.updateSettings({ snarkLevel: 2 });
+    const meta = store.loadMeta();
+    expect(meta.settings?.snarkLevel).toBe(2);
+    expect(meta.runs).toHaveLength(1);
+
+    store.updateSettings({ snarkLevel: 0 });
+    expect(store.loadMeta().settings?.snarkLevel).toBe(0);
+  });
 });

@@ -8,24 +8,64 @@ describe('resolveConfig', () => {
     const config = resolveConfig(base);
     expect(config.saveDir).toBe('/home/crawler/.claude-code-crawler');
     expect(config.seed).toBeUndefined();
-    expect(config.snarkLevel).toBe(1);
+    expect(config.snarkLevel).toBeUndefined(); // unset → in-game setting decides
+    expect(config.apiKey).toBeUndefined();
+    expect(config.aiProvider).toBeUndefined();
+    expect(config.aiBudgetUsd).toBe(0.05);
+    expect(config.aiTranscript).toBe(false);
   });
 
   it('prefers flags over env over defaults', () => {
     const config = resolveConfig({
-      argv: ['--save-dir', '/flag/dir', '--seed=flagseed'],
-      env: { CCC_SAVE_DIR: '/env/dir', CCC_SEED: 'envseed', CCC_SNARK: '2' },
+      argv: ['--save-dir', '/flag/dir', '--seed=flagseed', '--api-key', 'flagkey'],
+      env: {
+        CCC_SAVE_DIR: '/env/dir',
+        CCC_SEED: 'envseed',
+        CCC_SNARK: '2',
+        CCC_API_KEY: 'envkey',
+        ANTHROPIC_API_KEY: 'anthkey',
+      },
       homedir: '/home/crawler',
     });
     expect(config.saveDir).toBe('/flag/dir');
     expect(config.seed).toBe('flagseed');
     expect(config.snarkLevel).toBe(2); // env wins when no flag
+    expect(config.apiKey).toBe('flagkey');
   });
 
-  it('clamps invalid snark levels to the default', () => {
-    expect(resolveConfig({ ...base, env: { CCC_SNARK: '7' } }).snarkLevel).toBe(1);
-    expect(resolveConfig({ ...base, env: { CCC_SNARK: 'spicy' } }).snarkLevel).toBe(1);
+  it('CCC_API_KEY outranks ANTHROPIC_API_KEY', () => {
+    const config = resolveConfig({
+      ...base,
+      env: { CCC_API_KEY: 'ccc', ANTHROPIC_API_KEY: 'anth' },
+    });
+    expect(config.apiKey).toBe('ccc');
+  });
+
+  it('treats invalid snark levels as unset', () => {
+    expect(resolveConfig({ ...base, env: { CCC_SNARK: '7' } }).snarkLevel).toBeUndefined();
+    expect(resolveConfig({ ...base, env: { CCC_SNARK: 'spicy' } }).snarkLevel).toBeUndefined();
     expect(resolveConfig({ ...base, env: { CCC_SNARK: '0' } }).snarkLevel).toBe(0);
+  });
+
+  it('parses AI fields with validation', () => {
+    const config = resolveConfig({
+      ...base,
+      env: {
+        CCC_AI_PROVIDER: 'claude-cli',
+        CCC_AI_BASE_URL: 'http://localhost:1234',
+        CCC_AI_MODEL: 'm',
+        CCC_AI_BUDGET: '0.10',
+        CCC_AI_TRANSCRIPT: '1',
+      },
+    });
+    expect(config.aiProvider).toBe('claude-cli');
+    expect(config.aiBaseUrl).toBe('http://localhost:1234');
+    expect(config.aiModel).toBe('m');
+    expect(config.aiBudgetUsd).toBeCloseTo(0.1);
+    expect(config.aiTranscript).toBe(true);
+
+    expect(resolveConfig({ ...base, env: { CCC_AI_PROVIDER: 'skynet' } }).aiProvider).toBeUndefined();
+    expect(resolveConfig({ ...base, env: { CCC_AI_BUDGET: '-3' } }).aiBudgetUsd).toBe(0.05);
   });
 
   it('returns a frozen object', () => {

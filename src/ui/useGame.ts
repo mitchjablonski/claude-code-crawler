@@ -6,6 +6,8 @@ import { EngineError, isSafeBoundary } from '../engine/types.js';
 import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
 import type { Tailer, TailerOptions } from '../events/tailer.js';
 import type { SaveStore } from '../persistence/saves.js';
+import type { SnarkLevel } from '../config.js';
+import type { DungeonAi } from '../ai/dungeonAi.js';
 
 export interface GameDeps {
   readonly store: SaveStore;
@@ -17,6 +19,9 @@ export interface GameDeps {
   /** Hook-event wiring (undefined → standalone mode). */
   readonly eventsDir?: string;
   readonly createSource?: (opts: TailerOptions) => Tailer;
+  /** Explicit flag/env snark; undefined → in-game setting, then wry. */
+  readonly snarkLevel?: SnarkLevel;
+  readonly ai?: DungeonAi | null;
 }
 
 export interface Game {

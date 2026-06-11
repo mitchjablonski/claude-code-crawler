@@ -45,21 +45,51 @@ async function main(): Promise<void> {
       return;
     }
     case 'doctor': {
-      const { runDoctor } = await import('./events/doctor.js');
+      const [{ runDoctor }, { resolveClient }] = await Promise.all([
+        import('./events/doctor.js'),
+        import('./ai/resolve.js'),
+      ]);
       const report = runDoctor(process.cwd(), eventsDir);
       for (const line of report.lines) console.log(line);
+      const client = await resolveClient(config);
+      console.log(
+        `[ok] dungeon announcer backend: ${client?.name ?? 'static (no API key, claude CLI, or local model found)'}`,
+      );
       process.exitCode = report.ok ? 0 : 1;
       return;
     }
     case 'play':
     case undefined: {
-      const [{ render }, { createSaveStore }, { App }] = await Promise.all([
-        import('ink'),
-        import('./persistence/saves.js'),
-        import('./ui/App.js'),
-      ]);
+      const [{ render }, { createSaveStore }, { App }, { resolveClient }, { createDungeonAi }, fs, pathMod] =
+        await Promise.all([
+          import('ink'),
+          import('./persistence/saves.js'),
+          import('./ui/App.js'),
+          import('./ai/resolve.js'),
+          import('./ai/dungeonAi.js'),
+          import('node:fs'),
+          import('node:path'),
+        ]);
       const store = createSaveStore(config.saveDir);
-      render(<App deps={{ store, seed: config.seed, eventsDir }} />);
+      const client = await resolveClient(config);
+      const transcript = config.aiTranscript
+        ? (entry: Readonly<Record<string, unknown>>) => {
+            try {
+              fs.default.appendFileSync(
+                pathMod.default.join(config.saveDir, 'ai-transcript.jsonl'),
+                `${JSON.stringify(entry)}\n`,
+              );
+            } catch {
+              // Transcript is best-effort.
+            }
+          }
+        : undefined;
+      const ai = createDungeonAi({ client, budgetUsd: config.aiBudgetUsd, transcript });
+      render(
+        <App
+          deps={{ store, seed: config.seed, eventsDir, snarkLevel: config.snarkLevel, ai }}
+        />,
+      );
       return;
     }
     default:

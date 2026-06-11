@@ -1,40 +1,51 @@
 import { Box, Text, useInput } from 'ink';
+import type { SnarkLevel } from '../../config.js';
 import type { PauseState } from '../useEvents.js';
 
-const COPY: Record<PauseState['reason'], { title: string; body: string }> = {
+const TITLES: Record<PauseState['reason'], string> = {
+  awaits: 'CLAUDE AWAITS YOUR COMMAND',
+  notification: 'ATTENTION REQUIRED ON THE SURFACE',
+  review: 'YOUR PAIR PARTNER AWAITS JUDGMENT',
+};
+
+const BODIES: Record<PauseState['reason'], Readonly<Record<SnarkLevel, string>>> = {
   awaits: {
-    title: 'CLAUDE AWAITS YOUR COMMAND',
-    body: 'The dungeon grinds to a halt. Somewhere above, a terminal blinks expectantly at an empty chair.',
+    0: 'Claude has finished and is waiting for your input.',
+    1: 'The dungeon grinds to a halt. Somewhere above, a terminal blinks expectantly at an empty chair.',
+    2: 'Claude finished actual work and now stares at the chair you abandoned. The dungeon judges you both.',
   },
   notification: {
-    title: 'ATTENTION REQUIRED ON THE SURFACE',
-    body: 'A messenger imp materializes, clears its throat, and unrolls a scroll.',
+    0: 'Claude Code sent a notification.',
+    1: 'A messenger imp materializes, clears its throat, and unrolls a scroll.',
+    2: 'A messenger imp reads your notification, snorts, and demands you deal with it so it can leave.',
   },
   review: {
-    title: 'YOUR PAIR PARTNER AWAITS JUDGMENT',
-    body: 'deepPairing has presented work for your review. The dungeon respects code review. Barely.',
+    0: 'deepPairing is waiting for your review.',
+    1: 'deepPairing has presented work for your review. The dungeon respects code review. Barely.',
+    2: 'deepPairing begs for your judgment. The dungeon suggests rejecting something to assert dominance.',
   },
 };
 
 export function PauseOverlay({
   pause,
+  snark,
   onDismiss,
 }: {
   readonly pause: PauseState;
+  readonly snark: SnarkLevel;
   readonly onDismiss: () => void;
 }) {
   useInput((input, key) => {
     if (key.return || input === 'p') onDismiss();
   });
 
-  const copy = COPY[pause.reason];
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Text bold color="yellow">
-        {copy.title}
+        {TITLES[pause.reason]}
       </Text>
       <Box marginTop={1} width={76}>
-        <Text wrap="wrap">{copy.body}</Text>
+        <Text wrap="wrap">{BODIES[pause.reason][snark]}</Text>
       </Box>
       {pause.detail !== undefined && (
         <Box marginTop={1} width={76}>

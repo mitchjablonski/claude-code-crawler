@@ -3,6 +3,8 @@ import { classify } from '../events/classify.js';
 import { createTailer, type Tailer, type TailerOptions } from '../events/tailer.js';
 import type { GameEvent } from '../events/types.js';
 import type { Modifier } from '../engine/modifiers.js';
+import type { SnarkLevel } from '../config.js';
+import type { DungeonAi, RunSummary } from '../ai/dungeonAi.js';
 import { createLimiter } from '../modifiers/limiter.js';
 import { limitFor, ruleFor } from '../modifiers/rules.js';
 
@@ -19,6 +21,9 @@ export interface EventsDeps {
   /** Test seam; defaults to the real polling tailer. */
   readonly createSource?: (opts: TailerOptions) => Tailer;
   readonly now?: () => number;
+  readonly snark?: SnarkLevel;
+  readonly ai?: DungeonAi | null;
+  readonly getRunSummary?: () => RunSummary | null;
 }
 
 export interface EventsState {
@@ -65,14 +70,27 @@ export function useEvents(deps: EventsDeps): EventsState {
       // Any other event means Claude is active again.
       setPause((prev) => (prev && !prev.claudeActive ? { ...prev, claudeActive: true } : prev));
       if (!limiter.tryTake(event.kind)) return;
-      const outcome = ruleFor(event);
+      const snark = deps.snark ?? 1;
+      const outcome = ruleFor(event, snark);
       if (outcome.modifier) {
         queueRef.current.push(outcome.modifier);
         setEventTick((t) => t + 1);
       }
-      if (outcome.narration) setNarration(outcome.narration);
+      if (outcome.narration) {
+        setNarration(outcome.narration);
+        // Fire-and-forget upgrade: the Dungeon AI may re-word the line later.
+        deps.ai?.narrate(
+          {
+            event,
+            staticLine: outcome.narration,
+            snark,
+            run: deps.getRunSummary?.() ?? null,
+          },
+          (line) => setNarration(line),
+        );
+      }
     },
-    [limiter],
+    [limiter, deps.snark, deps.ai, deps.getRunSummary],
   );
 
   useEffect(() => {

@@ -10,9 +10,14 @@ export interface RunRecord {
   readonly endedAt: string; // ISO timestamp
 }
 
+export interface MetaSettings {
+  readonly snarkLevel?: 0 | 1 | 2;
+}
+
 export interface MetaState {
   readonly version: number;
   readonly runs: readonly RunRecord[];
+  readonly settings?: MetaSettings;
 }
 
 export interface SaveStore {
@@ -21,6 +26,7 @@ export interface SaveStore {
   clearRun(): void;
   loadMeta(): MetaState;
   recordRun(record: RunRecord): void;
+  updateSettings(settings: MetaSettings): void;
 }
 
 const EMPTY_META: MetaState = { version: SAVE_VERSION, runs: [] };
@@ -69,6 +75,14 @@ export function createSaveStore(saveDir: string): SaveStore {
     recordRun(record: RunRecord): void {
       const meta = this.loadMeta();
       writeJsonAtomic(metaFile, { ...meta, runs: [...meta.runs, record] });
+    },
+
+    updateSettings(settings: MetaSettings): void {
+      const meta = this.loadMeta();
+      writeJsonAtomic(metaFile, {
+        ...meta,
+        settings: { ...meta.settings, ...settings },
+      });
     },
   };
 }

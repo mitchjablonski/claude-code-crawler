@@ -3,14 +3,16 @@ import { render } from 'ink-testing-library';
 import { App } from './App.js';
 import { createRun } from '../engine/run.js';
 import { DEFAULT_RUN_CONFIG, content } from '../engine/content/index.js';
-import type { MetaState, RunRecord, SaveStore } from '../persistence/saves.js';
+import type { MetaSettings, MetaState, RunRecord, SaveStore } from '../persistence/saves.js';
 import type { RunState } from '../engine/types.js';
 import type { HookRecord } from '../events/types.js';
 import type { TailerOptions } from '../events/tailer.js';
+import type { DungeonAi } from '../ai/dungeonAi.js';
 
 function memoryStore() {
   let run: RunState | null = null;
   const runs: RunRecord[] = [];
+  let settings: MetaSettings = {};
   let saveCount = 0;
   const store: SaveStore = {
     loadRun: () => run,
@@ -21,9 +23,12 @@ function memoryStore() {
     clearRun: () => {
       run = null;
     },
-    loadMeta: (): MetaState => ({ version: 1, runs }),
+    loadMeta: (): MetaState => ({ version: 1, runs, settings }),
     recordRun: (record) => {
       runs.push(record);
+    },
+    updateSettings: (next) => {
+      settings = { ...settings, ...next };
     },
   };
   return {
@@ -167,6 +172,45 @@ describe('App with hook events', () => {
     src.emit(hookRec('PreToolUse', { tool_name: 'mcp__deeppairing__present_options' }));
     await tick();
     expect(lastFrame()).toContain('PAIR PARTNER AWAITS JUDGMENT');
+  });
+
+  it('cycles snark on the title and persists it', async () => {
+    const mem = memoryStore();
+    const fakeAi: DungeonAi = { backend: 'fake-ai', narrate: () => {}, spentUsd: () => 0 };
+    const { lastFrame, stdin } = await renderApp(
+      <App deps={{ ...deps(mem), ai: fakeAi }} />,
+    );
+    expect(lastFrame()).toContain('announcer: fake-ai');
+    expect(lastFrame()).toContain('Snark: wry');
+
+    stdin.write('s');
+    await tick();
+    expect(lastFrame()).toContain('Snark: roast');
+    expect(mem.store.loadMeta().settings?.snarkLevel).toBe(2);
+  });
+
+  it('lets the Dungeon AI upgrade the narration line', async () => {
+    const mem = memoryStore();
+    const src = fakeSource();
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: (narrationCtx, onLine) => onLine(`AI says: ${narrationCtx.event.kind}`),
+      spentUsd: () => 0,
+    };
+    const { lastFrame, stdin } = await renderApp(
+      <App deps={{ ...deps(mem), createSource: src.create, ai: fakeAi }} />,
+    );
+    stdin.write('n');
+    await tick();
+    src.emit(
+      hookRec('PostToolUse', {
+        tool_name: 'Bash',
+        tool_input: { command: 'npm test' },
+        tool_response: { exitCode: 0 },
+      }),
+    );
+    await tick();
+    expect(lastFrame()).toContain('AI says: tests_passed');
   });
 
   it('holds modifiers until a safe boundary when mid-combat', async () => {
