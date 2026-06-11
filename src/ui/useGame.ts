@@ -1,0 +1,79 @@
+import { useCallback, useState } from 'react';
+import { applyAction, createRun, type RunConfig } from '../engine/run.js';
+import { DEFAULT_RUN_CONFIG, content as defaultContent } from '../engine/content/index.js';
+import { EngineError, isSafeBoundary } from '../engine/types.js';
+import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
+import type { SaveStore } from '../persistence/saves.js';
+
+export interface GameDeps {
+  readonly store: SaveStore;
+  readonly content?: ContentRegistry;
+  readonly runConfig?: RunConfig;
+  /** Fixed seed (from config); new runs generate one when absent. */
+  readonly seed?: string;
+  readonly now?: () => number;
+}
+
+export interface Game {
+  readonly state: RunState | null;
+  readonly content: ContentRegistry;
+  readonly hasSave: boolean;
+  dispatch(action: GameAction): void;
+  newRun(): void;
+  continueRun(): void;
+  quitToTitle(): void;
+}
+
+export function useGame(deps: GameDeps): Game {
+  const content = deps.content ?? defaultContent;
+  const runConfig = deps.runConfig ?? DEFAULT_RUN_CONFIG;
+  const now = deps.now ?? Date.now;
+  const [state, setState] = useState<RunState | null>(null);
+  const [hasSave, setHasSave] = useState(() => deps.store.loadRun() !== null);
+
+  const dispatch = useCallback(
+    (action: GameAction) => {
+      if (!state) return;
+      let next: RunState;
+      try {
+        next = applyAction(content, state, action);
+      } catch (err) {
+        // Invalid input for the current state is a no-op, not a crash.
+        if (err instanceof EngineError) return;
+        throw err;
+      }
+      if (next.phase === 'victory' || next.phase === 'defeat') {
+        deps.store.recordRun({
+          seed: next.seed,
+          outcome: next.phase,
+          endedAt: new Date(now()).toISOString(),
+        });
+        deps.store.clearRun();
+        setHasSave(false);
+      } else if (isSafeBoundary(next)) {
+        deps.store.saveRun(next);
+        setHasSave(true);
+      }
+      setState(next);
+    },
+    [state, content, deps.store, now],
+  );
+
+  const newRun = useCallback(() => {
+    const seed =
+      deps.seed ?? `run-${now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const fresh = createRun(content, seed, runConfig);
+    deps.store.saveRun(fresh);
+    setHasSave(true);
+    setState(fresh);
+  }, [content, runConfig, deps.seed, deps.store, now]);
+
+  const continueRun = useCallback(() => {
+    const saved = deps.store.loadRun();
+    if (saved) setState(saved);
+  }, [deps.store]);
+
+  const quitToTitle = useCallback(() => setState(null), []);
+
+  return { state, content, hasSave, dispatch, newRun, continueRun, quitToTitle };
+}
