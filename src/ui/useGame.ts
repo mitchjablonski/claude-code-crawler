@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { applyAction, createRun, type RunConfig } from '../engine/run.js';
+import { applyModifier, type Modifier } from '../engine/modifiers.js';
 import { DEFAULT_RUN_CONFIG, content as defaultContent } from '../engine/content/index.js';
 import { EngineError, isSafeBoundary } from '../engine/types.js';
 import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
+import type { Tailer, TailerOptions } from '../events/tailer.js';
 import type { SaveStore } from '../persistence/saves.js';
 
 export interface GameDeps {
@@ -12,6 +14,9 @@ export interface GameDeps {
   /** Fixed seed (from config); new runs generate one when absent. */
   readonly seed?: string;
   readonly now?: () => number;
+  /** Hook-event wiring (undefined → standalone mode). */
+  readonly eventsDir?: string;
+  readonly createSource?: (opts: TailerOptions) => Tailer;
 }
 
 export interface Game {
@@ -22,6 +27,7 @@ export interface Game {
   newRun(): void;
   continueRun(): void;
   quitToTitle(): void;
+  applyModifiers(mods: readonly Modifier[]): void;
 }
 
 export function useGame(deps: GameDeps): Game {
@@ -75,5 +81,26 @@ export function useGame(deps: GameDeps): Game {
 
   const quitToTitle = useCallback(() => setState(null), []);
 
-  return { state, content, hasSave, dispatch, newRun, continueRun, quitToTitle };
+  const applyModifiers = useCallback(
+    (mods: readonly Modifier[]) => {
+      if (!state || mods.length === 0) return;
+      let next = state;
+      for (const mod of mods) next = applyModifier(content, next, mod);
+      if (next === state) return;
+      if (isSafeBoundary(next)) deps.store.saveRun(next);
+      setState(next);
+    },
+    [state, content, deps.store],
+  );
+
+  return {
+    state,
+    content,
+    hasSave,
+    dispatch,
+    newRun,
+    continueRun,
+    quitToTitle,
+    applyModifiers,
+  };
 }

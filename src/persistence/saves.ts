@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2; // v2: RunState gained the `modifiers` field
 
 export interface RunRecord {
   readonly seed: string;

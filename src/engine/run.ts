@@ -8,6 +8,7 @@ import {
   playCard,
   startCombat,
 } from './combat.js';
+import { addStatus } from './effects.js';
 import type {
   CardDef,
   ContentRegistry,
@@ -15,6 +16,7 @@ import type {
   MapNode,
   Rarity,
   RunState,
+  StatusId,
 } from './types.js';
 import { EngineError } from './types.js';
 
@@ -50,6 +52,7 @@ export function createRun(
     reward: null,
     shop: null,
     event: null,
+    modifiers: { nextCombatStatuses: {}, queuedEliteIds: [] },
   };
 }
 
@@ -125,8 +128,16 @@ function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): 
   const moved = { ...state, currentNodeId: nodeId };
 
   switch (node.kind) {
-    case 'combat':
-      return enterCombat(content, moved, rollEncounter(content, moved, node));
+    case 'combat': {
+      const queued = moved.modifiers.queuedEliteIds;
+      const enemyIds = rollEncounter(content, moved, node);
+      if (queued.length === 0) return enterCombat(content, moved, enemyIds);
+      const consumed: RunState = {
+        ...moved,
+        modifiers: { ...moved.modifiers, queuedEliteIds: queued.slice(1) },
+      };
+      return enterCombat(content, consumed, [...enemyIds, queued[0] as string]);
+    }
     case 'elite':
       return enterCombat(content, moved, [pickFromPool(content, moved, 'elite')]);
     case 'boss':
@@ -184,10 +195,20 @@ function enterCombat(
   state: RunState,
   enemyIds: readonly string[],
 ): RunState {
-  const [combat, rng] = withStream(state.rng, 'combat', (r) =>
+  const [initialCombat, rng] = withStream(state.rng, 'combat', (r) =>
     startCombat(content, state.deck, state.hp, state.maxHp, state.relics, enemyIds, r),
   );
-  return { ...state, rng, combat, phase: 'combat' };
+  let combat = initialCombat;
+  // Consume any pending blessing from bounded modifiers.
+  const bless = Object.entries(state.modifiers.nextCombatStatuses) as [StatusId, number][];
+  let next = state;
+  if (bless.length > 0) {
+    let statuses = combat.playerStatuses;
+    for (const [status, stacks] of bless) statuses = addStatus(statuses, status, stacks);
+    combat = { ...combat, playerStatuses: statuses };
+    next = { ...state, modifiers: { ...state.modifiers, nextCombatStatuses: {} } };
+  }
+  return { ...next, rng, combat, phase: 'combat' };
 }
 
 function inCombat(

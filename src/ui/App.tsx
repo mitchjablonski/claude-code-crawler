@@ -1,6 +1,10 @@
+import { useEffect } from 'react';
 import { Box } from 'ink';
 import { useGame, type GameDeps } from './useGame.js';
+import { useEvents } from './useEvents.js';
+import { isSafeBoundary } from '../engine/types.js';
 import { StatusBar } from './components/StatusBar.js';
+import { PauseOverlay } from './components/PauseOverlay.js';
 import { Title } from './screens/Title.js';
 import { MapScreen } from './screens/MapScreen.js';
 import { CombatScreen } from './screens/CombatScreen.js';
@@ -12,6 +16,19 @@ import { GameOverScreen } from './screens/GameOverScreen.js';
 
 export function App({ deps }: { readonly deps: GameDeps }) {
   const game = useGame(deps);
+  const events = useEvents({
+    eventsDir: deps.eventsDir,
+    createSource: deps.createSource,
+    now: deps.now,
+  });
+
+  // Bounded modifiers apply only at engine-defined safe boundaries.
+  const { state, applyModifiers } = game;
+  const { eventTick, takeModifiers } = events;
+  useEffect(() => {
+    if (!state || !isSafeBoundary(state)) return;
+    applyModifiers(takeModifiers());
+  }, [eventTick, state, applyModifiers, takeModifiers]);
 
   if (!game.state) {
     return (
@@ -19,28 +36,36 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     );
   }
 
-  const state = game.state;
-  const over = state.phase === 'victory' || state.phase === 'defeat';
+  const run = game.state;
+  const over = run.phase === 'victory' || run.phase === 'defeat';
 
   return (
     <Box flexDirection="column">
-      {!over && <StatusBar state={state} />}
-      {state.phase === 'map' && <MapScreen state={state} dispatch={game.dispatch} />}
-      {state.phase === 'combat' && (
-        <CombatScreen state={state} content={game.content} dispatch={game.dispatch} />
+      {!over && (
+        <StatusBar state={run} linked={events.linked} narration={events.narration} />
       )}
-      {state.phase === 'reward' && (
-        <RewardScreen state={state} content={game.content} dispatch={game.dispatch} />
-      )}
-      {state.phase === 'shop' && (
-        <ShopScreen state={state} content={game.content} dispatch={game.dispatch} />
-      )}
-      {state.phase === 'rest' && <RestScreen dispatch={game.dispatch} />}
-      {state.phase === 'event' && (
-        <EventScreen state={state} content={game.content} dispatch={game.dispatch} />
-      )}
-      {over && (
-        <GameOverScreen state={state} onNew={game.newRun} onTitle={game.quitToTitle} />
+      {events.pause && !over ? (
+        <PauseOverlay pause={events.pause} onDismiss={events.dismissPause} />
+      ) : (
+        <>
+          {run.phase === 'map' && <MapScreen state={run} dispatch={game.dispatch} />}
+          {run.phase === 'combat' && (
+            <CombatScreen state={run} content={game.content} dispatch={game.dispatch} />
+          )}
+          {run.phase === 'reward' && (
+            <RewardScreen state={run} content={game.content} dispatch={game.dispatch} />
+          )}
+          {run.phase === 'shop' && (
+            <ShopScreen state={run} content={game.content} dispatch={game.dispatch} />
+          )}
+          {run.phase === 'rest' && <RestScreen dispatch={game.dispatch} />}
+          {run.phase === 'event' && (
+            <EventScreen state={run} content={game.content} dispatch={game.dispatch} />
+          )}
+          {over && (
+            <GameOverScreen state={run} onNew={game.newRun} onTitle={game.quitToTitle} />
+          )}
+        </>
       )}
     </Box>
   );

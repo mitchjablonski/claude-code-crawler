@@ -137,6 +137,12 @@ export type Phase =
   | 'victory'
   | 'defeat';
 
+/** Pending effects granted by bounded modifiers (REQ-5). */
+export interface RunModifiers {
+  readonly nextCombatStatuses: Statuses;
+  readonly queuedEliteIds: readonly string[];
+}
+
 export interface RunState {
   readonly seed: string;
   readonly rng: RngStreams;
@@ -152,6 +158,7 @@ export interface RunState {
   readonly reward: { readonly cards: readonly string[]; readonly gold: number } | null;
   readonly shop: { readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[] } | null;
   readonly event: { readonly eventId: string } | null;
+  readonly modifiers: RunModifiers;
 }
 
 export type GameAction =

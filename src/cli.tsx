@@ -59,7 +59,7 @@ async function main(): Promise<void> {
         import('./ui/App.js'),
       ]);
       const store = createSaveStore(config.saveDir);
-      render(<App deps={{ store, seed: config.seed }} />);
+      render(<App deps={{ store, seed: config.seed, eventsDir }} />);
       return;
     }
     default:
