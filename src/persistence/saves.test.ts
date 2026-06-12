@@ -19,11 +19,13 @@ afterEach(() => {
 const sampleRun = () => createRun(content, 'save-test', DEFAULT_RUN_CONFIG);
 
 describe('run saves', () => {
-  it('roundtrips a run state exactly', () => {
-    const store = createSaveStore(dir);
+  it('roundtrips a run state exactly, stamped with savedAt', () => {
+    const store = createSaveStore(dir, () => 1_750_000_000_000);
     const state = sampleRun();
     store.saveRun(state);
-    expect(store.loadRun()).toEqual(state);
+    const loaded = store.loadRun();
+    expect(loaded?.state).toEqual(state);
+    expect(loaded?.savedAt).toBe(1_750_000_000_000);
   });
 
   it('returns null when no save exists, and after clearRun', () => {
@@ -46,11 +48,18 @@ describe('run saves', () => {
     expect(store.loadRun()).not.toBeNull();
   });
 
-  it('quarantines wrong-shaped saves', () => {
+  it('quarantines wrong-shaped and pre-TTL saves', () => {
     const store = createSaveStore(dir);
     fs.writeFileSync(path.join(dir, 'run.json'), JSON.stringify({ version: 999 }));
     expect(store.loadRun()).toBeNull();
-    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+    // A v2-era save without savedAt also quarantines rather than half-loads.
+    fs.writeFileSync(path.join(dir, 'run.json'), JSON.stringify({ version: 3, state: {} }));
+    expect(store.loadRun()).toBeNull();
+    // (Same-millisecond quarantines may collide on filename; at least one survives.)
+    expect(
+      fs.readdirSync(dir).filter((f) => f.startsWith('run.json.corrupt-')).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(fs.readdirSync(dir)).not.toContain('run.json');
   });
 
   it('leaves no temp files behind', () => {

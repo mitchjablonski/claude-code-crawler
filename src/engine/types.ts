@@ -58,6 +58,7 @@ export interface RelicDef {
 
 export type EventOutcome =
   | { kind: 'gainGold'; amount: number }
+  | { kind: 'loseGold'; amount: number }
   | { kind: 'loseHp'; amount: number }
   | { kind: 'gainMaxHp'; amount: number }
   | { kind: 'gainCard'; cardId: string }
@@ -155,7 +156,11 @@ export interface RunState {
   readonly deck: readonly string[];
   readonly relics: readonly string[];
   readonly combat: CombatState | null;
-  readonly reward: { readonly cards: readonly string[]; readonly gold: number } | null;
+  readonly reward: {
+    readonly cards: readonly string[];
+    readonly gold: number;
+    readonly relicId?: string;
+  } | null;
   readonly shop: { readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[] } | null;
   readonly event: { readonly eventId: string } | null;
   readonly modifiers: RunModifiers;

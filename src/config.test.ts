@@ -68,6 +68,13 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...base, env: { CCC_AI_BUDGET: '-3' } }).aiBudgetUsd).toBe(0.05);
   });
 
+  it('parses the run TTL with validation', () => {
+    expect(resolveConfig(base).runTtlHours).toBe(24);
+    expect(resolveConfig({ ...base, env: { CCC_RUN_TTL_HOURS: '48' } }).runTtlHours).toBe(48);
+    expect(resolveConfig({ ...base, env: { CCC_RUN_TTL_HOURS: '-1' } }).runTtlHours).toBe(24);
+    expect(resolveConfig({ ...base, env: { CCC_RUN_TTL_HOURS: 'soon' } }).runTtlHours).toBe(24);
+  });
+
   it('returns a frozen object', () => {
     expect(Object.isFrozen(resolveConfig(base))).toBe(true);
   });

@@ -44,6 +44,22 @@ async function main(): Promise<void> {
       }
       return;
     }
+    case 'simulate': {
+      const [{ isScenario, loadReplay, runSimulation, scenarioRecords, SCENARIOS }, fsMod] =
+        await Promise.all([import('./events/simulate.js'), import('node:fs')]);
+      const target = args[0];
+      if (target !== undefined && isScenario(target)) {
+        await runSimulation(scenarioRecords(target, Date.now()), eventsDir, console.log);
+      } else if (target !== undefined && fsMod.default.existsSync(target)) {
+        await runSimulation(loadReplay(target, Date.now()), eventsDir, console.log);
+      } else {
+        console.error(
+          `Unknown scenario: ${target ?? '(none)'}\nScenarios: ${SCENARIOS.join(', ')} — or a path to a recorded session .jsonl`,
+        );
+        process.exitCode = 1;
+      }
+      return;
+    }
     case 'doctor': {
       const [{ runDoctor }, { resolveClient }] = await Promise.all([
         import('./events/doctor.js'),
@@ -87,14 +103,21 @@ async function main(): Promise<void> {
       const ai = createDungeonAi({ client, budgetUsd: config.aiBudgetUsd, transcript });
       render(
         <App
-          deps={{ store, seed: config.seed, eventsDir, snarkLevel: config.snarkLevel, ai }}
+          deps={{
+            store,
+            seed: config.seed,
+            eventsDir,
+            snarkLevel: config.snarkLevel,
+            ai,
+            runTtlMs: config.runTtlHours * 60 * 60 * 1000,
+          }}
         />,
       );
       return;
     }
     default:
       console.error(
-        `Unknown command: ${command}\nUsage: ccc [play|init [--remove]|doctor|hook <type>]`,
+        `Unknown command: ${command}\nUsage: ccc [play|init [--remove]|doctor|simulate <scenario|file>|hook <type>]`,
       );
       process.exitCode = 1;
   }

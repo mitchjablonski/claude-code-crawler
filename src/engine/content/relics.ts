@@ -22,6 +22,12 @@ const defs: readonly RelicDef[] = [
     trigger: 'turnStart',
     effects: [{ kind: 'block', amount: 2 }],
   },
+  // --- M6 content quota ---
+  { id: 'troll-tooth', name: 'Troll Tooth', description: 'At the start of each combat, heal 3 HP.', trigger: 'combatStart', effects: [{ kind: 'heal', amount: 3 }] },
+  { id: 'banner-of-the-crawl', name: 'Banner of the Crawl', description: 'At the start of each combat, gain 8 Block.', trigger: 'combatStart', effects: [{ kind: 'block', amount: 8 }] },
+  { id: 'lucky-coin', name: 'Lucky Coin', description: 'At the start of each combat, gain 1 Energy.', trigger: 'combatStart', effects: [{ kind: 'gainEnergy', amount: 1 }] },
+  { id: 'moss-amulet', name: 'Moss Amulet', description: 'At the start of each turn (after the first), heal 1 HP.', trigger: 'turnStart', effects: [{ kind: 'heal', amount: 1 }] },
+  { id: 'whetstone', name: 'Whetstone', description: 'At the start of each combat, gain 2 Strength.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
 ];
 
 export const relics: Readonly<Record<string, RelicDef>> = Object.fromEntries(

@@ -49,6 +49,18 @@ describe('ruleFor', () => {
   });
 });
 
+describe('rule references', () => {
+  it('queueElite rules reference enemies that exist in content', async () => {
+    const { content } = await import('../engine/content/index.js');
+    for (const kind of ['tests_failed', 'build_failed'] as const) {
+      const outcome = ruleFor(ev(kind));
+      if (outcome.modifier?.kind === 'queueElite') {
+        expect(content.enemies[outcome.modifier.enemyId]).toBeDefined();
+      }
+    }
+  });
+});
+
 describe('snark tiers', () => {
   it('narration differs per tier and defaults to wry', () => {
     const dry = ruleFor(ev('tests_passed'), 0).narration;

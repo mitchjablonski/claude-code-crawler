@@ -29,6 +29,11 @@ export function RewardScreen({
       <Text bold color="yellow">
         Victory! +{reward?.gold ?? 0}g
       </Text>
+      {reward?.relicId !== undefined && (
+        <Text color="cyan">
+          Relic claimed: {content.relics[reward.relicId]?.name ?? reward.relicId}
+        </Text>
+      )}
       <Box marginTop={1} flexDirection="column">
         <Text bold>Take a card for your deck:</Text>
         {cards.map((cardId, i) => {

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 2; // v2: RunState gained the `modifiers` field
+const SAVE_VERSION = 3; // v3: run saves carry savedAt for the abandonment TTL
 
 export interface RunRecord {
   readonly seed: string;
@@ -20,8 +20,13 @@ export interface MetaState {
   readonly settings?: MetaSettings;
 }
 
+export interface SavedRun {
+  readonly state: RunState;
+  readonly savedAt: number;
+}
+
 export interface SaveStore {
-  loadRun(): RunState | null;
+  loadRun(): SavedRun | null;
   saveRun(state: RunState): void;
   clearRun(): void;
   loadMeta(): MetaState;
@@ -31,27 +36,29 @@ export interface SaveStore {
 
 const EMPTY_META: MetaState = { version: SAVE_VERSION, runs: [] };
 
-export function createSaveStore(saveDir: string): SaveStore {
+export function createSaveStore(saveDir: string, now: () => number = Date.now): SaveStore {
   const runFile = path.join(saveDir, 'run.json');
   const metaFile = path.join(saveDir, 'meta.json');
 
   return {
-    loadRun(): RunState | null {
+    loadRun(): SavedRun | null {
       const data = readJson(runFile);
       if (
         data === null ||
         typeof data !== 'object' ||
         (data as { version?: unknown }).version !== SAVE_VERSION ||
-        typeof (data as { state?: unknown }).state !== 'object'
+        typeof (data as { state?: unknown }).state !== 'object' ||
+        typeof (data as { savedAt?: unknown }).savedAt !== 'number'
       ) {
         if (data !== null) quarantine(runFile);
         return null;
       }
-      return (data as { state: RunState }).state;
+      const entry = data as { state: RunState; savedAt: number };
+      return { state: entry.state, savedAt: entry.savedAt };
     },
 
     saveRun(state: RunState): void {
-      writeJsonAtomic(runFile, { version: SAVE_VERSION, state });
+      writeJsonAtomic(runFile, { version: SAVE_VERSION, savedAt: now(), state });
     },
 
     clearRun(): void {

@@ -139,9 +139,9 @@ function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): 
       return enterCombat(content, consumed, [...enemyIds, queued[0] as string]);
     }
     case 'elite':
-      return enterCombat(content, moved, [pickFromPool(content, moved, 'elite')]);
+      return enterRolledCombat(content, moved, 'elite');
     case 'boss':
-      return enterCombat(content, moved, [pickFromPool(content, moved, 'boss')]);
+      return enterRolledCombat(content, moved, 'boss');
     case 'shop':
       return enterShop(content, moved);
     case 'rest':
@@ -164,16 +164,15 @@ function enemyPool(content: ContentRegistry, kind: PoolKind): string[] {
     .sort();
 }
 
-function pickFromPool(
+function enterRolledCombat(
   content: ContentRegistry,
-  state: { rng: RunState['rng'] },
+  state: RunState,
   kind: Exclude<PoolKind, 'normal'>,
-): string {
+): RunState {
   const pool = enemyPool(content, kind);
   if (pool.length === 0) throw new EngineError(`no ${kind} enemies in content`);
-  // Peek-free deterministic pick is done inside enterCombat's stream use;
-  // here a dedicated draw keeps pool choice independent of HP rolls.
-  return pool[0] as string;
+  const [enemyId, rng] = withStream(state.rng, 'combat', (r) => r.pick(pool));
+  return enterCombat(content, { ...state, rng }, [enemyId]);
 }
 
 function rollEncounter(
@@ -234,16 +233,28 @@ function finishCombat(content: ContentRegistry, state: RunState): RunState {
   if (node.kind === 'boss') {
     return { ...state, combat: null, phase: 'victory' };
   }
-  const [reward, rng] = withStream(state.rng, 'loot', (r) => ({
-    gold: node.kind === 'elite' ? r.intBetween(30, 50) : r.intBetween(15, 30),
-    cards: rollCardChoices(content, r, 3),
-  }));
+  const isElite = node.kind === 'elite';
+  const [reward, rng] = withStream(state.rng, 'loot', (r) => {
+    const gold = isElite ? r.intBetween(30, 50) : r.intBetween(15, 30);
+    const cards = rollCardChoices(content, r, 3);
+    let relicId: string | undefined;
+    if (isElite) {
+      const unowned = Object.keys(content.relics)
+        .filter((id) => !state.relics.includes(id))
+        .sort();
+      if (unowned.length > 0) relicId = r.pick(unowned);
+    }
+    return { gold, cards, relicId };
+  });
   return {
     ...state,
     rng,
     combat: null,
     gold: state.gold + reward.gold,
-    reward,
+    relics: reward.relicId ? [...state.relics, reward.relicId] : state.relics,
+    reward: reward.relicId
+      ? { cards: reward.cards, gold: reward.gold, relicId: reward.relicId }
+      : { cards: reward.cards, gold: reward.gold },
     phase: 'reward',
   };
 }
@@ -324,6 +335,9 @@ function resolveEventOption(
     switch (outcome.kind) {
       case 'gainGold':
         next = { ...next, gold: next.gold + outcome.amount };
+        break;
+      case 'loseGold':
+        next = { ...next, gold: Math.max(0, next.gold - outcome.amount) };
         break;
       case 'loseHp':
         next = { ...next, hp: Math.max(0, next.hp - outcome.amount) };

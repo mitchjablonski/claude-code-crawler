@@ -22,7 +22,11 @@ export interface GameDeps {
   /** Explicit flag/env snark; undefined → in-game setting, then wry. */
   readonly snarkLevel?: SnarkLevel;
   readonly ai?: DungeonAi | null;
+  /** Saves older than this retire as 'abandoned' (REQ-12). Default 24h. */
+  readonly runTtlMs?: number;
 }
+
+const DEFAULT_RUN_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface Game {
   readonly state: RunState | null;
@@ -40,7 +44,21 @@ export function useGame(deps: GameDeps): Game {
   const runConfig = deps.runConfig ?? DEFAULT_RUN_CONFIG;
   const now = deps.now ?? Date.now;
   const [state, setState] = useState<RunState | null>(null);
-  const [hasSave, setHasSave] = useState(() => deps.store.loadRun() !== null);
+  const [hasSave, setHasSave] = useState(() => {
+    const saved = deps.store.loadRun();
+    if (!saved) return false;
+    const ttl = deps.runTtlMs ?? DEFAULT_RUN_TTL_MS;
+    if (now() - saved.savedAt > ttl) {
+      deps.store.recordRun({
+        seed: saved.state.seed,
+        outcome: 'abandoned',
+        endedAt: new Date(now()).toISOString(),
+      });
+      deps.store.clearRun();
+      return false;
+    }
+    return true;
+  });
 
   const dispatch = useCallback(
     (action: GameAction) => {
@@ -81,7 +99,7 @@ export function useGame(deps: GameDeps): Game {
 
   const continueRun = useCallback(() => {
     const saved = deps.store.loadRun();
-    if (saved) setState(saved);
+    if (saved) setState(saved.state);
   }, [deps.store]);
 
   const quitToTitle = useCallback(() => setState(null), []);

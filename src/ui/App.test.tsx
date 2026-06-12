@@ -9,13 +9,13 @@ import type { HookRecord } from '../events/types.js';
 import type { TailerOptions } from '../events/tailer.js';
 import type { DungeonAi } from '../ai/dungeonAi.js';
 
-function memoryStore() {
+function memoryStore(savedAt = 0) {
   let run: RunState | null = null;
   const runs: RunRecord[] = [];
   let settings: MetaSettings = {};
   let saveCount = 0;
   const store: SaveStore = {
-    loadRun: () => run,
+    loadRun: () => (run ? { state: run, savedAt } : null),
     saveRun: (state) => {
       run = state;
       saveCount++;
@@ -187,6 +187,19 @@ describe('App with hook events', () => {
     await tick();
     expect(lastFrame()).toContain('Snark: roast');
     expect(mem.store.loadMeta().settings?.snarkLevel).toBe(2);
+  });
+
+  it('retires stale runs as abandoned at startup (REQ-12)', async () => {
+    const mem = memoryStore(0); // saved at t=0
+    mem.store.saveRun(createRun(content, 'stale-run', DEFAULT_RUN_CONFIG));
+    const twentyFiveHours = 25 * 60 * 60 * 1000;
+    const { lastFrame } = await renderApp(
+      <App deps={{ ...deps(mem), now: () => twentyFiveHours }} />,
+    );
+    expect(lastFrame()).not.toContain('[c] Continue');
+    expect(mem.runs.some((r) => r.seed === 'stale-run' && r.outcome === 'abandoned')).toBe(
+      true,
+    );
   });
 
   it('lets the Dungeon AI upgrade the narration line', async () => {

@@ -140,6 +140,28 @@ const defs: readonly CardDef[] = [
     target: 'self',
     effects: [{ kind: 'block', amount: 20 }],
   },
+  // --- M6 content quota ---
+  // Commons
+  { id: 'rat-bite', name: 'Rat Bite', description: 'Deal 3 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 3, target: 'enemy' }] },
+  { id: 'brace', name: 'Brace', description: 'Gain 3 Block.', type: 'skill', rarity: 'common', cost: 0, target: 'self', effects: [{ kind: 'block', amount: 3 }] },
+  { id: 'pommel-strike', name: 'Pommel Strike', description: 'Deal 4 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  { id: 'torch-jab', name: 'Torch Jab', description: 'Deal 4 damage. Apply 1 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'enemy' }] },
+  { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }] },
+  { id: 'spiked-shield', name: 'Spiked Shield', description: 'Gain 5 Block. Deal 3 damage.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 5 }, { kind: 'damage', amount: 3, target: 'enemy' }] },
+  { id: 'field-rations', name: 'Field Rations', description: 'Heal 3 HP. Gain 3 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 3 }, { kind: 'block', amount: 3 }] },
+  // Uncommons
+  { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }] },
+  { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 3 cards.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 3 }] },
+  { id: 'iron-hide', name: 'Iron Hide', description: 'Gain 3 Regen.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'regen', stacks: 3, target: 'self' }] },
+  { id: 'second-wind', name: 'Second Wind', description: 'Heal 4 HP. Gain 1 Energy.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 4 }, { kind: 'gainEnergy', amount: 1 }] },
+  { id: 'crippling-blow', name: 'Crippling Blow', description: 'Deal 10 damage. Apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }] },
+  { id: 'shield-bash', name: 'Shield Bash', description: 'Deal 6 damage. Gain 4 Block.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'block', amount: 4 }] },
+  // Rares
+  { id: 'avalanche', name: 'Avalanche', description: 'Deal 12 damage to all enemies.', type: 'attack', rarity: 'rare', cost: 3, target: 'allEnemies', effects: [{ kind: 'damage', amount: 12, target: 'allEnemies' }] },
+  { id: 'berserker-brew', name: 'Berserker Brew', description: 'Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
+  { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP.', type: 'skill', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 12 }] },
+  { id: 'perfect-parry', name: 'Perfect Parry', description: 'Gain 10 Block. Draw 1 card.', type: 'skill', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 10 }, { kind: 'draw', count: 1 }] },
+  { id: 'guillotine', name: 'Guillotine', description: 'Deal 24 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 24, target: 'enemy' }] },
 ];
 
 export const cards: Readonly<Record<string, CardDef>> = Object.fromEntries(

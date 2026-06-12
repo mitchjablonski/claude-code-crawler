@@ -16,6 +16,8 @@ export interface Config {
   readonly aiModel: string | undefined;
   readonly aiBudgetUsd: number;
   readonly aiTranscript: boolean;
+  /** Hours before an unfinished run retires as abandoned (REQ-12). */
+  readonly runTtlHours: number;
 }
 
 /** Injectable ambient sources; production callers pass nothing. */
@@ -62,6 +64,9 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
   const transcriptRaw = flags['ai-transcript'] ?? env['CCC_AI_TRANSCRIPT'];
   const aiTranscript = transcriptRaw === 'true' || transcriptRaw === '1';
 
+  const ttlRaw = Number(flags['run-ttl-hours'] ?? env['CCC_RUN_TTL_HOURS'] ?? '24');
+  const runTtlHours = Number.isFinite(ttlRaw) && ttlRaw > 0 ? ttlRaw : 24;
+
   return Object.freeze({
     saveDir,
     seed,
@@ -72,6 +77,7 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
     aiModel,
     aiBudgetUsd,
     aiTranscript,
+    runTtlHours,
   });
 }
 
