@@ -26,12 +26,17 @@ export interface EventsDeps {
   readonly getRunSummary?: () => RunSummary | null;
 }
 
+export interface QueuedModifier {
+  readonly modifier: Modifier;
+  readonly event: GameEvent;
+}
+
 export interface EventsState {
   readonly linked: boolean;
   readonly pause: PauseState | null;
   readonly narration: string | null;
   readonly eventTick: number;
-  takeModifiers(): Modifier[];
+  takeQueued(): QueuedModifier[];
   dismissPause(): void;
 }
 
@@ -40,7 +45,7 @@ export function useEvents(deps: EventsDeps): EventsState {
   const [pause, setPause] = useState<PauseState | null>(null);
   const [narration, setNarration] = useState<string | null>(null);
   const [eventTick, setEventTick] = useState(0);
-  const queueRef = useRef<Modifier[]>([]);
+  const queueRef = useRef<QueuedModifier[]>([]);
   const limiter = useMemo(() => createLimiter(limitFor, deps.now), [deps.now]);
 
   const handleEvent = useCallback(
@@ -73,7 +78,7 @@ export function useEvents(deps: EventsDeps): EventsState {
       const snark = deps.snark ?? 1;
       const outcome = ruleFor(event, snark);
       if (outcome.modifier) {
-        queueRef.current.push(outcome.modifier);
+        queueRef.current.push({ modifier: outcome.modifier, event });
         setEventTick((t) => t + 1);
       }
       if (outcome.narration) {
@@ -104,7 +109,7 @@ export function useEvents(deps: EventsDeps): EventsState {
     return () => source.stop();
   }, [deps.eventsDir, deps.createSource, handleEvent]);
 
-  const takeModifiers = useCallback((): Modifier[] => {
+  const takeQueued = useCallback((): QueuedModifier[] => {
     if (queueRef.current.length === 0) return [];
     const drained = queueRef.current;
     queueRef.current = [];
@@ -113,5 +118,5 @@ export function useEvents(deps: EventsDeps): EventsState {
 
   const dismissPause = useCallback(() => setPause(null), []);
 
-  return { linked, pause, narration, eventTick, takeModifiers, dismissPause };
+  return { linked, pause, narration, eventTick, takeQueued, dismissPause };
 }

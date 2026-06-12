@@ -31,10 +31,12 @@ export function CombatScreen({
   state,
   content,
   dispatch,
+  nameFor,
 }: {
   readonly state: RunState;
   readonly content: ContentRegistry;
   readonly dispatch: (action: GameAction) => void;
+  readonly nameFor?: (defId: string) => string | undefined;
 }) {
   const combat = state.combat as CombatState;
   const [pendingCard, setPendingCard] = useState<number | null>(null);
@@ -86,7 +88,7 @@ export function CombatScreen({
         {combat.enemies.map((enemy, i) => (
           <Text key={`${enemy.defId}-${i}`} dimColor={enemy.hp <= 0}>
             {pendingCard !== null && enemy.hp > 0 ? `[${i + 1}] ` : '    '}
-            <Text bold>{enemy.name}</Text>{' '}
+            <Text bold>{nameFor?.(enemy.defId) ?? enemy.name}</Text>{' '}
             {enemy.hp <= 0
               ? 'slain'
               : `${enemy.hp}/${enemy.maxHp}${enemy.block > 0 ? ` +${enemy.block}blk` : ''}`}

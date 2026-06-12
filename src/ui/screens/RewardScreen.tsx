@@ -5,10 +5,12 @@ export function RewardScreen({
   state,
   content,
   dispatch,
+  relicDisplayName,
 }: {
   readonly state: RunState;
   readonly content: ContentRegistry;
   readonly dispatch: (action: GameAction) => void;
+  readonly relicDisplayName?: string;
 }) {
   const reward = state.reward;
   const cards = reward?.cards ?? [];
@@ -31,7 +33,8 @@ export function RewardScreen({
       </Text>
       {reward?.relicId !== undefined && (
         <Text color="cyan">
-          Relic claimed: {content.relics[reward.relicId]?.name ?? reward.relicId}
+          Relic claimed:{' '}
+          {relicDisplayName ?? content.relics[reward.relicId]?.name ?? reward.relicId}
         </Text>
       )}
       <Box marginTop={1} flexDirection="column">

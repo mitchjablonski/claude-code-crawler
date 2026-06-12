@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from 'ink';
 import { useGame, type GameDeps } from './useGame.js';
 import { useEvents } from './useEvents.js';
+import { useChristenings } from './useChristenings.js';
 import { isSafeBoundary } from '../engine/types.js';
 import type { SnarkLevel } from '../config.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
@@ -52,13 +53,49 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     getRunSummary,
   });
 
-  // Bounded modifiers apply only at engine-defined safe boundaries.
-  const { state, applyModifiers } = game;
-  const { eventTick, takeModifiers } = events;
+  const christenings = useChristenings({ ai: deps.ai, snark, getRunSummary });
+
+  // Bounded modifiers apply only at engine-defined safe boundaries; elite
+  // spawns get christened after the work that summoned them.
+  const { state, applyModifiers, content: gameContent } = game;
+  const { eventTick, takeQueued } = events;
+  const { request: requestChristening } = christenings;
   useEffect(() => {
     if (!state || !isSafeBoundary(state)) return;
-    applyModifiers(takeModifiers());
-  }, [eventTick, state, applyModifiers, takeModifiers]);
+    const queued = takeQueued();
+    if (queued.length === 0) return;
+    applyModifiers(queued.map((q) => q.modifier));
+    for (const q of queued) {
+      if (q.modifier.kind === 'queueElite') {
+        const base = gameContent.enemies[q.modifier.enemyId]?.name ?? q.modifier.enemyId;
+        requestChristening('enemy', q.modifier.enemyId, base, q.event);
+      }
+    }
+  }, [eventTick, state, applyModifiers, takeQueued, requestChristening, gameContent]);
+
+  // The boss earns a session-themed epithet the moment its fight begins.
+  useEffect(() => {
+    if (!state || state.phase !== 'combat' || !state.combat) return;
+    for (const enemy of state.combat.enemies) {
+      if (gameContent.enemies[enemy.defId]?.isBoss) {
+        requestChristening('boss', enemy.defId, enemy.name);
+      }
+    }
+  }, [state, requestChristening, gameContent]);
+
+  // Relic drops get repo-aware epithets while the reward screen is up.
+  useEffect(() => {
+    const relicId = state?.reward?.relicId;
+    if (!relicId) return;
+    requestChristening('relic', relicId, gameContent.relics[relicId]?.name ?? relicId);
+  }, [state, requestChristening, gameContent]);
+
+  const newRun = () => {
+    christenings.reset();
+    game.newRun();
+  };
+  const enemyDisplayName = (defId: string) =>
+    christenings.nameFor('boss', defId) ?? christenings.nameFor('enemy', defId);
 
   if (!game.state) {
     return (
@@ -66,7 +103,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         hasSave={game.hasSave}
         snark={snark}
         aiBackend={deps.ai?.backend ?? 'static'}
-        onNew={game.newRun}
+        onNew={newRun}
         onContinue={game.continueRun}
         onCycleSnark={cycleSnark}
       />
@@ -87,10 +124,24 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         <>
           {run.phase === 'map' && <MapScreen state={run} dispatch={game.dispatch} />}
           {run.phase === 'combat' && (
-            <CombatScreen state={run} content={game.content} dispatch={game.dispatch} />
+            <CombatScreen
+              state={run}
+              content={game.content}
+              dispatch={game.dispatch}
+              nameFor={enemyDisplayName}
+            />
           )}
           {run.phase === 'reward' && (
-            <RewardScreen state={run} content={game.content} dispatch={game.dispatch} />
+            <RewardScreen
+              state={run}
+              content={game.content}
+              dispatch={game.dispatch}
+              relicDisplayName={
+                run.reward?.relicId
+                  ? christenings.nameFor('relic', run.reward.relicId)
+                  : undefined
+              }
+            />
           )}
           {run.phase === 'shop' && (
             <ShopScreen state={run} content={game.content} dispatch={game.dispatch} />
@@ -100,7 +151,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
             <EventScreen state={run} content={game.content} dispatch={game.dispatch} />
           )}
           {over && (
-            <GameOverScreen state={run} onNew={game.newRun} onTitle={game.quitToTitle} />
+            <GameOverScreen state={run} onNew={newRun} onTitle={game.quitToTitle} />
           )}
         </>
       )}

@@ -176,7 +176,12 @@ describe('App with hook events', () => {
 
   it('cycles snark on the title and persists it', async () => {
     const mem = memoryStore();
-    const fakeAi: DungeonAi = { backend: 'fake-ai', narrate: () => {}, spentUsd: () => 0 };
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: () => {},
+      christen: () => {},
+      spentUsd: () => 0,
+    };
     const { lastFrame, stdin } = await renderApp(
       <App deps={{ ...deps(mem), ai: fakeAi }} />,
     );
@@ -208,6 +213,7 @@ describe('App with hook events', () => {
     const fakeAi: DungeonAi = {
       backend: 'fake-ai',
       narrate: (narrationCtx, onLine) => onLine(`AI says: ${narrationCtx.event.kind}`),
+      christen: () => {},
       spentUsd: () => 0,
     };
     const { lastFrame, stdin } = await renderApp(
@@ -247,5 +253,41 @@ describe('App with hook events', () => {
     );
     await tick();
     expect(lastFrame()).toMatch(/\b50g\b/); // unchanged mid-combat
+  });
+});
+
+describe('Tier 1 christening', () => {
+  it('shows the christened elite in combat but never persists it', async () => {
+    const mem = memoryStore();
+    const src = fakeSource();
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: () => {},
+      christen: (christenCtx, onName) =>
+        onName(`${christenCtx.baseName} of the Broken Build`),
+      spentUsd: () => 0,
+    };
+    const { lastFrame, stdin } = await renderApp(
+      <App deps={{ ...deps(mem), createSource: src.create, ai: fakeAi }} />,
+    );
+    stdin.write('n');
+    await tick();
+
+    // A failing test run queues the elite (and triggers christening at drain).
+    src.emit(
+      hookRec('PostToolUse', {
+        tool_name: 'Bash',
+        tool_input: { command: 'npm test' },
+        tool_response: { exitCode: 1 },
+      }),
+    );
+    await tick();
+
+    stdin.write('1'); // into combat: the queued elite joins this encounter
+    await tick();
+    expect(lastFrame()).toContain('Lint Goblin of the Broken Build');
+
+    // Tier 1 boundary: the christened name exists only in the UI registry.
+    expect(JSON.stringify(mem.store.loadRun())).not.toContain('Broken Build');
   });
 });
