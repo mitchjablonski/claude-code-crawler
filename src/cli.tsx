@@ -1,6 +1,29 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import path from 'node:path';
 import { resolveConfig } from './config.js';
+import { USAGE, cliShortcut } from './cli-args.js';
+
+function readVersion(): string {
+  try {
+    const pkg = JSON.parse(
+      fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { version?: string };
+    return pkg.version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+const shortcut = cliShortcut(process.argv.slice(2));
+if (shortcut === 'help') {
+  console.log(USAGE);
+  process.exit(0);
+}
+if (shortcut === 'version') {
+  console.log(readVersion());
+  process.exit(0);
+}
 
 const rawCommand = process.argv[2];
 const command = rawCommand?.startsWith('--') ? undefined : rawCommand;
