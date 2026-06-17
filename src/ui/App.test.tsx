@@ -134,7 +134,7 @@ describe('App with hook events', () => {
     );
     await tick();
     expect(lastFrame()).toContain('dungeon: linked');
-    expect(lastFrame()).toMatch(/(5[8-9]|6[0-5])g/); // 50g start + big lootRoll 8-15
+    expect(lastFrame()).toMatch(/(6[5-9]|7[0-5])g/); // 50g start + big lootRoll 15-25
     expect(lastFrame()).toContain('coin purse');
   });
 
@@ -192,6 +192,23 @@ describe('App with hook events', () => {
     await tick();
     expect(lastFrame()).toContain('Snark: roast');
     expect(mem.store.loadMeta().settings?.snarkLevel).toBe(2);
+  });
+
+  it('cycles difficulty on the title and persists it', async () => {
+    const mem = memoryStore();
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: () => {},
+      christen: () => {},
+      spentUsd: () => 0,
+    };
+    const { lastFrame, stdin } = await renderApp(<App deps={{ ...deps(mem), ai: fakeAi }} />);
+    expect(lastFrame()).toContain('Difficulty: Normal');
+
+    stdin.write('d');
+    await tick();
+    expect(lastFrame()).toContain('Difficulty: Hard');
+    expect(mem.store.loadMeta().settings?.difficulty).toBe('hard');
   });
 
   it('retires stale runs as abandoned at startup (REQ-12)', async () => {
@@ -258,7 +275,30 @@ describe('App with hook events', () => {
 
 describe('Tier 1 christening', () => {
   it('shows the christened elite in combat but never persists it', async () => {
+    // Elites are gated to row >= 3, so preload a run standing on a row-2 node
+    // that leads into a row >= 3 combat, then fire the failed build there.
+    let base = createRun(content, 'christen-0', DEFAULT_RUN_CONFIG);
+    let pred: string | undefined;
+    let targetIdx = -1;
+    for (let s = 0; s < 60 && pred === undefined; s++) {
+      base = createRun(content, `christen-${s}`, DEFAULT_RUN_CONFIG);
+      for (const node of Object.values(base.map.nodes)) {
+        if (node.row !== 2) continue;
+        const idx = node.next.findIndex((id) => {
+          const n = base.map.nodes[id];
+          return n?.kind === 'combat' && n.row >= 3;
+        });
+        if (idx >= 0) {
+          pred = node.id;
+          targetIdx = idx;
+          break;
+        }
+      }
+    }
+    if (pred === undefined) throw new Error('no row-2 -> row-3 combat edge found');
+
     const mem = memoryStore();
+    mem.store.saveRun({ ...base, currentNodeId: pred });
     const src = fakeSource();
     const fakeAi: DungeonAi = {
       backend: 'fake-ai',
@@ -270,10 +310,10 @@ describe('Tier 1 christening', () => {
     const { lastFrame, stdin } = await renderApp(
       <App deps={{ ...deps(mem), createSource: src.create, ai: fakeAi }} />,
     );
-    stdin.write('n');
+    stdin.write('c'); // continue the preloaded run -> map at the row-2 node
     await tick();
 
-    // A failing test run queues the elite (and triggers christening at drain).
+    // Failing test queues the elite; drained at this map boundary -> christened.
     src.emit(
       hookRec('PostToolUse', {
         tool_name: 'Bash',
@@ -283,9 +323,9 @@ describe('Tier 1 christening', () => {
     );
     await tick();
 
-    stdin.write('1'); // into combat: the queued elite joins this encounter
+    stdin.write(String(targetIdx + 1)); // descend into the row >= 3 combat
     await tick();
-    expect(lastFrame()).toContain('Lint Goblin of the Broken Build');
+    expect(lastFrame()).toContain('of the Broken Build');
 
     // Tier 1 boundary: the christened name exists only in the UI registry.
     expect(JSON.stringify(mem.store.loadRun())).not.toContain('Broken Build');

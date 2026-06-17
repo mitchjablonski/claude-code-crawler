@@ -49,11 +49,11 @@ const defs: readonly NarrativeEventDef[] = [
   { id: 'abandoned-armory', name: 'Abandoned Armory', prompt: 'Racks of equipment under centuries of dust. A sign reads: TAKE ONE. The handwriting is ominous.', options: [
     { label: 'Take the shield', outcomes: [{ kind: 'gainCard', cardId: 'shield-wall' }] },
     { label: 'Take the whetstone', outcomes: [{ kind: 'gainRelic', relicId: 'whetstone' }] },
-    { label: 'Take everything, quickly', outcomes: [{ kind: 'gainCard', cardId: 'shield-wall' }, { kind: 'gainRelic', relicId: 'whetstone' }, { kind: 'loseHp', amount: 8 }] },
+    { label: 'Take everything, quickly', outcomes: [{ kind: 'gainCard', cardId: 'shield-wall' }, { kind: 'gainRelic', relicId: 'whetstone' }, { kind: 'loseHp', amount: 16 }] },
   ] },
   { id: 'complaints-department', name: 'The Complaints Department', prompt: 'A window in the rock face, lit from within. The plaque says THE DUNGEON LISTENS. It does not.', options: [
     { label: 'File a formal complaint', outcomes: [{ kind: 'gainGold', amount: 15 }, { kind: 'loseHp', amount: 2 }] },
-    { label: 'Read the complaint wall', outcomes: [{ kind: 'gainMaxHp', amount: 4 }] },
+    { label: 'Read the complaint wall (inspiring, but a long read)', outcomes: [{ kind: 'gainMaxHp', amount: 6 }, { kind: 'loseHp', amount: 4 }] },
     { label: 'Leave quietly', outcomes: [] },
   ] },
   { id: 'suspicious-healer', name: 'Suspicious Healer', prompt: 'A robed figure with too many rings gestures at a bubbling cauldron. "Free sample," it says, in a tone that has clearly said it many times.', options: [

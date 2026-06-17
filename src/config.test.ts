@@ -68,6 +68,13 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...base, env: { CCC_AI_BUDGET: '-3' } }).aiBudgetUsd).toBe(0.05);
   });
 
+  it('parses difficulty with validation', () => {
+    expect(resolveConfig(base).difficulty).toBeUndefined();
+    expect(resolveConfig({ ...base, env: { CCC_DIFFICULTY: 'hard' } }).difficulty).toBe('hard');
+    expect(resolveConfig({ ...base, argv: ['--difficulty', 'nightmare'] }).difficulty).toBe('nightmare');
+    expect(resolveConfig({ ...base, env: { CCC_DIFFICULTY: 'impossible' } }).difficulty).toBeUndefined();
+  });
+
   it('parses the run TTL with validation', () => {
     expect(resolveConfig(base).runTtlHours).toBe(24);
     expect(resolveConfig({ ...base, env: { CCC_RUN_TTL_HOURS: '48' } }).runTtlHours).toBe(48);

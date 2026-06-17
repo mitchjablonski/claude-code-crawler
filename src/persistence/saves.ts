@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 3; // v3: run saves carry savedAt for the abandonment TTL
+const SAVE_VERSION = 4; // v4: RunState gained enemyHpMult (difficulty)
 
 export interface RunRecord {
   readonly seed: string;
@@ -12,6 +12,7 @@ export interface RunRecord {
 
 export interface MetaSettings {
   readonly snarkLevel?: 0 | 1 | 2;
+  readonly difficulty?: 'story' | 'normal' | 'hard' | 'nightmare';
 }
 
 export interface MetaState {

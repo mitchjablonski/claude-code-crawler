@@ -35,8 +35,14 @@ const SEED_BASE = arg('seedbase', 'play');
 const ITERS = Number(arg('iters', '200'));
 
 // Tally of card plays across all runs (any policy) — surfaces which cards a
-// strong agent actually leans on.
+// strong agent actually leans on (note: dominated by starters via deck share).
 const cardPlays: Record<string, number> = {};
+// Draft pick-rate: how often an OFFERED reward card is taken — the clean
+// dominant/dead-card signal.
+const cardOffered: Record<string, number> = {};
+const cardPicked: Record<string, number> = {};
+let rewardsSeen = 0;
+let rewardsSkipped = 0;
 
 // --- deterministic per-run RNG for policy tie-breaks (kept out of engine streams) ---
 function mulberry(seedStr: string): () => number {
@@ -208,6 +214,16 @@ function playRun(seed: string, content: ContentRegistry, config: RunConfig, poli
         const id = state.combat.hand[action.handIndex];
         if (id) cardPlays[id] = (cardPlays[id] ?? 0) + 1;
       }
+      if (state.phase === 'reward' && state.reward) {
+        rewardsSeen++;
+        for (const cid of state.reward.cards) cardOffered[cid] = (cardOffered[cid] ?? 0) + 1;
+        if (action.type === 'pickRewardCard') {
+          const cid = state.reward.cards[action.index];
+          if (cid) cardPicked[cid] = (cardPicked[cid] ?? 0) + 1;
+        } else if (action.type === 'skipReward') {
+          rewardsSkipped++;
+        }
+      }
       state = applyAction(content, state, action);
     } catch (err) {
       if (err instanceof EngineError && state.phase === 'combat') {
@@ -281,6 +297,15 @@ console.log(
       deathsByEnemy: tally((r) => r.deathEnemy),
       topCardPlays: Object.fromEntries(
         Object.entries(cardPlays).sort((a, b) => b[1] - a[1]).slice(0, 12),
+      ),
+      rewardSkipRate: rewardsSeen ? +(rewardsSkipped / rewardsSeen).toFixed(3) : 0,
+      pickRate: Object.fromEntries(
+        Object.entries(cardOffered)
+          .map(([id, off]) => [
+            id,
+            { offered: off, picked: cardPicked[id] ?? 0, rate: +((cardPicked[id] ?? 0) / off).toFixed(2) },
+          ] as const)
+          .sort((a, b) => b[1].rate - a[1].rate),
       ),
     },
     null,

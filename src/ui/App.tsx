@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from 'ink';
 import { useGame, type GameDeps } from './useGame.js';
 import { useEvents } from './useEvents.js';
 import { useChristenings } from './useChristenings.js';
 import { isSafeBoundary } from '../engine/types.js';
-import type { SnarkLevel } from '../config.js';
+import type { SnarkLevel, Difficulty } from '../config.js';
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, DIFFICULTY_KNOBS } from '../config.js';
+import type { RunConfig } from '../engine/run.js';
+import { DEFAULT_RUN_CONFIG } from '../engine/content/index.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
 import { StatusBar } from './components/StatusBar.js';
 import { PauseOverlay } from './components/PauseOverlay.js';
@@ -18,7 +21,29 @@ import { EventScreen } from './screens/EventScreen.js';
 import { GameOverScreen } from './screens/GameOverScreen.js';
 
 export function App({ deps }: { readonly deps: GameDeps }) {
-  const game = useGame(deps);
+  const [difficulty, setDifficulty] = useState<Difficulty>(
+    () => deps.difficulty ?? deps.store.loadMeta().settings?.difficulty ?? DEFAULT_DIFFICULTY,
+  );
+  const runConfig = useMemo<RunConfig>(() => {
+    const k = DIFFICULTY_KNOBS[difficulty];
+    return {
+      ...DEFAULT_RUN_CONFIG,
+      maxHp: k.maxHp,
+      startingGold: k.startingGold,
+      enemyHpMult: k.enemyHpMult,
+    };
+  }, [difficulty]);
+  const cycleDifficulty = useCallback(() => {
+    setDifficulty((prev) => {
+      const next = DIFFICULTIES[
+        (DIFFICULTIES.indexOf(prev) + 1) % DIFFICULTIES.length
+      ] as Difficulty;
+      deps.store.updateSettings({ difficulty: next });
+      return next;
+    });
+  }, [deps.store]);
+
+  const game = useGame({ ...deps, runConfig });
   const [snark, setSnark] = useState<SnarkLevel>(
     () => deps.snarkLevel ?? deps.store.loadMeta().settings?.snarkLevel ?? 1,
   );
@@ -102,10 +127,12 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       <Title
         hasSave={game.hasSave}
         snark={snark}
+        difficulty={difficulty}
         aiBackend={deps.ai?.backend ?? 'static'}
         onNew={newRun}
         onContinue={game.continueRun}
         onCycleSnark={cycleSnark}
+        onCycleDifficulty={cycleDifficulty}
       />
     );
   }

@@ -12,6 +12,19 @@ describe('createRun', () => {
     expect(run('alpha')).not.toEqual(run('beta'));
   });
 
+  it('defaults enemyHpMult to 1 and scales enemy HP when set', () => {
+    expect(run('alpha').enemyHpMult).toBe(1);
+    const firstNode = (s: RunState) => s.map.nodes[s.currentNodeId]?.next[0] as string;
+
+    const neutral = createRun(content, 'hpmult', DEFAULT_RUN_CONFIG);
+    const scaled = createRun(content, 'hpmult', { ...DEFAULT_RUN_CONFIG, enemyHpMult: 2 });
+    const n = applyAction(content, neutral, { type: 'chooseNode', nodeId: firstNode(neutral) });
+    const s = applyAction(content, scaled, { type: 'chooseNode', nodeId: firstNode(scaled) });
+    const nHp = n.combat?.enemies[0]?.maxHp ?? 0;
+    const sHp = s.combat?.enemies[0]?.maxHp ?? 0;
+    expect(sHp).toBe(Math.round(nHp * 2)); // same seed roll, scaled after
+  });
+
   it('starts at the map start with the starter deck', () => {
     const state = run('alpha');
     expect(state.phase).toBe('map');
@@ -42,7 +55,7 @@ describe('applyAction', () => {
   it('rest heals 30% of max HP, capped', () => {
     const state: RunState = { ...run('alpha'), phase: 'rest', hp: 10 };
     const rested = applyAction(content, state, { type: 'rest' });
-    expect(rested.hp).toBe(10 + Math.floor(70 * 0.3));
+    expect(rested.hp).toBe(10 + Math.floor(70 * 0.2));
     expect(rested.phase).toBe('map');
   });
 

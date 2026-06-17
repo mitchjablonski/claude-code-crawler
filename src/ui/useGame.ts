@@ -6,7 +6,7 @@ import { EngineError, isSafeBoundary } from '../engine/types.js';
 import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
 import type { Tailer, TailerOptions } from '../events/tailer.js';
 import type { SaveStore } from '../persistence/saves.js';
-import type { SnarkLevel } from '../config.js';
+import type { Difficulty, SnarkLevel } from '../config.js';
 import type { DungeonAi } from '../ai/dungeonAi.js';
 
 export interface GameDeps {
@@ -24,6 +24,8 @@ export interface GameDeps {
   readonly ai?: DungeonAi | null;
   /** Saves older than this retire as 'abandoned' (REQ-12). Default 24h. */
   readonly runTtlMs?: number;
+  /** Explicit flag/env difficulty; undefined → in-game setting, then Normal. */
+  readonly difficulty?: Difficulty;
 }
 
 const DEFAULT_RUN_TTL_MS = 24 * 60 * 60 * 1000;

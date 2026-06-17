@@ -131,6 +131,7 @@ async function main(): Promise<void> {
             seed: config.seed,
             eventsDir,
             snarkLevel: config.snarkLevel,
+            difficulty: config.difficulty,
             ai,
             runTtlMs: config.runTtlHours * 60 * 60 * 1000,
           }}

@@ -31,7 +31,7 @@ describe('ruleFor', () => {
     });
     expect(ruleFor(ev('session_started')).modifier).toEqual({
       kind: 'healPlayer',
-      amount: 5,
+      amount: 10,
     });
     expect(ruleFor(ev('code_changed', 'run.ts')).narration).toContain('run.ts');
   });

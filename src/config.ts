@@ -3,6 +3,26 @@ import path from 'node:path';
 
 export type SnarkLevel = 0 | 1 | 2;
 export type AiProvider = 'anthropic' | 'claude-cli' | 'openai-compat' | 'static';
+export type Difficulty = 'story' | 'normal' | 'hard' | 'nightmare';
+
+export const DIFFICULTIES: readonly Difficulty[] = ['story', 'normal', 'hard', 'nightmare'];
+export const DEFAULT_DIFFICULTY: Difficulty = 'normal';
+
+export interface DifficultyKnobs {
+  readonly maxHp: number;
+  readonly enemyHpMult: number;
+  readonly startingGold: number;
+}
+
+/** Per-tier knobs. enemyHpMult values are finalized by the harness re-sweep. */
+export const DIFFICULTY_KNOBS: Readonly<Record<Difficulty, DifficultyKnobs>> = {
+  // Multipliers measured on the rebalanced content (greedy, n>=600):
+  // story ~89% / normal ~70% / hard ~43% / nightmare ~23% win rate.
+  story: { maxHp: 70, enemyHpMult: 0.85, startingGold: 50 },
+  normal: { maxHp: 70, enemyHpMult: 1.0, startingGold: 50 },
+  hard: { maxHp: 70, enemyHpMult: 1.18, startingGold: 50 },
+  nightmare: { maxHp: 70, enemyHpMult: 1.33, startingGold: 50 },
+};
 
 export interface Config {
   readonly saveDir: string;
@@ -18,6 +38,8 @@ export interface Config {
   readonly aiTranscript: boolean;
   /** Hours before an unfinished run retires as abandoned (REQ-12). */
   readonly runTtlHours: number;
+  /** Explicit flag/env difficulty; undefined → in-game setting, then Normal. */
+  readonly difficulty: Difficulty | undefined;
 }
 
 /** Injectable ambient sources; production callers pass nothing. */
@@ -67,6 +89,11 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
   const ttlRaw = Number(flags['run-ttl-hours'] ?? env['CCC_RUN_TTL_HOURS'] ?? '24');
   const runTtlHours = Number.isFinite(ttlRaw) && ttlRaw > 0 ? ttlRaw : 24;
 
+  const difficultyRaw = flags['difficulty'] ?? env['CCC_DIFFICULTY'];
+  const difficulty = DIFFICULTIES.includes(difficultyRaw as Difficulty)
+    ? (difficultyRaw as Difficulty)
+    : undefined;
+
   return Object.freeze({
     saveDir,
     seed,
@@ -78,6 +105,7 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
     aiBudgetUsd,
     aiTranscript,
     runTtlHours,
+    difficulty,
   });
 }
 

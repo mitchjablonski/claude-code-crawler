@@ -18,7 +18,7 @@ export const MAX_HEAL = 10;
 
 const LOOT_RANGES: Readonly<Record<'small' | 'big', readonly [number, number]>> = {
   small: [3, 8],
-  big: [8, 15],
+  big: [15, 25],
 };
 
 /**

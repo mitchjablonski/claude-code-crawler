@@ -76,7 +76,7 @@ const defs: readonly EnemyDef[] = [
   {
     id: 'the-scope-creep',
     name: 'The Scope Creep',
-    hp: [72, 84],
+    hp: [96, 112],
     isBoss: true,
     moves: [
       {

@@ -26,6 +26,8 @@ export interface RunConfig {
   readonly startingGold: number;
   readonly startingRelics: readonly string[];
   readonly tempoHint?: number;
+  /** Difficulty enemy-HP multiplier (default 1 = neutral). */
+  readonly enemyHpMult?: number;
 }
 
 export function createRun(
@@ -53,6 +55,7 @@ export function createRun(
     shop: null,
     event: null,
     modifiers: { nextCombatStatuses: {}, queuedEliteIds: [] },
+    enemyHpMult: config.enemyHpMult ?? 1,
   };
 }
 
@@ -106,7 +109,7 @@ export function applyAction(
       return { ...state, shop: null, phase: 'map' };
     case 'rest': {
       requirePhase(state, 'rest');
-      const healed = Math.min(state.maxHp, state.hp + Math.floor(state.maxHp * 0.3));
+      const healed = Math.min(state.maxHp, state.hp + Math.floor(state.maxHp * 0.2));
       return { ...state, hp: healed, phase: 'map' };
     }
     case 'chooseEventOption': {
@@ -131,7 +134,7 @@ function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): 
     case 'combat': {
       const queued = moved.modifiers.queuedEliteIds;
       const enemyIds = rollEncounter(content, moved, node);
-      if (queued.length === 0) return enterCombat(content, moved, enemyIds);
+      if (queued.length === 0 || node.row < 3) return enterCombat(content, moved, enemyIds);
       const consumed: RunState = {
         ...moved,
         modifiers: { ...moved.modifiers, queuedEliteIds: queued.slice(1) },
@@ -195,7 +198,7 @@ function enterCombat(
   enemyIds: readonly string[],
 ): RunState {
   const [initialCombat, rng] = withStream(state.rng, 'combat', (r) =>
-    startCombat(content, state.deck, state.hp, state.maxHp, state.relics, enemyIds, r),
+    startCombat(content, state.deck, state.hp, state.maxHp, state.relics, enemyIds, r, state.enemyHpMult),
   );
   let combat = initialCombat;
   // Consume any pending blessing from bounded modifiers.

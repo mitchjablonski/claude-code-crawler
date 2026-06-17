@@ -25,11 +25,13 @@ export function startCombat(
   relicIds: readonly string[],
   enemyIds: readonly string[],
   rng: Rng,
+  enemyHpMult = 1,
 ): CombatState {
   const enemies: EnemyInstance[] = enemyIds.map((defId) => {
     const def = content.enemies[defId];
     if (!def) throw new EngineError(`unknown enemy ${defId}`);
-    const hp = rng.intBetween(def.hp[0], def.hp[1]);
+    // Roll first (RNG stream unchanged), then scale — default mult 1 is a no-op.
+    const hp = Math.max(1, Math.round(rng.intBetween(def.hp[0], def.hp[1]) * enemyHpMult));
     return {
       defId,
       name: def.name,

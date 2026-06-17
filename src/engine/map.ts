@@ -45,7 +45,8 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
   // construction), crossover edge sometimes (=> the choice matters).
   for (let row = 1; row <= choiceRows; row++) {
     for (let lane = 0; lane < LANES; lane++) {
-      const kind: NodeKind = row === 1 ? 'combat' : rollKind(rng);
+      let kind: NodeKind = row === 1 ? 'combat' : rollKind(rng);
+      if (kind === 'elite' && row < 3) kind = 'combat'; // no elites in the opening rows
       const next: string[] = [];
       if (row < choiceRows) {
         next.push(laneId(row + 1, lane));

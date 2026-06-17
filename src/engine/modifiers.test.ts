@@ -12,8 +12,8 @@ describe('applyModifier', () => {
     const a = applyModifier(content, state, { kind: 'lootRoll', size: 'big' });
     const b = applyModifier(content, state, { kind: 'lootRoll', size: 'big' });
     expect(a.gold).toBe(b.gold); // deterministic
-    expect(a.gold - state.gold).toBeGreaterThanOrEqual(8);
-    expect(a.gold - state.gold).toBeLessThanOrEqual(15);
+    expect(a.gold - state.gold).toBeGreaterThanOrEqual(15);
+    expect(a.gold - state.gold).toBeLessThanOrEqual(25);
     expect(a.rng.modifiers).not.toBe(state.rng.modifiers);
     expect(a.rng.combat).toBe(state.rng.combat);
     expect(a.rng.loot).toBe(state.rng.loot);
@@ -38,13 +38,38 @@ describe('applyModifier', () => {
     expect(state.modifiers.queuedEliteIds).toEqual(before);
   });
 
-  it('a queued elite joins the next combat encounter and is consumed', () => {
-    let state = applyModifier(content, fresh(), {
-      kind: 'queueElite',
-      enemyId: 'lint-goblin',
-    });
-    const firstNode = state.map.nodes[state.currentNodeId]?.next[0] as string;
+  it('does NOT inject a queued elite into the row-1 combat (early gate)', () => {
+    let state = applyModifier(content, fresh(), { kind: 'queueElite', enemyId: 'lint-goblin' });
+    const firstNode = state.map.nodes[state.currentNodeId]?.next[0] as string; // row 1, always combat
     state = applyAction(content, state, { type: 'chooseNode', nodeId: firstNode });
+    expect(state.phase).toBe('combat');
+    expect(state.combat?.enemies.some((e) => e.defId === 'lint-goblin')).toBe(false);
+    expect(state.modifiers.queuedEliteIds).toHaveLength(1); // stays queued for later
+  });
+
+  it('injects a queued elite into a combat at row >= 3 and consumes it', () => {
+    const base = fresh();
+    // Find an edge into a row>=3 combat node and stand on its predecessor.
+    let pred: string | undefined;
+    let target: string | undefined;
+    for (const node of Object.values(base.map.nodes)) {
+      const hit = node.next.find((id) => {
+        const n = base.map.nodes[id];
+        return n?.kind === 'combat' && n.row >= 3;
+      });
+      if (hit) {
+        pred = node.id;
+        target = hit;
+        break;
+      }
+    }
+    expect(target).toBeDefined();
+    let state = applyModifier(
+      content,
+      { ...base, currentNodeId: pred as string },
+      { kind: 'queueElite', enemyId: 'lint-goblin' },
+    );
+    state = applyAction(content, state, { type: 'chooseNode', nodeId: target as string });
     expect(state.phase).toBe('combat');
     expect(state.combat?.enemies.some((e) => e.defId === 'lint-goblin')).toBe(true);
     expect(state.modifiers.queuedEliteIds).toHaveLength(0);

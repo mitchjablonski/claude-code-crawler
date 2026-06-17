@@ -98,5 +98,10 @@ describe('meta progression', () => {
 
     store.updateSettings({ snarkLevel: 0 });
     expect(store.loadMeta().settings?.snarkLevel).toBe(0);
+
+    // difficulty persists alongside snark without clobbering it
+    store.updateSettings({ difficulty: 'hard' });
+    expect(store.loadMeta().settings?.difficulty).toBe('hard');
+    expect(store.loadMeta().settings?.snarkLevel).toBe(0);
   });
 });

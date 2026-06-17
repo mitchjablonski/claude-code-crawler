@@ -164,6 +164,8 @@ export interface RunState {
   readonly shop: { readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[] } | null;
   readonly event: { readonly eventId: string } | null;
   readonly modifiers: RunModifiers;
+  /** Difficulty enemy-HP multiplier baked into this run (1 = neutral). */
+  readonly enemyHpMult: number;
 }
 
 export type GameAction =

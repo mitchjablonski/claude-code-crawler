@@ -79,7 +79,7 @@ export function ruleFor(event: GameEvent, snark: SnarkLevel = 1): RuleOutcome {
       };
     case 'session_started':
       return {
-        modifier: { kind: 'healPlayer', amount: 5 },
+        modifier: { kind: 'healPlayer', amount: 10 },
         narration: pick(
           {
             0: 'Session started. +5 HP.',
@@ -125,7 +125,7 @@ const LIMITS: Partial<Record<GameEventKind, BucketConfig>> = {
   // At most 2 goblins can be queued anyway (engine cap); don't burn tokens.
   tests_failed: { capacity: 2, refillPerMinute: 0.5 },
   build_failed: { capacity: 2, refillPerMinute: 0.5 },
-  agent_spawned: { capacity: 2, refillPerMinute: 1 },
+  agent_spawned: { capacity: 1, refillPerMinute: 1 },
   session_started: { capacity: 1, refillPerMinute: 0.2 },
 };
 

@@ -46,6 +46,11 @@ describe('generateMap', () => {
         if (node.row === 1) expect(node.kind).toBe('combat');
       }
 
+      // No elites in the opening rows (new-player safety floor).
+      for (const node of Object.values(map.nodes)) {
+        if (node.kind === 'elite') expect(node.row).toBeGreaterThanOrEqual(3);
+      }
+
       // Penultimate row is the rest site; boss is last.
       const bossRow = map.nodes[map.bossId]?.row ?? 0;
       const restNodes = Object.values(map.nodes).filter((n) => n.row === bossRow - 1);
