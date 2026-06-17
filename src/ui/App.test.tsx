@@ -211,6 +211,23 @@ describe('App with hook events', () => {
     expect(mem.store.loadMeta().settings?.difficulty).toBe('hard');
   });
 
+  it('cycles run mode on the title and persists it', async () => {
+    const mem = memoryStore();
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: () => {},
+      christen: () => {},
+      spentUsd: () => 0,
+    };
+    const { lastFrame, stdin } = await renderApp(<App deps={{ ...deps(mem), ai: fakeAi }} />);
+    expect(lastFrame()).toContain('Mode: Single session');
+
+    stdin.write('m');
+    await tick();
+    expect(lastFrame()).toContain('Mode: Multi-act arc');
+    expect(mem.store.loadMeta().settings?.runMode).toBe('arc');
+  });
+
   it('retires stale runs as abandoned at startup (REQ-12)', async () => {
     const mem = memoryStore(0); // saved at t=0
     mem.store.saveRun(createRun(content, 'stale-run', DEFAULT_RUN_CONFIG));

@@ -13,6 +13,7 @@ export interface RunRecord {
 export interface MetaSettings {
   readonly snarkLevel?: 0 | 1 | 2;
   readonly difficulty?: 'story' | 'normal' | 'hard' | 'nightmare';
+  readonly runMode?: 'single' | 'arc';
 }
 
 export interface MetaState {

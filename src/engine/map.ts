@@ -4,6 +4,8 @@ import type { MapNode, NodeKind, RunMap } from './types.js';
 export interface MapConfig {
   /** 0..1; longer expected sessions get the larger map. */
   readonly tempoHint?: number;
+  /** Number of acts (1 = single session, 3 = multi-act arc). Default 1. */
+  readonly acts?: number;
 }
 
 export const MIN_CHOICE_ROWS = 5;
@@ -32,30 +34,48 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
   const tempo = Math.min(1, Math.max(0, config.tempoHint ?? 0.5));
   const choiceRows =
     MIN_CHOICE_ROWS + Math.round(tempo * (MAX_CHOICE_ROWS - MIN_CHOICE_ROWS));
+  const acts = Math.max(1, Math.floor(config.acts ?? 1));
+  const actSpan = choiceRows + 2; // choice rows + rest + act cap
 
   const nodes: Record<string, MapNode> = {};
   const laneId = (row: number, lane: number) => `n${row}-${lane}`;
+  const firstRow = (a: number) => a * actSpan + 1;
 
-  const restRow = choiceRows + 1;
-  const bossRow = choiceRows + 2;
-  const restId = `n${restRow}-0`;
-  const bossId = `n${bossRow}-0`;
+  // Acts are chained with continuous row numbering. Non-final acts cap with an
+  // elite "act boss" that links into the next act; the final act caps with the
+  // boss. For a single act this is byte-identical to the original generator
+  // (same RNG call order), so existing seeds replay unchanged.
+  for (let a = 0; a < acts; a++) {
+    const isFinal = a === acts - 1;
+    const base = a * actSpan;
+    const restRow = base + choiceRows + 1;
+    const capRow = base + choiceRows + 2;
+    const restId = laneId(restRow, 0);
+    const capId = laneId(capRow, 0);
 
-  // Choice rows: two lanes, same-lane edge always (=> reachability by
-  // construction), crossover edge sometimes (=> the choice matters).
-  for (let row = 1; row <= choiceRows; row++) {
-    for (let lane = 0; lane < LANES; lane++) {
-      let kind: NodeKind = row === 1 ? 'combat' : rollKind(rng);
-      if (kind === 'elite' && row < 3) kind = 'combat'; // no elites in the opening rows
-      const next: string[] = [];
-      if (row < choiceRows) {
-        next.push(laneId(row + 1, lane));
-        if (rng.next() < CROSSOVER_CHANCE) next.push(laneId(row + 1, 1 - lane));
-      } else {
-        next.push(restId);
+    for (let r = 0; r < choiceRows; r++) {
+      const row = base + 1 + r;
+      for (let lane = 0; lane < LANES; lane++) {
+        let kind: NodeKind = a === 0 && r === 0 ? 'combat' : rollKind(rng);
+        if (kind === 'elite' && row < 3) kind = 'combat'; // no elites in the opening rows
+        const next: string[] = [];
+        if (r < choiceRows - 1) {
+          next.push(laneId(row + 1, lane));
+          if (rng.next() < CROSSOVER_CHANCE) next.push(laneId(row + 1, 1 - lane));
+        } else {
+          next.push(restId);
+        }
+        nodes[laneId(row, lane)] = { id: laneId(row, lane), kind, row, next };
       }
-      nodes[laneId(row, lane)] = { id: laneId(row, lane), kind, row, next };
     }
+
+    nodes[restId] = { id: restId, kind: 'rest', row: restRow, next: [capId] };
+    nodes[capId] = {
+      id: capId,
+      kind: isFinal ? 'boss' : 'elite',
+      row: capRow,
+      next: isFinal ? [] : [laneId(firstRow(a + 1), 0), laneId(firstRow(a + 1), 1)],
+    };
   }
 
   // Guarantee at least one shop so gold always has a sink. Any row>1 choice
@@ -70,9 +90,6 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
     nodes[chosen.id] = { ...chosen, kind: 'shop' };
   }
 
-  nodes[restId] = { id: restId, kind: 'rest', row: restRow, next: [bossId] };
-  nodes[bossId] = { id: bossId, kind: 'boss', row: bossRow, next: [] };
-
   const startId = 'n0-0';
   nodes[startId] = {
     id: startId,
@@ -81,5 +98,6 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
     next: [laneId(1, 0), laneId(1, 1)],
   };
 
+  const bossId = laneId((acts - 1) * actSpan + choiceRows + 2, 0);
   return { nodes, startId, bossId };
 }

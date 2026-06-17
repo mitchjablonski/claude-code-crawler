@@ -6,7 +6,7 @@ import { EngineError, isSafeBoundary } from '../engine/types.js';
 import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
 import type { Tailer, TailerOptions } from '../events/tailer.js';
 import type { SaveStore } from '../persistence/saves.js';
-import type { Difficulty, SnarkLevel } from '../config.js';
+import type { Difficulty, RunMode, SnarkLevel } from '../config.js';
 import type { DungeonAi } from '../ai/dungeonAi.js';
 
 export interface GameDeps {
@@ -26,6 +26,8 @@ export interface GameDeps {
   readonly runTtlMs?: number;
   /** Explicit flag/env difficulty; undefined → in-game setting, then Normal. */
   readonly difficulty?: Difficulty;
+  /** Explicit flag/env run mode; undefined → in-game setting, then single. */
+  readonly runMode?: RunMode;
 }
 
 const DEFAULT_RUN_TTL_MS = 24 * 60 * 60 * 1000;

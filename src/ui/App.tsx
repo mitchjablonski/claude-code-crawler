@@ -4,8 +4,15 @@ import { useGame, type GameDeps } from './useGame.js';
 import { useEvents } from './useEvents.js';
 import { useChristenings } from './useChristenings.js';
 import { isSafeBoundary } from '../engine/types.js';
-import type { SnarkLevel, Difficulty } from '../config.js';
-import { DEFAULT_DIFFICULTY, DIFFICULTIES, DIFFICULTY_KNOBS } from '../config.js';
+import type { SnarkLevel, Difficulty, RunMode } from '../config.js';
+import {
+  DEFAULT_DIFFICULTY,
+  DIFFICULTIES,
+  DIFFICULTY_KNOBS,
+  DEFAULT_RUN_MODE,
+  RUN_MODES,
+  actsForMode,
+} from '../config.js';
 import type { RunConfig } from '../engine/run.js';
 import { DEFAULT_RUN_CONFIG } from '../engine/content/index.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
@@ -24,6 +31,9 @@ export function App({ deps }: { readonly deps: GameDeps }) {
   const [difficulty, setDifficulty] = useState<Difficulty>(
     () => deps.difficulty ?? deps.store.loadMeta().settings?.difficulty ?? DEFAULT_DIFFICULTY,
   );
+  const [runMode, setRunMode] = useState<RunMode>(
+    () => deps.runMode ?? deps.store.loadMeta().settings?.runMode ?? DEFAULT_RUN_MODE,
+  );
   const runConfig = useMemo<RunConfig>(() => {
     const k = DIFFICULTY_KNOBS[difficulty];
     return {
@@ -31,14 +41,22 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       maxHp: k.maxHp,
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
+      acts: actsForMode(runMode),
     };
-  }, [difficulty]);
+  }, [difficulty, runMode]);
   const cycleDifficulty = useCallback(() => {
     setDifficulty((prev) => {
       const next = DIFFICULTIES[
         (DIFFICULTIES.indexOf(prev) + 1) % DIFFICULTIES.length
       ] as Difficulty;
       deps.store.updateSettings({ difficulty: next });
+      return next;
+    });
+  }, [deps.store]);
+  const cycleRunMode = useCallback(() => {
+    setRunMode((prev) => {
+      const next = RUN_MODES[(RUN_MODES.indexOf(prev) + 1) % RUN_MODES.length] as RunMode;
+      deps.store.updateSettings({ runMode: next });
       return next;
     });
   }, [deps.store]);
@@ -128,11 +146,13 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         hasSave={game.hasSave}
         snark={snark}
         difficulty={difficulty}
+        runMode={runMode}
         aiBackend={deps.ai?.backend ?? 'static'}
         onNew={newRun}
         onContinue={game.continueRun}
         onCycleSnark={cycleSnark}
         onCycleDifficulty={cycleDifficulty}
+        onCycleRunMode={cycleRunMode}
       />
     );
   }

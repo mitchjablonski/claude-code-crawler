@@ -8,6 +8,17 @@ export type Difficulty = 'story' | 'normal' | 'hard' | 'nightmare';
 export const DIFFICULTIES: readonly Difficulty[] = ['story', 'normal', 'hard', 'nightmare'];
 export const DEFAULT_DIFFICULTY: Difficulty = 'normal';
 
+export type RunMode = 'single' | 'arc';
+
+export const RUN_MODES: readonly RunMode[] = ['single', 'arc'];
+export const DEFAULT_RUN_MODE: RunMode = 'single';
+export const ARC_ACTS = 3;
+
+/** Acts in a run for a given mode (single session vs multi-act arc). */
+export function actsForMode(mode: RunMode): number {
+  return mode === 'arc' ? ARC_ACTS : 1;
+}
+
 export interface DifficultyKnobs {
   readonly maxHp: number;
   readonly enemyHpMult: number;
@@ -40,6 +51,8 @@ export interface Config {
   readonly runTtlHours: number;
   /** Explicit flag/env difficulty; undefined → in-game setting, then Normal. */
   readonly difficulty: Difficulty | undefined;
+  /** Explicit flag/env run mode; undefined → in-game setting, then single. */
+  readonly runMode: RunMode | undefined;
 }
 
 /** Injectable ambient sources; production callers pass nothing. */
@@ -94,6 +107,9 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
     ? (difficultyRaw as Difficulty)
     : undefined;
 
+  const modeRaw = flags['mode'] ?? env['CCC_MODE'];
+  const runMode = RUN_MODES.includes(modeRaw as RunMode) ? (modeRaw as RunMode) : undefined;
+
   return Object.freeze({
     saveDir,
     seed,
@@ -106,6 +122,7 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
     aiTranscript,
     runTtlHours,
     difficulty,
+    runMode,
   });
 }
 

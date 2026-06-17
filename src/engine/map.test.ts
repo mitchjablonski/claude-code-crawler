@@ -67,4 +67,37 @@ describe('generateMap', () => {
     const b = generateMap(new Rng(123), { tempoHint: 0.5 });
     expect(a).toEqual(b);
   });
+
+  it('single mode (acts:1) is byte-identical to the default', () => {
+    const def = generateMap(new Rng(999), { tempoHint: 0.5 });
+    const one = generateMap(new Rng(999), { tempoHint: 0.5, acts: 1 });
+    expect(one).toEqual(def);
+  });
+
+  it('arc mode chains 3 acts into a larger, fully-reachable map', () => {
+    for (let i = 0; i < 200; i++) {
+      const map = generateMap(new Rng(seedFromString(`arc-${i}`)), {
+        tempoHint: 0.5,
+        acts: 3,
+      });
+      const nodes = Object.values(map.nodes);
+      // Everything reachable from start.
+      expect(reachable(map).size).toBe(nodes.length);
+      // Exactly one boss, and it is the unique terminal + the deepest node.
+      const bosses = nodes.filter((n) => n.kind === 'boss');
+      expect(bosses).toHaveLength(1);
+      expect(bosses[0]?.id).toBe(map.bossId);
+      expect(map.nodes[map.bossId]?.next).toHaveLength(0);
+      const maxRow = Math.max(...nodes.map((n) => n.row));
+      expect(map.nodes[map.bossId]?.row).toBe(maxRow);
+      // At least the two non-final act-boss elites exist.
+      expect(nodes.filter((n) => n.kind === 'elite').length).toBeGreaterThanOrEqual(2);
+      // Bigger than a single act on the same seed.
+      const single = generateMap(new Rng(seedFromString(`arc-${i}`)), {
+        tempoHint: 0.5,
+        acts: 1,
+      });
+      expect(nodes.length).toBeGreaterThan(Object.keys(single.nodes).length);
+    }
+  });
 });

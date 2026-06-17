@@ -28,6 +28,8 @@ export interface RunConfig {
   readonly tempoHint?: number;
   /** Difficulty enemy-HP multiplier (default 1 = neutral). */
   readonly enemyHpMult?: number;
+  /** Number of acts (1 = single session, 3 = multi-act arc). Default 1. */
+  readonly acts?: number;
 }
 
 export function createRun(
@@ -37,7 +39,7 @@ export function createRun(
 ): RunState {
   const streams = initStreams(seed);
   const [map, rng] = withStream(streams, 'map', (r) =>
-    generateMap(r, { tempoHint: config.tempoHint }),
+    generateMap(r, { tempoHint: config.tempoHint, acts: config.acts ?? 1 }),
   );
   return {
     seed,

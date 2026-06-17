@@ -33,6 +33,8 @@ const START_GOLD = Number(arg('gold', String(DEFAULT_RUN_CONFIG.startingGold)));
 const TEMPO = Number(arg('tempo', '0.5'));
 const SEED_BASE = arg('seedbase', 'play');
 const ITERS = Number(arg('iters', '200'));
+const MODE = arg('mode', 'single'); // 'single' | 'arc'
+const ACTS = MODE === 'arc' ? 3 : 1;
 
 // Tally of card plays across all runs (any policy) — surfaces which cards a
 // strong agent actually leans on (note: dominated by starters via deck share).
@@ -252,6 +254,7 @@ const config: RunConfig = {
   maxHp: MAX_HP,
   startingGold: START_GOLD,
   tempoHint: TEMPO,
+  acts: ACTS,
 };
 function resolvePolicy(): Policy {
   if (POLICY === 'mcts') {
@@ -286,7 +289,7 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
 console.log(
   JSON.stringify(
     {
-      params: { runs: RUNS, policy: POLICY, iters: POLICY === 'mcts' ? ITERS : undefined, enemyHpMult: ENEMY_HP_MULT, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
+      params: { runs: RUNS, policy: POLICY, mode: MODE, iters: POLICY === 'mcts' ? ITERS : undefined, enemyHpMult: ENEMY_HP_MULT, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
       winRate: +(wins.length / RUNS).toFixed(3),
       avgCombatsEntered: +avg(results.map((r) => r.combatsEntered)).toFixed(2),
       avgEndHpOnWin: +avg(wins.map((r) => r.endHp)).toFixed(1),

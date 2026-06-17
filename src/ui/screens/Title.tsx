@@ -1,5 +1,5 @@
 import { Box, Text, useApp, useInput } from 'ink';
-import type { Difficulty, SnarkLevel } from '../../config.js';
+import type { Difficulty, RunMode, SnarkLevel } from '../../config.js';
 
 const SNARK_LABEL: Readonly<Record<SnarkLevel, string>> = {
   0: 'dry',
@@ -14,24 +14,33 @@ const DIFFICULTY_LABEL: Readonly<Record<Difficulty, string>> = {
   nightmare: 'Nightmare',
 };
 
+const RUN_MODE_LABEL: Readonly<Record<RunMode, string>> = {
+  single: 'Single session',
+  arc: 'Multi-act arc',
+};
+
 export function Title({
   hasSave,
   snark,
   difficulty,
+  runMode,
   aiBackend,
   onNew,
   onContinue,
   onCycleSnark,
   onCycleDifficulty,
+  onCycleRunMode,
 }: {
   readonly hasSave: boolean;
   readonly snark: SnarkLevel;
   readonly difficulty: Difficulty;
+  readonly runMode: RunMode;
   readonly aiBackend: string;
   readonly onNew: () => void;
   readonly onContinue: () => void;
   readonly onCycleSnark: () => void;
   readonly onCycleDifficulty: () => void;
+  readonly onCycleRunMode: () => void;
 }) {
   const { exit } = useApp();
   useInput((input) => {
@@ -39,6 +48,7 @@ export function Title({
     else if (input === 'c' && hasSave) onContinue();
     else if (input === 's') onCycleSnark();
     else if (input === 'd') onCycleDifficulty();
+    else if (input === 'm') onCycleRunMode();
     else if (input === 'q') exit();
   });
 
@@ -51,6 +61,7 @@ export function Title({
       <Box marginTop={1} flexDirection="column">
         {hasSave && <Text>[c] Continue your delve</Text>}
         <Text>[n] New delve</Text>
+        <Text>[m] Mode: {RUN_MODE_LABEL[runMode]}</Text>
         <Text>[d] Difficulty: {DIFFICULTY_LABEL[difficulty]}</Text>
         <Text>[s] Snark: {SNARK_LABEL[snark]}</Text>
         <Text>[q] Quit</Text>

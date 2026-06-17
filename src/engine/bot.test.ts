@@ -50,8 +50,8 @@ function passive(state: RunState): GameAction {
   return greedy(state);
 }
 
-function runBot(seed: string, policy: Policy) {
-  let state = createRun(content, seed, DEFAULT_RUN_CONFIG);
+function runBot(seed: string, policy: Policy, acts = 1) {
+  let state = createRun(content, seed, { ...DEFAULT_RUN_CONFIG, acts });
   const history: RunState[] = [state];
   for (let i = 0; i < ACTION_CAP; i++) {
     if (state.phase === 'victory' || state.phase === 'defeat') {
@@ -85,5 +85,16 @@ describe('headless full runs', () => {
     for (let i = 0; i < 10; i++) {
       expect(runBot(`passive-${i}`, passive).outcome).toBe('defeat');
     }
+  });
+
+  it('greedy completes 3-act arc runs and reaches both outcomes', () => {
+    const outcomes = { victory: 0, defeat: 0 };
+    for (let i = 0; i < 30; i++) {
+      const { outcome } = runBot(`arc-${i}`, greedy, 3);
+      outcomes[outcome]++;
+    }
+    expect(outcomes.victory + outcomes.defeat).toBe(30);
+    expect(outcomes.victory).toBeGreaterThan(0);
+    expect(outcomes.defeat).toBeGreaterThan(0);
   });
 });

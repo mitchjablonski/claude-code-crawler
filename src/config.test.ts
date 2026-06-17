@@ -75,6 +75,13 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...base, env: { CCC_DIFFICULTY: 'impossible' } }).difficulty).toBeUndefined();
   });
 
+  it('parses run mode with validation', () => {
+    expect(resolveConfig(base).runMode).toBeUndefined();
+    expect(resolveConfig({ ...base, env: { CCC_MODE: 'arc' } }).runMode).toBe('arc');
+    expect(resolveConfig({ ...base, argv: ['--mode', 'single'] }).runMode).toBe('single');
+    expect(resolveConfig({ ...base, env: { CCC_MODE: 'endless' } }).runMode).toBeUndefined();
+  });
+
   it('parses the run TTL with validation', () => {
     expect(resolveConfig(base).runTtlHours).toBe(24);
     expect(resolveConfig({ ...base, env: { CCC_RUN_TTL_HOURS: '48' } }).runTtlHours).toBe(48);
