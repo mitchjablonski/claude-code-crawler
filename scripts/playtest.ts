@@ -13,8 +13,9 @@ import type {
   RunState,
 } from '../src/engine/types.js';
 import { EngineError } from '../src/engine/types.js';
+import { mctsAction } from '../src/search/mcts.js';
 
-type PolicyName = 'greedy' | 'cautious' | 'naive';
+type PolicyName = 'greedy' | 'cautious' | 'naive' | 'mcts';
 type Policy = (state: RunState, content: ContentRegistry, rand: () => number) => GameAction;
 
 const ACTION_CAP = 20_000;
@@ -31,6 +32,11 @@ const MAX_HP = Number(arg('maxhp', String(DEFAULT_RUN_CONFIG.maxHp)));
 const START_GOLD = Number(arg('gold', String(DEFAULT_RUN_CONFIG.startingGold)));
 const TEMPO = Number(arg('tempo', '0.5'));
 const SEED_BASE = arg('seedbase', 'play');
+const ITERS = Number(arg('iters', '200'));
+
+// Tally of card plays across all runs (any policy) — surfaces which cards a
+// strong agent actually leans on.
+const cardPlays: Record<string, number> = {};
 
 // --- deterministic per-run RNG for policy tie-breaks (kept out of engine streams) ---
 function mulberry(seedStr: string): () => number {
@@ -147,7 +153,7 @@ function act(
   return nonCombat(state, content, rand);
 }
 
-const POLICIES: Record<PolicyName, Policy> = {
+const POLICIES: Record<Exclude<PolicyName, 'mcts'>, Policy> = {
   greedy: (state, content, rand) => act(state, content, rand, 'attack'),
   cautious: (state, content, rand) => act(state, content, rand, 'block'),
   naive: (state, content, rand) => {
@@ -197,7 +203,12 @@ function playRun(seed: string, content: ContentRegistry, config: RunConfig, poli
     }
     prevPhase = state.phase;
     try {
-      state = applyAction(content, state, policy(state, content, rand));
+      const action = policy(state, content, rand);
+      if (action.type === 'playCard' && state.combat) {
+        const id = state.combat.hand[action.handIndex];
+        if (id) cardPlays[id] = (cardPlays[id] ?? 0) + 1;
+      }
+      state = applyAction(content, state, action);
     } catch (err) {
       if (err instanceof EngineError && state.phase === 'combat') {
         state = applyAction(content, state, { type: 'endTurn' });
@@ -226,8 +237,20 @@ const config: RunConfig = {
   startingGold: START_GOLD,
   tempoHint: TEMPO,
 };
-const policy = POLICIES[POLICY];
-if (!policy) throw new Error(`unknown policy ${POLICY}`);
+function resolvePolicy(): Policy {
+  if (POLICY === 'mcts') {
+    return (state, content_, rand) =>
+      mctsAction(content_, state, {
+        iterations: ITERS,
+        rollout: (c, s, r) => POLICIES.greedy(s, c, r),
+        rand,
+      });
+  }
+  const p = POLICIES[POLICY];
+  if (!p) throw new Error(`unknown policy ${POLICY}`);
+  return p;
+}
+const policy = resolvePolicy();
 
 const results: RunResult[] = [];
 for (let i = 0; i < RUNS; i++) results.push(playRun(`${SEED_BASE}-${i}`, content, config, policy));
@@ -247,7 +270,7 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
 console.log(
   JSON.stringify(
     {
-      params: { runs: RUNS, policy: POLICY, enemyHpMult: ENEMY_HP_MULT, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
+      params: { runs: RUNS, policy: POLICY, iters: POLICY === 'mcts' ? ITERS : undefined, enemyHpMult: ENEMY_HP_MULT, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
       winRate: +(wins.length / RUNS).toFixed(3),
       avgCombatsEntered: +avg(results.map((r) => r.combatsEntered)).toFixed(2),
       avgEndHpOnWin: +avg(wins.map((r) => r.endHp)).toFixed(1),
@@ -256,6 +279,9 @@ console.log(
       deathsByRow: tally((r) => r.deathRow),
       deathsByNodeKind: tally((r) => r.deathNodeKind),
       deathsByEnemy: tally((r) => r.deathEnemy),
+      topCardPlays: Object.fromEntries(
+        Object.entries(cardPlays).sort((a, b) => b[1] - a[1]).slice(0, 12),
+      ),
     },
     null,
     2,
