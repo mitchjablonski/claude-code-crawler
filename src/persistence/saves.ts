@@ -14,6 +14,7 @@ export interface MetaSettings {
   readonly snarkLevel?: 0 | 1 | 2;
   readonly difficulty?: 'story' | 'normal' | 'hard' | 'nightmare';
   readonly runMode?: 'single' | 'arc';
+  readonly character?: string;
 }
 
 export interface MetaState {

@@ -28,6 +28,8 @@ export interface GameDeps {
   readonly difficulty?: Difficulty;
   /** Explicit flag/env run mode; undefined → in-game setting, then single. */
   readonly runMode?: RunMode;
+  /** Explicit flag/env character id; undefined → in-game setting, then default. */
+  readonly character?: string;
 }
 
 const DEFAULT_RUN_TTL_MS = 24 * 60 * 60 * 1000;

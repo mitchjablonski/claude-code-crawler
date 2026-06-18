@@ -25,15 +25,31 @@ export interface DifficultyKnobs {
   readonly startingGold: number;
 }
 
-/** Per-tier knobs. enemyHpMult values are finalized by the harness re-sweep. */
+/** Single-mode per-tier knobs (greedy: story ~84 / normal ~67 / hard ~41 / nightmare ~23). */
 export const DIFFICULTY_KNOBS: Readonly<Record<Difficulty, DifficultyKnobs>> = {
-  // Multipliers measured on the rebalanced content (greedy, n>=600):
-  // story ~89% / normal ~70% / hard ~43% / nightmare ~23% win rate.
   story: { maxHp: 70, enemyHpMult: 0.85, startingGold: 50 },
   normal: { maxHp: 70, enemyHpMult: 1.0, startingGold: 50 },
   hard: { maxHp: 70, enemyHpMult: 1.18, startingGold: 50 },
   nightmare: { maxHp: 70, enemyHpMult: 1.33, startingGold: 50 },
 };
+
+/**
+ * Arc runs are easier at equal enemyHpMult (more rewards over 3 acts), so each
+ * tier uses a higher multiplier — swept to match single's win-rate bands
+ * (greedy: story ~85 / normal ~68 / hard ~42 / nightmare ~24).
+ */
+const ARC_ENEMY_HP_MULT: Readonly<Record<Difficulty, number>> = {
+  story: 0.95,
+  normal: 1.15,
+  hard: 1.4,
+  nightmare: 1.6,
+};
+
+/** Difficulty knobs for a (difficulty, mode) pair so a tier means the same challenge in both modes. */
+export function knobsFor(difficulty: Difficulty, mode: RunMode): DifficultyKnobs {
+  const base = DIFFICULTY_KNOBS[difficulty];
+  return mode === 'arc' ? { ...base, enemyHpMult: ARC_ENEMY_HP_MULT[difficulty] } : base;
+}
 
 export interface Config {
   readonly saveDir: string;
@@ -53,6 +69,8 @@ export interface Config {
   readonly difficulty: Difficulty | undefined;
   /** Explicit flag/env run mode; undefined → in-game setting, then single. */
   readonly runMode: RunMode | undefined;
+  /** Explicit flag/env character id (validated by the UI); undefined → setting, then default. */
+  readonly character: string | undefined;
 }
 
 /** Injectable ambient sources; production callers pass nothing. */
@@ -110,6 +128,9 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
   const modeRaw = flags['mode'] ?? env['CCC_MODE'];
   const runMode = RUN_MODES.includes(modeRaw as RunMode) ? (modeRaw as RunMode) : undefined;
 
+  // Character id is validated against the content registry by the UI layer.
+  const character = flags['character'] ?? env['CCC_CHARACTER'];
+
   return Object.freeze({
     saveDir,
     seed,
@@ -123,6 +144,7 @@ export function resolveConfig(sources: ConfigSources = {}): Config {
     runTtlHours,
     difficulty,
     runMode,
+    character,
   });
 }
 

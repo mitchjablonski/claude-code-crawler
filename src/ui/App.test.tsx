@@ -228,6 +228,23 @@ describe('App with hook events', () => {
     expect(mem.store.loadMeta().settings?.runMode).toBe('arc');
   });
 
+  it('cycles character class on the title and persists it', async () => {
+    const mem = memoryStore();
+    const fakeAi: DungeonAi = {
+      backend: 'fake-ai',
+      narrate: () => {},
+      christen: () => {},
+      spentUsd: () => 0,
+    };
+    const { lastFrame, stdin } = await renderApp(<App deps={{ ...deps(mem), ai: fakeAi }} />);
+    expect(lastFrame()).toContain('Class: Knight');
+
+    stdin.write('k');
+    await tick();
+    expect(lastFrame()).toContain('Class: Apothecary');
+    expect(mem.store.loadMeta().settings?.character).toBe('apothecary');
+  });
+
   it('retires stale runs as abandoned at startup (REQ-12)', async () => {
     const mem = memoryStore(0); // saved at t=0
     mem.store.saveRun(createRun(content, 'stale-run', DEFAULT_RUN_CONFIG));

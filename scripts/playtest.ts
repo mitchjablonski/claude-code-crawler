@@ -5,7 +5,11 @@
  * of full runs in seconds.
  */
 import { applyAction, createRun, type RunConfig } from '../src/engine/run.js';
-import { DEFAULT_RUN_CONFIG, content as baseContent } from '../src/engine/content/index.js';
+import {
+  CHARACTERS,
+  DEFAULT_RUN_CONFIG,
+  content as baseContent,
+} from '../src/engine/content/index.js';
 import type {
   ContentRegistry,
   EnemyDef,
@@ -35,6 +39,8 @@ const SEED_BASE = arg('seedbase', 'play');
 const ITERS = Number(arg('iters', '200'));
 const MODE = arg('mode', 'single'); // 'single' | 'arc'
 const ACTS = MODE === 'arc' ? 3 : 1;
+const CHARACTER = arg('character', 'knight');
+const charDef = CHARACTERS[CHARACTER] ?? CHARACTERS['knight']!;
 
 // Tally of card plays across all runs (any policy) — surfaces which cards a
 // strong agent actually leans on (note: dominated by starters via deck share).
@@ -251,6 +257,8 @@ function playRun(seed: string, content: ContentRegistry, config: RunConfig, poli
 const content = scaleContent(baseContent, ENEMY_HP_MULT);
 const config: RunConfig = {
   ...DEFAULT_RUN_CONFIG,
+  starterDeck: charDef.starterDeck,
+  startingRelics: charDef.startingRelics,
   maxHp: MAX_HP,
   startingGold: START_GOLD,
   tempoHint: TEMPO,

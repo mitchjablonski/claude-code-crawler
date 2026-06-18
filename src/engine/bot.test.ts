@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createRun } from './run.js';
-import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
+import { CHARACTERS, DEFAULT_RUN_CONFIG, content } from './content/index.js';
 import type { GameAction, RunState } from './types.js';
 
 const ACTION_CAP = 10_000;
@@ -85,6 +85,25 @@ describe('headless full runs', () => {
     for (let i = 0; i < 10; i++) {
       expect(runBot(`passive-${i}`, passive).outcome).toBe('defeat');
     }
+  });
+
+  it('greedy completes runs as the Apothecary class', () => {
+    const apo = CHARACTERS['apothecary']!;
+    const cfg = {
+      ...DEFAULT_RUN_CONFIG,
+      starterDeck: apo.starterDeck,
+      startingRelics: apo.startingRelics,
+      maxHp: apo.maxHp,
+    };
+    let finished = 0;
+    for (let i = 0; i < 20; i++) {
+      let state = createRun(content, `apo-${i}`, cfg);
+      for (let j = 0; j < 10_000 && !['victory', 'defeat'].includes(state.phase); j++) {
+        state = applyAction(content, state, greedy(state));
+      }
+      if (['victory', 'defeat'].includes(state.phase)) finished++;
+    }
+    expect(finished).toBe(20);
   });
 
   it('greedy completes 3-act arc runs and reaches both outcomes', () => {

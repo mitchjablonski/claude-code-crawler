@@ -8,13 +8,13 @@ import type { SnarkLevel, Difficulty, RunMode } from '../config.js';
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTIES,
-  DIFFICULTY_KNOBS,
+  knobsFor,
   DEFAULT_RUN_MODE,
   RUN_MODES,
   actsForMode,
 } from '../config.js';
 import type { RunConfig } from '../engine/run.js';
-import { DEFAULT_RUN_CONFIG } from '../engine/content/index.js';
+import { CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER } from '../engine/content/index.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
 import { StatusBar } from './components/StatusBar.js';
 import { PauseOverlay } from './components/PauseOverlay.js';
@@ -34,16 +34,35 @@ export function App({ deps }: { readonly deps: GameDeps }) {
   const [runMode, setRunMode] = useState<RunMode>(
     () => deps.runMode ?? deps.store.loadMeta().settings?.runMode ?? DEFAULT_RUN_MODE,
   );
+  const validClass = (id: string | undefined): string | undefined =>
+    id !== undefined && CHARACTERS[id] !== undefined ? id : undefined;
+  const [character, setCharacter] = useState<string>(
+    () =>
+      validClass(deps.character) ??
+      validClass(deps.store.loadMeta().settings?.character) ??
+      DEFAULT_CHARACTER,
+  );
   const runConfig = useMemo<RunConfig>(() => {
-    const k = DIFFICULTY_KNOBS[difficulty];
+    const k = knobsFor(difficulty, runMode);
+    const cls = CHARACTERS[character] ?? CHARACTERS[DEFAULT_CHARACTER]!;
     return {
-      ...DEFAULT_RUN_CONFIG,
-      maxHp: k.maxHp,
+      starterDeck: cls.starterDeck,
+      startingRelics: cls.startingRelics,
+      maxHp: cls.maxHp,
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
       acts: actsForMode(runMode),
     };
-  }, [difficulty, runMode]);
+  }, [difficulty, runMode, character]);
+  const cycleCharacter = useCallback(() => {
+    setCharacter((prev) => {
+      const next = CHARACTER_IDS[
+        (CHARACTER_IDS.indexOf(prev) + 1) % CHARACTER_IDS.length
+      ] as string;
+      deps.store.updateSettings({ character: next });
+      return next;
+    });
+  }, [deps.store]);
   const cycleDifficulty = useCallback(() => {
     setDifficulty((prev) => {
       const next = DIFFICULTIES[
@@ -147,12 +166,14 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         snark={snark}
         difficulty={difficulty}
         runMode={runMode}
+        characterName={CHARACTERS[character]?.name ?? character}
         aiBackend={deps.ai?.backend ?? 'static'}
         onNew={newRun}
         onContinue={game.continueRun}
         onCycleSnark={cycleSnark}
         onCycleDifficulty={cycleDifficulty}
         onCycleRunMode={cycleRunMode}
+        onCycleCharacter={cycleCharacter}
       />
     );
   }

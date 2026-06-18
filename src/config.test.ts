@@ -75,6 +75,12 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ ...base, env: { CCC_DIFFICULTY: 'impossible' } }).difficulty).toBeUndefined();
   });
 
+  it('passes character id through (validated by the UI)', () => {
+    expect(resolveConfig(base).character).toBeUndefined();
+    expect(resolveConfig({ ...base, env: { CCC_CHARACTER: 'apothecary' } }).character).toBe('apothecary');
+    expect(resolveConfig({ ...base, argv: ['--character', 'knight'] }).character).toBe('knight');
+  });
+
   it('parses run mode with validation', () => {
     expect(resolveConfig(base).runMode).toBeUndefined();
     expect(resolveConfig({ ...base, env: { CCC_MODE: 'arc' } }).runMode).toBe('arc');

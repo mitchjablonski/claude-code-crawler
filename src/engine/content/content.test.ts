@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
+import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 
 describe('content quota (REQ-1)', () => {
   it('meets the authored quota', () => {
@@ -28,6 +28,18 @@ describe('content integrity', () => {
           }
         }
       }
+    }
+  });
+
+  it('every character kit resolves to real cards and relics', () => {
+    const ids = Object.keys(CHARACTERS);
+    expect(ids).toContain('knight');
+    expect(ids).toContain('apothecary');
+    for (const c of Object.values(CHARACTERS)) {
+      expect(c.starterDeck.length).toBeGreaterThan(0);
+      for (const id of c.starterDeck) expect(content.cards[id], `${c.id}:${id}`).toBeDefined();
+      for (const id of c.startingRelics) expect(content.relics[id], `${c.id}:${id}`).toBeDefined();
+      expect(c.maxHp).toBeGreaterThan(0);
     }
   });
 

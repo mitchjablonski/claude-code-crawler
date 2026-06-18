@@ -24,23 +24,27 @@ export function Title({
   snark,
   difficulty,
   runMode,
+  characterName,
   aiBackend,
   onNew,
   onContinue,
   onCycleSnark,
   onCycleDifficulty,
   onCycleRunMode,
+  onCycleCharacter,
 }: {
   readonly hasSave: boolean;
   readonly snark: SnarkLevel;
   readonly difficulty: Difficulty;
   readonly runMode: RunMode;
+  readonly characterName: string;
   readonly aiBackend: string;
   readonly onNew: () => void;
   readonly onContinue: () => void;
   readonly onCycleSnark: () => void;
   readonly onCycleDifficulty: () => void;
   readonly onCycleRunMode: () => void;
+  readonly onCycleCharacter: () => void;
 }) {
   const { exit } = useApp();
   useInput((input) => {
@@ -49,6 +53,7 @@ export function Title({
     else if (input === 's') onCycleSnark();
     else if (input === 'd') onCycleDifficulty();
     else if (input === 'm') onCycleRunMode();
+    else if (input === 'k') onCycleCharacter();
     else if (input === 'q') exit();
   });
 
@@ -61,6 +66,7 @@ export function Title({
       <Box marginTop={1} flexDirection="column">
         {hasSave && <Text>[c] Continue your delve</Text>}
         <Text>[n] New delve</Text>
+        <Text>[k] Class: {characterName}</Text>
         <Text>[m] Mode: {RUN_MODE_LABEL[runMode]}</Text>
         <Text>[d] Difficulty: {DIFFICULTY_LABEL[difficulty]}</Text>
         <Text>[s] Snark: {SNARK_LABEL[snark]}</Text>

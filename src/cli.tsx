@@ -133,6 +133,7 @@ async function main(): Promise<void> {
             snarkLevel: config.snarkLevel,
             difficulty: config.difficulty,
             runMode: config.runMode,
+            character: config.character,
             ai,
             runTtlMs: config.runTtlHours * 60 * 60 * 1000,
           }}
