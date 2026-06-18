@@ -109,6 +109,28 @@ describe('combat flow', () => {
     expect(after.enemies[0]?.statuses.vulnerable).toBe(1);
   });
 
+  it('dexterity increases block gained', () => {
+    const c = { ...freshCombat(), playerStatuses: { dexterity: 2 } };
+    const guarded = playCard(T, c, c.hand.indexOf('guard'), undefined, new Rng(2));
+    expect(guarded.playerBlock).toBe(7); // 5 + 2 dexterity
+  });
+
+  it('poison damages the player at round end, bypassing block, then decays', () => {
+    const c = { ...freshCombat(), playerBlock: 10, playerStatuses: { poison: 3 }, playerHp: 30 };
+    const after = endTurn(T, c, new Rng(2));
+    // Slam(5) absorbed by block; round-end poison 3 bypasses block -> hp 27; poison 3->2.
+    expect(after.playerHp).toBe(27);
+    expect(after.playerStatuses.poison).toBe(2);
+  });
+
+  it('poison ticks down enemies at round end', () => {
+    const c = freshCombat();
+    const enemy = { ...(c.enemies[0] as (typeof c.enemies)[number]), statuses: { poison: 4 } };
+    const after = endTurn(T, { ...c, enemies: [enemy] }, new Rng(2));
+    expect(after.enemies[0]?.hp).toBe(10 - 4); // 10 base hp - 4 poison
+    expect(after.enemies[0]?.statuses.poison).toBe(3);
+  });
+
   it('detects win and loss', () => {
     const c = freshCombat();
     expect(isCombatWon(c)).toBe(false);

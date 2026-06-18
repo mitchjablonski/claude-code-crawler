@@ -160,11 +160,15 @@ function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): 
 
 type PoolKind = 'normal' | 'elite' | 'boss';
 
-function enemyPool(content: ContentRegistry, kind: PoolKind): string[] {
+function enemyPool(content: ContentRegistry, kind: PoolKind, maxTier = Infinity): string[] {
   return Object.values(content.enemies)
-    .filter((e) =>
-      kind === 'boss' ? e.isBoss : kind === 'elite' ? e.isElite : !e.isBoss && !e.isElite,
-    )
+    .filter((e) => {
+      const typeOk =
+        kind === 'boss' ? e.isBoss : kind === 'elite' ? e.isElite : !e.isBoss && !e.isElite;
+      if (!typeOk) return false;
+      if (kind === 'normal') return (e.tier ?? 1) <= maxTier;
+      return true;
+    })
     .map((e) => e.id)
     .sort();
 }
@@ -185,10 +189,15 @@ function rollEncounter(
   state: RunState,
   node: MapNode,
 ): string[] {
-  const pool = enemyPool(content, 'normal');
+  // Deeper acts admit higher enemy tiers and bigger packs.
+  const tiered = enemyPool(content, 'normal', node.act + 1);
+  const pool = tiered.length > 0 ? tiered : enemyPool(content, 'normal');
   if (pool.length === 0) throw new EngineError('no normal enemies in content');
   const [ids] = withStream(state.rng, 'combat', (rng) => {
-    const count = node.row <= 2 ? 1 : rng.next() < 0.5 ? 1 : 2;
+    let count: number;
+    if (node.act === 0) count = node.row <= 2 ? 1 : rng.next() < 0.5 ? 1 : 2;
+    else if (node.act === 1) count = 2;
+    else count = rng.next() < 0.5 ? 2 : 3;
     return Array.from({ length: count }, () => rng.pick(pool));
   });
   return ids;

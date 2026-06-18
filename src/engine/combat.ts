@@ -128,23 +128,24 @@ export function endTurn(
     }
   }
 
-  // Round end: regen heals then all timed statuses tick down.
+  // Round end: poison damages (bypassing block), regen heals, timed statuses decay.
+  const afterPoison = Math.max(0, next.playerHp - getStatus(next.playerStatuses, 'poison'));
   next = {
     ...next,
     playerHp: Math.min(
       next.playerMaxHp,
-      next.playerHp + getStatus(next.playerStatuses, 'regen'),
+      afterPoison + getStatus(next.playerStatuses, 'regen'),
     ),
     playerStatuses: decayStatuses(next.playerStatuses),
-    enemies: next.enemies.map((e) =>
-      e.hp > 0
-        ? {
-            ...e,
-            hp: Math.min(e.maxHp, e.hp + getStatus(e.statuses, 'regen')),
-            statuses: decayStatuses(e.statuses),
-          }
-        : e,
-    ),
+    enemies: next.enemies.map((e) => {
+      if (e.hp <= 0) return e;
+      const poisoned = Math.max(0, e.hp - getStatus(e.statuses, 'poison'));
+      return {
+        ...e,
+        hp: Math.min(e.maxHp, poisoned + getStatus(e.statuses, 'regen')),
+        statuses: decayStatuses(e.statuses),
+      };
+    }),
   };
 
   // Next player turn: block resets, energy refills, draw a fresh hand.
@@ -186,7 +187,7 @@ export function applyRelics(
 
 function decayStatuses(statuses: Statuses): Statuses {
   let next = statuses;
-  for (const id of ['vulnerable', 'weak', 'regen'] as const) {
+  for (const id of ['vulnerable', 'weak', 'regen', 'poison'] as const) {
     if (getStatus(next, id) > 0) next = addStatus(next, id, -1);
   }
   return next;

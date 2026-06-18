@@ -162,6 +162,29 @@ const defs: readonly CardDef[] = [
   { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'heal', amount: 12 }] },
   { id: 'perfect-parry', name: 'Perfect Parry', description: 'Gain 10 Block. Draw 1 card.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10 }, { kind: 'draw', count: 1 }] },
   { id: 'guillotine', name: 'Guillotine', description: 'Deal 24 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 24, target: 'enemy' }] },
+  // --- M12 expansion: poison + dexterity archetypes ---
+  // Commons
+  { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
+  { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }] },
+  { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  { id: 'sidestep', name: 'Sidestep', description: 'Gain 4 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 4 }, { kind: 'draw', count: 1 }] },
+  { id: 'throwing-knife', name: 'Throwing Knife', description: 'Deal 4 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }] },
+  { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 8 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
+  { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 3 damage twice.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 3, target: 'enemy', times: 2 }] },
+  // Uncommons
+  { id: 'toxic-cloud', name: 'Toxic Cloud', description: 'Apply 2 Poison to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 2, target: 'allEnemies' }] },
+  { id: 'caltrops', name: 'Caltrops', description: 'Gain 2 Dexterity.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 2, target: 'self' }] },
+  { id: 'rupture', name: 'Rupture', description: 'Deal 6 damage. Apply 3 Poison.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
+  { id: 'bulwark', name: 'Bulwark', description: 'Gain 16 Block.', type: 'skill', rarity: 'uncommon', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 16 }] },
+  { id: 'venom-blade', name: 'Venom Blade', description: 'Deal 5 damage. Apply 2 Poison. Draw 1 card.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  { id: 'stone-skin', name: 'Stone Skin', description: 'Gain 1 Dexterity and 5 Block.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 5 }] },
+  // Rares
+  { id: 'viral-load', name: 'Viral Load', description: 'Apply 8 Poison.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 8, target: 'enemy' }] },
+  { id: 'iron-stance', name: 'Iron Stance', description: 'Gain 3 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }] },
+  { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 4 Poison to all enemies.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 4, target: 'allEnemies' }] },
+  { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  { id: 'last-bastion', name: 'Last Bastion', description: 'Gain 18 Block and 1 Dexterity.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
 ];
 
 export const cards: Readonly<Record<string, CardDef>> = Object.fromEntries(

@@ -87,7 +87,12 @@ export function applyPlayerEffect(
       return next;
     }
     case 'block':
-      return { ...combat, playerBlock: combat.playerBlock + effect.amount };
+      return {
+        ...combat,
+        playerBlock:
+          combat.playerBlock +
+          Math.max(0, effect.amount + getStatus(combat.playerStatuses, 'dexterity')),
+      };
     case 'draw':
       return drawCards(combat, effect.count, rng);
     case 'gainEnergy':
@@ -137,7 +142,9 @@ export function applyEnemyEffect(
     }
     case 'block': {
       const enemies = combat.enemies.map((e, i) =>
-        i === enemyIndex ? { ...e, block: e.block + effect.amount } : e,
+        i === enemyIndex
+          ? { ...e, block: e.block + Math.max(0, effect.amount + getStatus(e.statuses, 'dexterity')) }
+          : e,
       );
       return { ...combat, enemies };
     }

@@ -65,15 +65,16 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
         } else {
           next.push(restId);
         }
-        nodes[laneId(row, lane)] = { id: laneId(row, lane), kind, row, next };
+        nodes[laneId(row, lane)] = { id: laneId(row, lane), kind, row, act: a, next };
       }
     }
 
-    nodes[restId] = { id: restId, kind: 'rest', row: restRow, next: [capId] };
+    nodes[restId] = { id: restId, kind: 'rest', row: restRow, act: a, next: [capId] };
     nodes[capId] = {
       id: capId,
       kind: isFinal ? 'boss' : 'elite',
       row: capRow,
+      act: a,
       next: isFinal ? [] : [laneId(firstRow(a + 1), 0), laneId(firstRow(a + 1), 1)],
     };
   }
@@ -95,6 +96,7 @@ export function generateMap(rng: Rng, config: MapConfig = {}): RunMap {
     id: startId,
     kind: 'start',
     row: 0,
+    act: 0,
     next: [laneId(1, 0), laneId(1, 1)],
   };
 

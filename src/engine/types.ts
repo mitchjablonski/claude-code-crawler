@@ -3,7 +3,7 @@ import type { RngStreams } from './rng.js';
 // ---- Effects: the closed primitive set every system composes from ----
 
 export type TargetKind = 'enemy' | 'allEnemies' | 'self';
-export type StatusId = 'strength' | 'vulnerable' | 'weak' | 'regen';
+export type StatusId = 'strength' | 'vulnerable' | 'weak' | 'regen' | 'poison' | 'dexterity';
 
 export type Effect =
   | { kind: 'damage'; amount: number; target: TargetKind; times?: number }
@@ -46,6 +46,8 @@ export interface EnemyDef {
   readonly moves: readonly EnemyMove[];
   readonly isElite?: boolean;
   readonly isBoss?: boolean;
+  /** Normal-enemy act tier (1-3, default 1); higher tiers appear deeper in an arc. */
+  readonly tier?: number;
 }
 
 export interface RelicDef {
@@ -89,6 +91,8 @@ export interface MapNode {
   readonly id: string;
   readonly kind: NodeKind;
   readonly row: number;
+  /** 0-indexed act this node belongs to (single mode = all act 0). */
+  readonly act: number;
   readonly next: readonly string[];
 }
 

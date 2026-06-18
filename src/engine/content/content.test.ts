@@ -3,13 +3,15 @@ import { DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 
 describe('content quota (REQ-1)', () => {
   it('meets the authored quota', () => {
-    expect(Object.keys(content.cards).length).toBeGreaterThanOrEqual(30);
+    expect(Object.keys(content.cards).length).toBeGreaterThanOrEqual(50);
     const enemies = Object.values(content.enemies);
-    expect(enemies.length).toBeGreaterThanOrEqual(10);
+    expect(enemies.length).toBeGreaterThanOrEqual(18);
     expect(enemies.filter((e) => e.isElite).length).toBeGreaterThanOrEqual(2);
     expect(enemies.filter((e) => e.isBoss).length).toBeGreaterThanOrEqual(1);
-    expect(Object.keys(content.relics).length).toBeGreaterThanOrEqual(8);
-    expect(Object.keys(content.events).length).toBeGreaterThanOrEqual(6);
+    // tiered normal enemies exist for act escalation
+    expect(enemies.filter((e) => (e.tier ?? 1) >= 2).length).toBeGreaterThanOrEqual(4);
+    expect(Object.keys(content.relics).length).toBeGreaterThanOrEqual(12);
+    expect(Object.keys(content.events).length).toBeGreaterThanOrEqual(10);
   });
 });
 

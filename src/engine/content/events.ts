@@ -61,6 +61,25 @@ const defs: readonly NarrativeEventDef[] = [
     { label: 'Pay for the real thing', outcomes: [{ kind: 'loseGold', amount: 35 }, { kind: 'gainMaxHp', amount: 8 }] },
     { label: 'Decline politely', outcomes: [] },
   ] },
+  // --- M12 expansion ---
+  { id: 'traveling-alchemist', name: 'Traveling Alchemist', prompt: 'A cart of bubbling vials, attended by someone with no eyebrows. "Potent stuff," they wheeze.', options: [
+    { label: 'Take the green vial', outcomes: [{ kind: 'gainCard', cardId: 'viral-load' }, { kind: 'loseHp', amount: 4 }] },
+    { label: 'Buy the antidote', outcomes: [{ kind: 'loseGold', amount: 25 }, { kind: 'gainMaxHp', amount: 5 }] },
+    { label: 'Keep walking', outcomes: [] },
+  ] },
+  { id: 'cursed-idol', name: 'Cursed Idol', prompt: 'A leering idol clutches something that gleams. The air smells faintly of regret.', options: [
+    { label: 'Pry it loose', outcomes: [{ kind: 'gainRelic', relicId: 'war-paint' }, { kind: 'loseHp', amount: 8 }] },
+    { label: 'Leave it well alone', outcomes: [] },
+  ] },
+  { id: 'abandoned-cache', name: 'Abandoned Cache', prompt: 'A strongbox wedged in the rubble. The lock is rusted; the hinges are not.', options: [
+    { label: 'Force it open', outcomes: [{ kind: 'gainGold', amount: 40 }, { kind: 'loseHp', amount: 5 }] },
+    { label: 'Pick it carefully', outcomes: [{ kind: 'gainGold', amount: 20 }] },
+  ] },
+  { id: 'whispering-well', name: 'Whispering Well', prompt: 'A well exhales cold air and your own voice, slightly out of sync.', options: [
+    { label: 'Toss in a coin', outcomes: [{ kind: 'loseGold', amount: 20 }, { kind: 'gainMaxHp', amount: 6 }] },
+    { label: 'Drink deep', outcomes: [{ kind: 'loseHp', amount: 6 }, { kind: 'gainMaxHp', amount: 8 }] },
+    { label: 'Walk on', outcomes: [] },
+  ] },
 ];
 
 export const events: Readonly<Record<string, NarrativeEventDef>> = Object.fromEntries(
