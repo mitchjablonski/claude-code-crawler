@@ -1,6 +1,6 @@
 # Claude Code Crawler
 
-[![CI](https://github.com/bigdogdota/claude-code-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/bigdogdota/claude-code-crawler/actions/workflows/ci.yml)
+[![CI](https://github.com/mitchjablonski/claude-code-crawler/actions/workflows/ci.yml/badge.svg)](https://github.com/mitchjablonski/claude-code-crawler/actions/workflows/ci.yml)
 
 A roguelike deckbuilder that lives alongside [Claude Code](https://claude.com/claude-code) — crawl the dungeon while Claude works, and return to the surface when it needs you. Failing builds spawn elites named after your stack trace; passing tests rain gold; when Claude stops and waits for you, the dungeon kicks you back to the terminal.
 
@@ -61,10 +61,16 @@ Snark is a setting (`[s]` on the title screen): **dry**, **wry**, or **roast**. 
 
 ## Status
 
-**v0.1 — playable, content intentionally lean.** One character, ~30 cards, 11 enemies, 2 elites, one boss, a ~30-minute run. The systems are complete; breadth is the roadmap:
+**v0.1 — playable and broadly built out.** Two character classes (Knight, Apothecary), 50 cards, 20 enemies (incl. 2 elites + a boss, tiered for act escalation), 12 relics, 10 events, plus Poison and Dexterity mechanics. Choose your run on the title screen:
 
-- more cards, enemies, relics, and a second act
-- additional character classes
+- **Mode** (`[m]`): a session-sized **single** act, or a 3-act **arc**.
+- **Difficulty** (`[d]`): Story / Normal / Hard / Nightmare — matched in win-rate across both modes.
+- **Snark** (`[s]`) and **Class** (`[k]`).
+
+Balance is validated by a headless playtest harness and an MCTS search bot, not by guesswork. Roadmap:
+
+- an optional graphical renderer (terminal stays the default)
+- more character classes and class-gated cards
 - richer Dungeon AI authority (curating encounters, not just naming them)
 
 Issues and PRs welcome.
@@ -73,7 +79,7 @@ Issues and PRs welcome.
 
 ```sh
 npm install
-npm test            # vitest (112 tests)
+npm test            # vitest (141 tests)
 npm run lint        # includes the engine-purity layering rules
 npm run typecheck
 npm run dev         # run the TUI from source

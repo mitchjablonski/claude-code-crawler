@@ -16,11 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bigdogdota/claude-code-crawler.git"
+    "url": "git+https://github.com/mitchjablonski/claude-code-crawler.git"
   },
-  "homepage": "https://github.com/bigdogdota/claude-code-crawler#readme",
+  "homepage": "https://github.com/mitchjablonski/claude-code-crawler#readme",
   "bugs": {
-    "url": "https://github.com/bigdogdota/claude-code-crawler/issues"
+    "url": "https://github.com/mitchjablonski/claude-code-crawler/issues"
   },
   "engines": {
     "node": ">=18"
