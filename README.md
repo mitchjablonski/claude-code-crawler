@@ -6,12 +6,7 @@ A roguelike deckbuilder that lives alongside [Claude Code](https://claude.com/cl
 
 > **Not affiliated with, endorsed by, or sponsored by Anthropic.** Claude and Claude Code are trademarks of Anthropic. This is a community project that integrates with Claude Code via its public hooks.
 
-```
-  ┌─ demo ──────────────────────────────────────────────┐
-  │  (asciinema / GIF goes here — `ccc simulate          │
-  │   busy-refactor` next to a live game)                │
-  └──────────────────────────────────────────────────────┘
-```
+![Claude Code Crawler — the title screen, a fight, a passing test raining gold, and the dungeon sending you back to the surface when Claude needs you](docs/demo.gif)
 
 ## Quickstart
 
