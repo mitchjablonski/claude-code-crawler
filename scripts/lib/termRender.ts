@@ -53,7 +53,9 @@ export const BG = background;
 export const CELL_W = 9;
 export const CELL_H = 19;
 export const COLS = 76;
-export const ROWS = 22;
+// Tall enough that framed screens (e.g. a full hand of bordered card tiles)
+// aren't clipped in snapshots; the demo gif crops naturally to its content.
+export const ROWS = 30;
 export const PAD = 10;
 export const W = COLS * CELL_W + PAD * 2;
 export const H = ROWS * CELL_H + PAD * 2;

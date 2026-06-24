@@ -20,19 +20,20 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
-| V1  | **Central theme module** (`src/ui/theme.ts`): semantic tokens (palette, frame/box styles, status icons, rarity colors, layout widths). Built **art-mirror-ready** — tokens are semantic ("elite", "rare", "poison"), not raw colors — so a future companion app maps the same tokens to real art. Refactor all screens + StatusBar to consume it. `termRender.ts` COLORS derives from it. | P0 | — | todo |
+| V1  | **Central theme module** (`src/ui/theme.ts`): semantic tokens (palette, frame/box styles, status icons, rarity colors, layout widths). Built **art-mirror-ready** — tokens are semantic ("elite", "rare", "poison"), not raw colors — so a future companion app maps the same tokens to real art. Refactor all screens + StatusBar to consume it. `termRender.ts` COLORS derives from it. | P0 | — | **done** (PR #1) |
 | V2  | **Consistent screen chrome**: every screen gets a unified header/footer + bordered panels via theme box styles. Kill ad-hoc spacing. | P1 | V1 | todo |
-| V3  | **Card frames**: render cards as bordered tiles with cost pip, name, type/rarity color, and description — replace the flat `[1] (1) Strike - ...` lines. | P1 | V1 | todo |
+| V3  | **Card frames**: render cards as bordered tiles with cost pip, name, type/rarity color, and description — replace the flat `[1] (1) Strike - ...` lines. | P1 | V1 | **done** (PR #3) |
 | V4  | **Enemy presentation**: per-enemy ASCII sigil/banner + HP bar glyphs + clearer intent iconography (attack/block/buff/debuff). | P1 | V1 | todo |
 | V5  | **Status-effect icons**: glyph + color per status (poison, dexterity, block, strength…) used consistently in combat + status bar. | P2 | V1 | todo |
 | V6  | **Juice / feedback**: brief visual beats for damage, block, gold gain, card play (within the deterministic engine — presentation only). | P2 | V1, V3 | todo |
+| V7  | **Unify item tiles**: generalize `CardTile` into a shared item frame so shop **potions** are framed like cards (V3 left shop potions as plain text). Small follow-up to remove the half-framed shop. | P2 | V3 | todo |
 
 ## Pillar D — Gameplay depth
 
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
 | D1  | **Card upgrades** (rest-site "smith" option + upgraded card variants). | P1 | — | todo |
-| D2  | **Potions**: consumable one-shot items with a slot limit; drops + shop stock. | P1 | — | todo |
+| D2  | **Potions**: consumable one-shot items with a slot limit; drops + shop stock. | P1 | — | **done** (PR #2) |
 | D3  | **Card rarity + reward weighting**: common/uncommon/rare tiers driving reward + shop pools. | P1 | — | todo |
 | D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | todo |
 | D5  | **Boss mechanics**: phase changes / signature moves so bosses aren't stat-stick combats. | P2 | — | todo |

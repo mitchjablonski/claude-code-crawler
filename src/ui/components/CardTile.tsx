@@ -1,4 +1,5 @@
 import { Box, Text } from 'ink';
+import type { ReactNode } from 'react';
 import type { CardDef } from '../../engine/types.js';
 import { theme } from '../theme.js';
 
@@ -30,7 +31,7 @@ export function CardTile({
   /** Dim the whole tile (unaffordable) while keeping the cost pip readable. */
   readonly dim?: boolean;
   /** Optional trailing annotation rendered under the description (e.g. price). */
-  readonly trailing?: React.ReactNode;
+  readonly trailing?: ReactNode;
 }) {
   return (
     <Box
