@@ -16,7 +16,7 @@ import type {
   GameAction,
   RunState,
 } from '../src/engine/types.js';
-import { EngineError } from '../src/engine/types.js';
+import { EngineError, eventRequirementMet } from '../src/engine/types.js';
 import { mctsAction } from '../src/search/mcts.js';
 
 type PolicyName = 'greedy' | 'cautious' | 'naive' | 'mcts';
@@ -150,8 +150,12 @@ function nonCombat(state: RunState, content: ContentRegistry, rand: () => number
     }
     case 'rest':
       return { type: 'rest' };
-    case 'event':
-      return { type: 'chooseEventOption', index: 0 };
+    case 'event': {
+      if (state.event?.result) return { type: 'continueEvent' };
+      const def = state.event ? content.events[state.event.eventId] : undefined;
+      const index = (def?.options ?? []).findIndex((o) => eventRequirementMet(state, o.requires));
+      return { type: 'chooseEventOption', index: index < 0 ? 0 : index };
+    }
     default:
       throw new EngineError(`no non-combat action for phase ${state.phase}`);
   }

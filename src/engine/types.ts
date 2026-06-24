@@ -85,13 +85,50 @@ export interface RelicDef {
   readonly effects: readonly Effect[];
 }
 
-export type EventOutcome =
+/** Player-state fields an event can branch or gate on (deterministic). */
+export type EventCheck = 'gold' | 'hp' | 'maxHp' | 'relics' | 'deck';
+
+/**
+ * The simple, directly-applicable outcome kinds. These are the only kinds that
+ * ever end up in a resolved `applied` list (the composite kinds below flatten
+ * down to these before application).
+ */
+export type SimpleEventOutcome =
   | { kind: 'gainGold'; amount: number }
   | { kind: 'loseGold'; amount: number }
   | { kind: 'loseHp'; amount: number }
   | { kind: 'gainMaxHp'; amount: number }
   | { kind: 'gainCard'; cardId: string }
   | { kind: 'gainRelic'; relicId: string };
+
+/**
+ * Composite outcome kinds. Authored events may use these inside an option's
+ * outcome list; the engine flattens them (resolving rolls via the 'events' RNG
+ * stream and conditionals via the player state) into `SimpleEventOutcome`s
+ * before applying. Branches/clauses are kept ONE level deep — they may contain
+ * only simple kinds, never another roll/conditional (validated in content tests).
+ */
+export type EventOutcome =
+  | SimpleEventOutcome
+  | {
+      kind: 'rollOutcomes';
+      /** One branch is chosen via the 'events' stream (uniform, or by `weights`). */
+      readonly branches: readonly (readonly SimpleEventOutcome[])[];
+      readonly weights?: readonly number[];
+    }
+  | {
+      kind: 'conditional';
+      readonly check: EventCheck;
+      readonly atLeast: number;
+      readonly ifPass: readonly SimpleEventOutcome[];
+      readonly ifFail: readonly SimpleEventOutcome[];
+    };
+
+/** A requirement gating whether an option is selectable. */
+export interface EventRequirement {
+  readonly check: EventCheck;
+  readonly atLeast: number;
+}
 
 export interface NarrativeEventDef {
   readonly id: string;
@@ -100,6 +137,8 @@ export interface NarrativeEventDef {
   readonly options: readonly {
     readonly label: string;
     readonly outcomes: readonly EventOutcome[];
+    /** If present, the option is selectable only when the requirement holds. */
+    readonly requires?: EventRequirement;
   }[];
 }
 
@@ -203,7 +242,19 @@ export interface RunState {
     readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[];
     readonly potionStock: readonly { readonly potionId: string; readonly price: number; readonly sold: boolean }[];
   } | null;
-  readonly event: { readonly eventId: string } | null;
+  readonly event: {
+    readonly eventId: string;
+    /**
+     * Set once an option has been resolved: the concrete (simple) outcomes that
+     * were applied, plus whether a probabilistic roll was involved. While this
+     * is set the run stays in the 'event' phase showing a result screen until
+     * `continueEvent` clears it back to the map.
+     */
+    readonly result?: {
+      readonly applied: readonly SimpleEventOutcome[];
+      readonly rolled: boolean;
+    };
+  } | null;
   readonly modifiers: RunModifiers;
   /** Difficulty enemy-HP multiplier baked into this run (1 = neutral). */
   readonly enemyHpMult: number;
@@ -221,7 +272,30 @@ export type GameAction =
   | { type: 'leaveShop' }
   | { type: 'rest' }
   | { type: 'upgradeCard'; deckIndex: number }
-  | { type: 'chooseEventOption'; index: number };
+  | { type: 'chooseEventOption'; index: number }
+  | { type: 'continueEvent' };
+
+/** Read the player-state value an event check/requirement compares against. */
+export function eventCheckValue(state: RunState, check: EventCheck): number {
+  switch (check) {
+    case 'gold':
+      return state.gold;
+    case 'hp':
+      return state.hp;
+    case 'maxHp':
+      return state.maxHp;
+    case 'relics':
+      return state.relics.length;
+    case 'deck':
+      return state.deck.length;
+  }
+}
+
+/** True iff the option's requirement (if any) is satisfied by the state. */
+export function eventRequirementMet(state: RunState, requires?: EventRequirement): boolean {
+  if (!requires) return true;
+  return eventCheckValue(state, requires.check) >= requires.atLeast;
+}
 
 export class EngineError extends Error {
   constructor(message: string) {

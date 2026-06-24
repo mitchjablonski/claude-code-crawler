@@ -161,6 +161,8 @@ export interface AutoPlayResult {
   usedPotion: boolean;
   /** True iff the autoplayer upgraded a card via the rest-site upgrade path. */
   upgradedCard: boolean;
+  /** True iff the autoplayer resolved an event through its result screen. */
+  eventResolved: boolean;
 }
 
 /** First potion hotkey letter shown on a Satchel: line, or null if none. */
@@ -214,6 +216,10 @@ export async function autoPlay(
   // offers an upgradeable card; thereafter rests just heal ([r]).
   let upgradedCard = false;
   let triedUpgrade = false;
+  let eventResolved = false;
+  // The option to try next on an event screen; advances if a press changes nothing
+  // (gated/unavailable option), resets once an option is taken.
+  let eventOption = 1;
 
   const snapshotIfNew = async (phase: Phase) => {
     if (phase !== 'unknown' && !seen.has(phase)) {
@@ -235,6 +241,7 @@ export async function autoPlay(
         reachedGameOver: true,
         usedPotion,
         upgradedCard,
+        eventResolved,
       };
     }
 
@@ -314,7 +321,9 @@ export async function autoPlay(
         input = 'r';
         break;
       case 'event':
-        input = '1';
+        // Result screen ([1] Continue) → press 1 to return to the map. Option
+        // screen → try the current candidate option (advanced below if gated).
+        input = before.includes('Continue') ? '1' : String(eventOption);
         break;
       case 'pause':
         input = 'p';
@@ -343,9 +352,27 @@ export async function autoPlay(
       }
     }
 
-    // Reward/event fallbacks: if "take first" did nothing, skip / try next.
+    // Reward fallback: if "take first" did nothing, skip.
     if (phase === 'reward' && after === before) await h.press('s');
-    if (phase === 'event' && after === before) await h.press('2');
+
+    // Event handling: track the result-screen→continue keypath and step past
+    // gated options (a press that changed nothing means that option is locked).
+    if (phase === 'event') {
+      const wasResult = before.includes('Continue');
+      if (wasResult) {
+        // We continued past a result screen → an event was fully resolved.
+        if (after !== before) eventResolved = true;
+        eventOption = 1;
+      } else if (after === before) {
+        // Gated/unavailable option → advance to the next candidate.
+        eventOption++;
+        if (eventOption > 6) eventOption = 1;
+      } else {
+        // An option was taken; the next frame is either a result screen or the
+        // map. Reset the option cursor for the next event.
+        eventOption = 1;
+      }
+    }
   }
 
   const finalPhase = detectPhase(h.text());
@@ -356,6 +383,7 @@ export async function autoPlay(
     reachedGameOver: false,
     usedPotion,
     upgradedCard,
+    eventResolved,
   };
 }
 

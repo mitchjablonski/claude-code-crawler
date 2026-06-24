@@ -1,6 +1,43 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 import { UPGRADE_TARGET_IDS } from './cards.js';
+import type { EventOutcome, SimpleEventOutcome } from '../types.js';
+
+const COMPOSITE_KINDS = new Set(['rollOutcomes', 'conditional']);
+
+/** Assert a simple outcome's gainCard/gainRelic id resolves. */
+function checkSimple(outcome: SimpleEventOutcome, where: string): void {
+  if (outcome.kind === 'gainCard') {
+    expect(content.cards[outcome.cardId], `${where}: ${outcome.cardId}`).toBeDefined();
+  }
+  if (outcome.kind === 'gainRelic') {
+    expect(content.relics[outcome.relicId], `${where}: ${outcome.relicId}`).toBeDefined();
+  }
+}
+
+/** Recurse one level into an outcome, validating ids and the depth invariant. */
+function checkOutcome(outcome: EventOutcome, where: string): void {
+  if (outcome.kind === 'rollOutcomes') {
+    for (const branch of outcome.branches) {
+      for (const inner of branch) {
+        // Branches must contain only simple kinds (≤1 level deep).
+        expect(COMPOSITE_KINDS.has(inner.kind), `${where}: nested composite in roll`).toBe(false);
+        checkSimple(inner, where);
+      }
+    }
+    return;
+  }
+  if (outcome.kind === 'conditional') {
+    for (const inner of [...outcome.ifPass, ...outcome.ifFail]) {
+      expect(COMPOSITE_KINDS.has(inner.kind), `${where}: nested composite in conditional`).toBe(
+        false,
+      );
+      checkSimple(inner, where);
+    }
+    return;
+  }
+  checkSimple(outcome, where);
+}
 
 /**
  * Re-derive the draftable pool the way run.ts's rollCardChoices builds it:
@@ -28,19 +65,34 @@ describe('content quota (REQ-1)', () => {
 });
 
 describe('content integrity', () => {
-  it('has no dangling ids in events', () => {
+  it('has no dangling ids in events (recursing into rolls/conditionals)', () => {
     for (const event of Object.values(content.events)) {
       for (const option of event.options) {
         for (const outcome of option.outcomes) {
-          if (outcome.kind === 'gainCard') {
-            expect(content.cards[outcome.cardId], `${event.id}: ${outcome.cardId}`).toBeDefined();
-          }
-          if (outcome.kind === 'gainRelic') {
-            expect(content.relics[outcome.relicId], `${event.id}: ${outcome.relicId}`).toBeDefined();
-          }
+          checkOutcome(outcome, event.id);
         }
       }
     }
+  });
+
+  it('events use the risk/reward and stat-check mechanics', () => {
+    let rollEvents = 0;
+    let statEvents = 0;
+    for (const event of Object.values(content.events)) {
+      let hasRoll = false;
+      let hasStat = false;
+      for (const option of event.options) {
+        if (option.requires) hasStat = true;
+        for (const outcome of option.outcomes) {
+          if (outcome.kind === 'rollOutcomes') hasRoll = true;
+          if (outcome.kind === 'conditional') hasStat = true;
+        }
+      }
+      if (hasRoll) rollEvents++;
+      if (hasStat) statEvents++;
+    }
+    expect(rollEvents, 'risk/reward events').toBeGreaterThanOrEqual(3);
+    expect(statEvents, 'stat-check events').toBeGreaterThanOrEqual(2);
   });
 
   it('every upgradeTo references a real card (and the base/target differ)', () => {

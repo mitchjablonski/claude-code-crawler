@@ -14,14 +14,16 @@ import { UPGRADE_TARGET_IDS } from './content/cards.js';
 import type {
   CardDef,
   ContentRegistry,
+  EventOutcome,
   GameAction,
   MapNode,
   PotionDef,
   Rarity,
   RunState,
+  SimpleEventOutcome,
   StatusId,
 } from './types.js';
-import { EngineError } from './types.js';
+import { EngineError, eventCheckValue, eventRequirementMet } from './types.js';
 
 export interface RunConfig {
   readonly starterDeck: readonly string[];
@@ -168,7 +170,12 @@ export function applyAction(
     }
     case 'chooseEventOption': {
       requirePhase(state, 'event');
-      return resolveEventOption(content, state, action.index);
+      return chooseEventOption(content, state, action.index);
+    }
+    case 'continueEvent': {
+      requirePhase(state, 'event');
+      if (!state.event?.result) throw new EngineError('no event result to continue from');
+      return { ...state, event: null, phase: 'map' };
     }
   }
 }
@@ -452,18 +459,31 @@ function enterEvent(content: ContentRegistry, state: RunState): RunState {
   return { ...state, rng, event: { eventId }, phase: 'event' };
 }
 
-function resolveEventOption(
+function chooseEventOption(
   content: ContentRegistry,
   state: RunState,
   index: number,
 ): RunState {
   const def = state.event ? content.events[state.event.eventId] : undefined;
   if (!def) throw new EngineError('no active event');
+  const eventId = state.event!.eventId;
   const option = def.options[index];
   if (!option) throw new EngineError(`no event option at ${index}`);
+  if (!eventRequirementMet(state, option.requires)) {
+    throw new EngineError(`event option ${index} is not available`);
+  }
 
-  let next: RunState = { ...state, event: null, phase: 'map' };
-  for (const outcome of option.outcomes) {
+  // Flatten the chosen outcomes into concrete simple outcomes. Probabilistic
+  // rolls draw from the 'events' stream (so replay is byte-identical); the
+  // 'events' stream's advanced state is folded back into rng. Conditionals read
+  // the pre-resolution player state (a snapshot), keeping resolution order-free.
+  const [resolved, rng] = withStream(state.rng, 'events', (r) =>
+    flattenOutcomes(option.outcomes, state, r),
+  );
+
+  // Apply the simple outcomes immutably (same arithmetic as before).
+  let next: RunState = { ...state, rng };
+  for (const outcome of resolved.applied) {
     switch (outcome.kind) {
       case 'gainGold':
         next = { ...next, gold: next.gold + outcome.amount };
@@ -489,8 +509,73 @@ function resolveEventOption(
         break;
     }
   }
-  if (next.hp <= 0) return { ...next, phase: 'defeat' };
-  return next;
+
+  // Lethal outcome → straight to defeat (no result screen).
+  if (next.hp <= 0) return { ...next, event: null, phase: 'defeat' };
+
+  // Nothing applied (e.g. "Walk away") → straight back to the map.
+  if (resolved.applied.length === 0) {
+    return { ...next, event: null, phase: 'map' };
+  }
+
+  // Otherwise stay in the event phase and show a result screen.
+  return {
+    ...next,
+    event: { eventId, result: { applied: resolved.applied, rolled: resolved.rolled } },
+    phase: 'event',
+  };
+}
+
+/**
+ * Resolve an option's (possibly composite) outcomes into a flat list of simple
+ * outcomes. Rolls advance `r` (the 'events' stream); conditionals branch on the
+ * passed-in state snapshot. Composites are one level deep — branches/clauses
+ * contain only simple outcomes — so no recursion past this single expansion is
+ * required.
+ */
+function flattenOutcomes(
+  outcomes: readonly EventOutcome[],
+  state: RunState,
+  r: Rng,
+): { applied: SimpleEventOutcome[]; rolled: boolean } {
+  const applied: SimpleEventOutcome[] = [];
+  let rolled = false;
+  for (const outcome of outcomes) {
+    switch (outcome.kind) {
+      case 'rollOutcomes': {
+        rolled = true;
+        const branch = pickBranch(outcome.branches, outcome.weights, r);
+        applied.push(...branch);
+        break;
+      }
+      case 'conditional': {
+        const pass = eventCheckValue(state, outcome.check) >= outcome.atLeast;
+        applied.push(...(pass ? outcome.ifPass : outcome.ifFail));
+        break;
+      }
+      default:
+        applied.push(outcome);
+        break;
+    }
+  }
+  return { applied, rolled };
+}
+
+/** Pick one branch uniformly, or by `weights` if provided, from the 'events' rng. */
+function pickBranch(
+  branches: readonly (readonly SimpleEventOutcome[])[],
+  weights: readonly number[] | undefined,
+  r: Rng,
+): readonly SimpleEventOutcome[] {
+  if (branches.length === 0) return [];
+  if (!weights) return r.pick(branches);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = r.next() * total;
+  for (let i = 0; i < branches.length; i++) {
+    roll -= weights[i] ?? 0;
+    if (roll < 0) return branches[i] as readonly SimpleEventOutcome[];
+  }
+  return branches[branches.length - 1] as readonly SimpleEventOutcome[];
 }
 
 // ---- guards ----
