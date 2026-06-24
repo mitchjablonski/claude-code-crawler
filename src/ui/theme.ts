@@ -246,8 +246,33 @@ export function hpBarSegments(
 }
 
 /**
- * Render an engine `Statuses` map into compact token-styled segments. Dumb
- * presentational helper: returns data, the screen decides how to draw it.
+ * The CANONICAL status glyph. This is the single source of truth for how a
+ * status reads ANYWHERE in the combat UI — enemy status tags, the player's own
+ * combat statuses, and the status portion of the enemy intent telegraph. Every
+ * site routes through this so a status is identical everywhere:
+ *   - COLOR is the status' IDENTITY color (`theme.status[id].color`) — STR is
+ *     always red, VUL always yellow — never the threat-axis category color.
+ *   - FORMAT is `<ICON> <N>` with a single space (e.g. `VUL 2`, `STR 1`).
+ *     Pass `sign: true` for a leading `+` on the count (e.g. `STR +1`) to mark
+ *     a value the holder GAINS (an enemy buffing itself in its telegraph); the
+ *     icon/color are unchanged so it still reads as the same status.
+ *
+ * Pure presentational: returns data, the caller decides how to draw it.
+ */
+export function statusChip(
+  id: StatusId,
+  stacks: number,
+  opts?: { readonly sign?: boolean },
+): { readonly icon: string; readonly text: string; readonly color: InkColor } {
+  const style = status[id];
+  const count = opts?.sign ? `+${stacks}` : `${stacks}`;
+  return { icon: style.icon, text: `${style.icon} ${count}`, color: style.color };
+}
+
+/**
+ * Render an engine `Statuses` map into compact token-styled segments via the
+ * canonical {@link statusChip}. Dumb presentational helper: returns data, the
+ * screen decides how to draw it.
  */
 export function statusSegments(
   statuses: Statuses,
@@ -255,7 +280,7 @@ export function statusSegments(
   return (Object.entries(statuses) as [StatusId, number | undefined][])
     .filter(([, v]) => v !== undefined)
     .map(([id, v]) => {
-      const style = status[id];
-      return { text: `${style.icon} ${v}`, color: style.color };
+      const chip = statusChip(id, v as number);
+      return { text: chip.text, color: chip.color };
     });
 }

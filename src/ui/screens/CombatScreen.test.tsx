@@ -51,7 +51,9 @@ describe('CombatScreen intent telegraph', () => {
     expect(frame).toContain('next:');
     expect(frame).toContain('Style Violation');
     expect(frame).toContain('9dmg'); // headline threat
-    expect(frame).toContain('VUL2'); // the debuff landing on the player
+    // Canonical status format (V5): identity color + `<ICON> <N>` with a space,
+    // unified across enemy tags, player statuses, and intent chips (was `VUL2`).
+    expect(frame).toContain('VUL 2'); // the debuff landing on the player
   });
 
   it('shows a multi-hit damage chip as NxTdmg', () => {
@@ -89,6 +91,8 @@ describe('CombatScreen intent telegraph', () => {
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('+8blk');
-    expect(frame).toContain('STR+1'); // enemy self-buff
+    // Canonical status format (V5): self-buff keeps the `+` sign on the count but
+    // now uses the unified `<ICON> +N` glyph (identity color + space), was `STR+1`.
+    expect(frame).toContain('STR +1'); // enemy self-buff
   });
 });

@@ -10,7 +10,7 @@ import type {
 } from '../../engine/types.js';
 import type { Effect } from '../../engine/types.js';
 import type { InkColor, IntentKind } from '../theme.js';
-import { theme, statusSegments, hpBarSegments, POTION_KEYS } from '../theme.js';
+import { theme, statusSegments, statusChip, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
 import { resolveEnemyMove } from '../../engine/enemyMoves.js';
@@ -53,9 +53,13 @@ function intentNameFor(content: ContentRegistry, enemy: EnemyInstance): string {
  * chips so the player can see every effect the single category icon hides:
  *   - damage      -> `Ndmg` (multi-hit `NxT`), danger color (the headline threat)
  *   - block       -> `+Nblk`, block/defend color
- *   - self-buff   -> `<ICON>+N` (e.g. `STR+1`), the status' buff color
- *   - debuff      -> `<ICON>N`  (e.g. `VUL2`), the status' debuff color (key new info)
+ *   - self-buff   -> `<ICON> +N` (e.g. `STR +1`) via the canonical `statusChip`
+ *   - debuff      -> `<ICON> N`  (e.g. `VUL 2`) via the canonical `statusChip`
  *   - self-heal   -> `+Nhp`, success color
+ * The status chips (buff/debuff) read with the status' IDENTITY color + format
+ * (the canonical `statusChip`), so a status looks the SAME here as in the enemy
+ * status tags and the player's status line; only the leading category icon and
+ * the non-status chips (damage/block/heal) carry threat-axis kind colors.
  * gainEnergy/draw are vanishingly rare for enemies; omitted (no player-relevant
  * threat). Pure: reads already-resolved move effects + only theme tokens.
  */
@@ -79,13 +83,13 @@ function intentChips(content: ContentRegistry, enemy: EnemyInstance): readonly I
         chips.push({ text: `+${fx.amount}hp`, color: theme.colors.success });
         break;
       case 'applyStatus': {
-        const style = theme.status[fx.status];
-        // target 'self' = enemy buffs itself; otherwise it lands ON the player.
+        // target 'self' = enemy buffs itself (gains stacks, shown with a +);
+        // otherwise the status lands ON the player. Either way the chip uses the
+        // CANONICAL status glyph (identity color + format) so it reads identically
+        // to the same status in the enemy tags and the player status line.
         const isSelf = fx.target === 'self';
-        chips.push({
-          text: isSelf ? `${style.icon}+${fx.stacks}` : `${style.icon}${fx.stacks}`,
-          color: isSelf ? theme.colors.intent.buff : theme.colors.intent.debuff,
-        });
+        const chip = statusChip(fx.status, fx.stacks, { sign: isSelf });
+        chips.push({ text: chip.text, color: chip.color });
         break;
       }
       // gainEnergy / draw: not a player-facing threat for enemies — omit.
