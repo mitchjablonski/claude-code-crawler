@@ -140,11 +140,12 @@ const defs: readonly EnemyDef[] = [
         effects: [{ kind: 'damage', amount: 7, target: 'enemy', times: 2 }],
       },
     ],
-    // At/under 50% HP the Scope Creep panics and ships everything at once: a
-    // tighter, all-offense pool with a telegraphed signature finisher. The set
-    // drops the defensive "Requirements Shift" entirely (no more stalling) and
-    // self-buffs strength so each subsequent hit escalates — the fight reads as
-    // a closing window, not a bigger stat-stick. Pure HP gate (no rng).
+    // At/under 50% HP the Scope Creep panics and ships everything at once: it
+    // drops the defensive "Requirements Shift" stall for a tighter all-offense
+    // pool built around the telegraphed "Ship Everything" signature (which rallies
+    // +1 strength as it lands), punctuated by a "Crunch Time" block-only breather
+    // so the fight reads as a closing window with beats, not a bigger stat-stick.
+    // Pure HP gate (no rng).
     phases: [
       {
         hpThreshold: 0.5,
