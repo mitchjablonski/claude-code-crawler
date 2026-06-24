@@ -32,6 +32,22 @@ export interface CardDef {
   readonly effects: readonly Effect[];
 }
 
+/**
+ * Potions are one-shot consumables used IN COMBAT. They compose the SAME
+ * closed Effect set as cards (REQ: code decides, content composes) — no new
+ * effect kinds or mechanics, only new data.
+ */
+export interface PotionDef {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  /** What the player must select when using this potion. */
+  readonly target: TargetKind;
+  readonly effects: readonly Effect[];
+  /** Optional rarity, used only for shop pricing. */
+  readonly rarity?: Rarity;
+}
+
 /** In enemy moves, target 'enemy' means the player. */
 export interface EnemyMove {
   readonly name: string;
@@ -81,6 +97,7 @@ export interface ContentRegistry {
   readonly enemies: Readonly<Record<string, EnemyDef>>;
   readonly relics: Readonly<Record<string, RelicDef>>;
   readonly events: Readonly<Record<string, NarrativeEventDef>>;
+  readonly potions: Readonly<Record<string, PotionDef>>;
 }
 
 // ---- Map ----
@@ -159,13 +176,22 @@ export interface RunState {
   readonly gold: number;
   readonly deck: readonly string[];
   readonly relics: readonly string[];
+  /** Consumable potions currently held (potion def ids). Capped at maxPotions. */
+  readonly potions: readonly string[];
+  /** Potion slot limit baked into this run (keeps the reducer self-contained). */
+  readonly maxPotions: number;
   readonly combat: CombatState | null;
   readonly reward: {
     readonly cards: readonly string[];
     readonly gold: number;
     readonly relicId?: string;
+    /** Potion granted by this reward (auto-added to the satchel when resolved). */
+    readonly potionId?: string;
   } | null;
-  readonly shop: { readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[] } | null;
+  readonly shop: {
+    readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[];
+    readonly potionStock: readonly { readonly potionId: string; readonly price: number; readonly sold: boolean }[];
+  } | null;
   readonly event: { readonly eventId: string } | null;
   readonly modifiers: RunModifiers;
   /** Difficulty enemy-HP multiplier baked into this run (1 = neutral). */
@@ -175,10 +201,12 @@ export interface RunState {
 export type GameAction =
   | { type: 'chooseNode'; nodeId: string }
   | { type: 'playCard'; handIndex: number; targetIndex?: number }
+  | { type: 'usePotion'; potionIndex: number; targetIndex?: number }
   | { type: 'endTurn' }
   | { type: 'pickRewardCard'; index: number }
   | { type: 'skipReward' }
   | { type: 'buyCard'; index: number }
+  | { type: 'buyPotion'; index: number }
   | { type: 'leaveShop' }
   | { type: 'rest' }
   | { type: 'chooseEventOption'; index: number };

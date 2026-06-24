@@ -76,7 +76,7 @@ describe('applyAction', () => {
       ...run('alpha'),
       phase: 'shop',
       gold: 100,
-      shop: { stock: [{ cardId: 'shield-wall', price: 50, sold: false }] },
+      shop: { stock: [{ cardId: 'shield-wall', price: 50, sold: false }], potionStock: [] },
     };
     const bought = applyAction(content, state, { type: 'buyCard', index: 0 });
     expect(bought.gold).toBe(50);
@@ -85,6 +85,78 @@ describe('applyAction', () => {
     expect(() => applyAction(content, bought, { type: 'buyCard', index: 0 })).toThrow(
       EngineError,
     );
+  });
+
+  it('usePotion applies effects, consumes the potion, and is combat-only', () => {
+    const base = run('alpha');
+    const first = base.map.nodes[base.currentNodeId]?.next[0] as string;
+    const inCombat = applyAction(content, base, { type: 'chooseNode', nodeId: first });
+    expect(inCombat.phase).toBe('combat');
+    const armed: RunState = { ...inCombat, potions: ['iron-tonic'] };
+    const used = applyAction(content, armed, { type: 'usePotion', potionIndex: 0 });
+    expect(used.combat?.playerBlock).toBe(12); // Iron Tonic = 12 block
+    expect(used.potions).toHaveLength(0); // consumed
+
+    // Out of combat the action is rejected.
+    expect(() =>
+      applyAction(content, { ...base, potions: ['iron-tonic'] }, {
+        type: 'usePotion',
+        potionIndex: 0,
+      }),
+    ).toThrow(EngineError);
+    // Unknown index rejected.
+    expect(() =>
+      applyAction(content, armed, { type: 'usePotion', potionIndex: 5 }),
+    ).toThrow(EngineError);
+  });
+
+  it('buyPotion deducts gold, fills a slot, and respects sold/full', () => {
+    const state: RunState = {
+      ...run('alpha'),
+      phase: 'shop',
+      gold: 100,
+      potions: [],
+      maxPotions: 1,
+      shop: {
+        stock: [],
+        potionStock: [{ potionId: 'fire-flask', price: 35, sold: false }],
+      },
+    };
+    const bought = applyAction(content, state, { type: 'buyPotion', index: 0 });
+    expect(bought.gold).toBe(65);
+    expect(bought.potions).toEqual(['fire-flask']);
+    expect(bought.shop?.potionStock[0]?.sold).toBe(true);
+    // Already sold -> reject.
+    expect(() => applyAction(content, bought, { type: 'buyPotion', index: 0 })).toThrow(
+      EngineError,
+    );
+    // Full satchel (maxPotions 1) -> reject even on a fresh unsold slot.
+    const full: RunState = {
+      ...state,
+      potions: ['healing-draught'],
+    };
+    expect(() => applyAction(content, full, { type: 'buyPotion', index: 0 })).toThrow(
+      EngineError,
+    );
+  });
+
+  it('reward potion grant respects the slot limit', () => {
+    const room: RunState = {
+      ...run('alpha'),
+      phase: 'reward',
+      potions: [],
+      maxPotions: 2,
+      reward: { cards: ['lucky-dagger'], gold: 0, potionId: 'fire-flask' },
+    };
+    const picked = applyAction(content, room, { type: 'pickRewardCard', index: 0 });
+    expect(picked.potions).toEqual(['fire-flask']);
+
+    const full: RunState = {
+      ...room,
+      potions: ['healing-draught', 'iron-tonic'],
+    };
+    const skipped = applyAction(content, full, { type: 'skipReward' });
+    expect(skipped.potions).toHaveLength(2); // unchanged, no overflow
   });
 
   it('event outcomes apply, and lethal ones end the run', () => {

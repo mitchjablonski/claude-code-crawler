@@ -3,6 +3,7 @@ import type {
   CombatState,
   ContentRegistry,
   EnemyInstance,
+  PotionDef,
   Statuses,
 } from './types.js';
 import { EngineError } from './types.js';
@@ -88,6 +89,31 @@ export function playCard(
     discardPile: [...combat.discardPile, cardId],
   };
   for (const effect of card.effects) {
+    next = applyPlayerEffect(next, effect, targetIndex, rng);
+  }
+  return next;
+}
+
+/**
+ * Apply a combat potion's effects. Mirrors playCard's validation/immutability:
+ * enemy-target potions require a living target. Potions cost no energy and are
+ * not cards, so there is nothing to discard — they are removed from the run's
+ * satchel by the caller (run.ts).
+ */
+export function usePotion(
+  potion: PotionDef,
+  combat: CombatState,
+  targetIndex: number | undefined,
+  rng: Rng,
+): CombatState {
+  if (potion.target === 'enemy') {
+    const enemy = combat.enemies[targetIndex ?? -1];
+    if (!enemy || enemy.hp <= 0) {
+      throw new EngineError(`${potion.name} requires a living target`);
+    }
+  }
+  let next = combat;
+  for (const effect of potion.effects) {
     next = applyPlayerEffect(next, effect, targetIndex, rng);
   }
   return next;

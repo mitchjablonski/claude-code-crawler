@@ -55,22 +55,59 @@ export function CombatScreen({
 }) {
   const combat = state.combat as CombatState;
   const [pendingCard, setPendingCard] = useState<number | null>(null);
+  const [pendingPotion, setPendingPotion] = useState<number | null>(null);
   const living = combat.enemies
     .map((enemy, index) => ({ enemy, index }))
     .filter(({ enemy }) => enemy.hp > 0);
+  // Letter keys a-f address the satchel (NOT 'e' = end turn).
+  const POTION_KEYS = ['a', 'b', 'c', 'd', 'f', 'g'];
+  const pending = pendingCard !== null || pendingPotion !== null;
 
   useInput((input, key) => {
     if (key.escape) {
       setPendingCard(null);
+      setPendingPotion(null);
       return;
     }
     if (input === 'e') {
       setPendingCard(null);
+      setPendingPotion(null);
       dispatch({ type: 'endTurn' });
       return;
     }
+
+    // Potion hotkeys (only when not mid-target-select).
+    if (!pending) {
+      const potionIndex = POTION_KEYS.indexOf(input);
+      if (potionIndex >= 0) {
+        const potionId = state.potions[potionIndex];
+        if (potionId === undefined) return;
+        const potion = content.potions[potionId];
+        if (!potion) return;
+        if (potion.target === 'enemy') {
+          if (living.length === 1) {
+            dispatch({ type: 'usePotion', potionIndex, targetIndex: living[0]?.index });
+          } else {
+            setPendingPotion(potionIndex);
+          }
+        } else {
+          dispatch({ type: 'usePotion', potionIndex });
+        }
+        return;
+      }
+    }
+
     const n = Number(input);
     if (!Number.isInteger(n) || n < 1) return;
+
+    if (pendingPotion !== null) {
+      const target = combat.enemies[n - 1];
+      if (target && target.hp > 0) {
+        dispatch({ type: 'usePotion', potionIndex: pendingPotion, targetIndex: n - 1 });
+        setPendingPotion(null);
+      }
+      return;
+    }
 
     if (pendingCard !== null) {
       const target = combat.enemies[n - 1];
@@ -102,7 +139,7 @@ export function CombatScreen({
       <Box flexDirection="column">
         {combat.enemies.map((enemy, i) => (
           <Text key={`${enemy.defId}-${i}`} dimColor={enemy.hp <= 0}>
-            {pendingCard !== null && enemy.hp > 0 ? `[${i + 1}] ` : '    '}
+            {pending && enemy.hp > 0 ? `[${i + 1}] ` : '    '}
             <Text bold>{nameFor?.(enemy.defId) ?? enemy.name}</Text>{' '}
             {enemy.hp <= 0
               ? 'slain'
@@ -117,7 +154,7 @@ export function CombatScreen({
         ))}
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text bold>{pendingCard !== null ? 'Choose a target:' : 'Your hand:'}</Text>
+        <Text bold>{pending ? 'Choose a target:' : 'Your hand:'}</Text>
         {combat.hand.map((cardId, i) => {
           const card = content.cards[cardId];
           if (!card) return null;
@@ -131,11 +168,27 @@ export function CombatScreen({
           );
         })}
       </Box>
+      {state.potions.length > 0 && (
+        <Box marginTop={1}>
+          <Text>
+            <Text color={theme.colors.accent}>Satchel:</Text>
+            {state.potions.map((potionId, i) => {
+              const potion = content.potions[potionId];
+              const key = POTION_KEYS[i] ?? '?';
+              return (
+                <Text key={`${potionId}-${i}`}>
+                  {'  '}({key}) {potion?.name ?? potionId}
+                </Text>
+              );
+            })}
+          </Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text dimColor>
-          {pendingCard !== null
+          {pending
             ? 'number: target  esc: cancel'
-            : 'number: play card  e: end turn'}
+            : `number: play card  ${state.potions.length > 0 ? 'a-: use potion  ' : ''}e: end turn`}
         </Text>
       </Box>
     </Box>

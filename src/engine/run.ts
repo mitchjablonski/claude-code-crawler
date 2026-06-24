@@ -7,6 +7,7 @@ import {
   isCombatWon,
   playCard,
   startCombat,
+  usePotion,
 } from './combat.js';
 import { addStatus } from './effects.js';
 import type {
@@ -14,6 +15,7 @@ import type {
   ContentRegistry,
   GameAction,
   MapNode,
+  PotionDef,
   Rarity,
   RunState,
   StatusId,
@@ -30,7 +32,13 @@ export interface RunConfig {
   readonly enemyHpMult?: number;
   /** Number of acts (1 = single session, 3 = multi-act arc). Default 1. */
   readonly acts?: number;
+  /** Potion slot limit (default 3). */
+  readonly maxPotions?: number;
+  /** Potions the run begins with (default none). */
+  readonly startingPotions?: readonly string[];
 }
+
+export const DEFAULT_MAX_POTIONS = 3;
 
 export function createRun(
   content: ContentRegistry,
@@ -52,6 +60,8 @@ export function createRun(
     gold: config.startingGold,
     deck: [...config.starterDeck],
     relics: [...config.startingRelics],
+    potions: [...(config.startingPotions ?? [])],
+    maxPotions: config.maxPotions ?? DEFAULT_MAX_POTIONS,
     combat: null,
     reward: null,
     shop: null,
@@ -73,6 +83,8 @@ export function applyAction(
       return inCombat(content, state, (rng, s) =>
         playCard(content, requireCombat(s), action.handIndex, action.targetIndex, rng),
       );
+    case 'usePotion':
+      return usePotionAction(content, state, action.potionIndex, action.targetIndex);
     case 'endTurn':
       return inCombat(content, state, (rng, s) => {
         let combat = endTurn(content, requireCombat(s), rng);
@@ -85,11 +97,16 @@ export function applyAction(
       requirePhase(state, 'reward');
       const cardId = state.reward?.cards[action.index];
       if (cardId === undefined) throw new EngineError(`no reward card at ${action.index}`);
-      return { ...state, deck: [...state.deck, cardId], reward: null, phase: 'map' };
+      return {
+        ...grantRewardPotion(state),
+        deck: [...state.deck, cardId],
+        reward: null,
+        phase: 'map',
+      };
     }
     case 'skipReward':
       requirePhase(state, 'reward');
-      return { ...state, reward: null, phase: 'map' };
+      return { ...grantRewardPotion(state), reward: null, phase: 'map' };
     case 'buyCard': {
       requirePhase(state, 'shop');
       const item = state.shop?.stock[action.index];
@@ -100,7 +117,26 @@ export function applyAction(
         gold: state.gold - item.price,
         deck: [...state.deck, item.cardId],
         shop: {
+          ...state.shop!,
           stock: state.shop!.stock.map((s, i) =>
+            i === action.index ? { ...s, sold: true } : s,
+          ),
+        },
+      };
+    }
+    case 'buyPotion': {
+      requirePhase(state, 'shop');
+      const item = state.shop?.potionStock[action.index];
+      if (!item || item.sold) throw new EngineError(`no potion to buy at ${action.index}`);
+      if (state.gold < item.price) throw new EngineError('not enough gold');
+      if (state.potions.length >= state.maxPotions) throw new EngineError('satchel full');
+      return {
+        ...state,
+        gold: state.gold - item.price,
+        potions: [...state.potions, item.potionId],
+        shop: {
+          ...state.shop!,
+          potionStock: state.shop!.potionStock.map((s, i) =>
             i === action.index ? { ...s, sold: true } : s,
           ),
         },
@@ -224,6 +260,35 @@ function enterCombat(
   return { ...next, rng, combat, phase: 'combat' };
 }
 
+function usePotionAction(
+  content: ContentRegistry,
+  state: RunState,
+  potionIndex: number,
+  targetIndex: number | undefined,
+): RunState {
+  requirePhase(state, 'combat');
+  const potionId = state.potions[potionIndex];
+  if (potionId === undefined) throw new EngineError(`no potion at index ${potionIndex}`);
+  const potion = content.potions[potionId] as PotionDef | undefined;
+  if (!potion) throw new EngineError(`unknown potion ${potionId}`);
+  // Remove the consumed potion first; usePotion validation runs in the combat
+  // stream below and throws before any state is committed if the use is illegal.
+  const consumed: RunState = {
+    ...state,
+    potions: state.potions.filter((_, i) => i !== potionIndex),
+  };
+  return inCombat(content, consumed, (rng, s) =>
+    usePotion(potion, requireCombat(s), targetIndex, rng),
+  );
+}
+
+/** If the resolved reward carries a potion and there's a free slot, add it. */
+function grantRewardPotion(state: RunState): RunState {
+  const potionId = state.reward?.potionId;
+  if (potionId === undefined || state.potions.length >= state.maxPotions) return state;
+  return { ...state, potions: [...state.potions, potionId] };
+}
+
 function inCombat(
   content: ContentRegistry,
   state: RunState,
@@ -248,6 +313,7 @@ function finishCombat(content: ContentRegistry, state: RunState): RunState {
     return { ...state, combat: null, phase: 'victory' };
   }
   const isElite = node.kind === 'elite';
+  const hasPotionSlot = state.potions.length < state.maxPotions;
   const [reward, rng] = withStream(state.rng, 'loot', (r) => {
     const gold = isElite ? r.intBetween(30, 50) : r.intBetween(15, 30);
     const cards = rollCardChoices(content, r, 3);
@@ -258,19 +324,30 @@ function finishCombat(content: ContentRegistry, state: RunState): RunState {
         .sort();
       if (unowned.length > 0) relicId = r.pick(unowned);
     }
-    return { gold, cards, relicId };
+    // Roll the potion LAST so existing gold/card/relic rolls keep their order;
+    // only the trailing roll shifts loot fixtures.
+    let potionId: string | undefined;
+    if (r.int(4) === 0 && hasPotionSlot) potionId = r.pick(potionIds(content));
+    return { gold, cards, relicId, potionId };
   });
+  const baseReward = { cards: reward.cards, gold: reward.gold };
   return {
     ...state,
     rng,
     combat: null,
     gold: state.gold + reward.gold,
     relics: reward.relicId ? [...state.relics, reward.relicId] : state.relics,
-    reward: reward.relicId
-      ? { cards: reward.cards, gold: reward.gold, relicId: reward.relicId }
-      : { cards: reward.cards, gold: reward.gold },
+    reward: {
+      ...baseReward,
+      ...(reward.relicId ? { relicId: reward.relicId } : {}),
+      ...(reward.potionId ? { potionId: reward.potionId } : {}),
+    },
     phase: 'reward',
   };
+}
+
+function potionIds(content: ContentRegistry): string[] {
+  return Object.keys(content.potions).sort();
 }
 
 // ---- loot / shop / events ----
@@ -313,18 +390,41 @@ const SHOP_PRICES: Readonly<Record<Rarity, number>> = {
   rare: 110,
 };
 
+/** Potion shop prices by rarity (cheaper than cards: a one-shot, not permanent). */
+const POTION_PRICES: Readonly<Record<Rarity, number>> = {
+  starter: 20,
+  common: 35,
+  uncommon: 55,
+  rare: 80,
+};
+
+const SHOP_POTION_COUNT = 2;
+
 function enterShop(content: ContentRegistry, state: RunState): RunState {
-  const [stock, rng] = withStream(state.rng, 'loot', (r) =>
-    rollCardChoices(content, r, 3).map((cardId) => {
+  const [shop, rng] = withStream(state.rng, 'loot', (r) => {
+    // Card stock rolls FIRST so existing shop fixtures keep their card rolls;
+    // the potion rolls are appended afterwards on the same stream.
+    const stock = rollCardChoices(content, r, 3).map((cardId) => {
       const card = content.cards[cardId] as CardDef;
       return {
         cardId,
         price: SHOP_PRICES[card.rarity] + r.intBetween(-5, 5),
         sold: false,
       };
-    }),
-  );
-  return { ...state, rng, shop: { stock }, phase: 'shop' };
+    });
+    const ids = potionIds(content);
+    const potionStock = Array.from({ length: SHOP_POTION_COUNT }, () => {
+      const potionId = r.pick(ids);
+      const potion = content.potions[potionId] as PotionDef;
+      return {
+        potionId,
+        price: POTION_PRICES[potion.rarity ?? 'common'] + r.intBetween(-5, 5),
+        sold: false,
+      };
+    });
+    return { stock, potionStock };
+  });
+  return { ...state, rng, shop, phase: 'shop' };
 }
 
 function enterEvent(content: ContentRegistry, state: RunState): RunState {

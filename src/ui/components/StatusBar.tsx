@@ -34,6 +34,9 @@ export function StatusBar({
           <Text dimColor>
             {'  '}deck {state.deck.length}
           </Text>
+          <Text color={theme.colors.accent}>
+            {'  '}pots {state.potions.length}/{state.maxPotions}
+          </Text>
         </Text>
       </Box>
       <Box paddingX={1} justifyContent="space-between">
