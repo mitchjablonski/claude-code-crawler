@@ -65,12 +65,7 @@ export function RestScreen({
             const upgraded = content.cards[upgradeId];
             if (!upgraded) return null;
             return (
-              <CardTile
-                key={`${upgradeId}-${i}`}
-                marker={`[${i + 1}]`}
-                card={upgraded}
-                trailing={<Text color={theme.colors.success}>upgraded +</Text>}
-              />
+              <CardTile key={`${upgradeId}-${i}`} marker={`[${i + 1}]`} card={upgraded} />
             );
           })}
         </Box>
