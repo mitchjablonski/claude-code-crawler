@@ -27,7 +27,8 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | V5  | **Status-effect icons**: glyph + color per status (poison, dexterity, block, strength…) used consistently in combat + status bar. | P2 | V1 | todo |
 | V6  | **Juice / feedback**: brief visual beats for damage, block, gold gain, card play (within the deterministic engine — presentation only). | P2 | V1, V3 | todo |
 | V7  | **Unify item tiles**: generalize `CardTile` into a shared item frame so shop **potions** are framed like cards (V3 left shop potions as plain text). Small follow-up to remove the half-framed shop. | P2 | V3 | todo |
-| V8  | **Deck view**: a screen to inspect your full deck outside combat (StatusBar only shows a count today). Unblocks the rest-site upgrade chooser's 9-card cap (add pagination) and a base→upgraded comparison. Surfaced by D1. | P2 | V3 | todo |
+| V8  | **Deck view**: a screen to inspect your full deck outside combat (StatusBar only shows a count today). Unblocks the rest-site upgrade chooser's 9-card cap (add pagination) and a base→upgraded comparison. Surfaced by D1. | P2 | V3 | **done** (PR #9) |
+| V9  | **Deck-view follow-ups** (from V8): card detail / effect text on row-select (the compact list omits descriptions); reach the deck view from reward/shop/rest/combat, not map-only. | P3 | V8 | todo |
 
 ## Pillar D — Gameplay depth
 

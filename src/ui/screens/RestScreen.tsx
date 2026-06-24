@@ -104,7 +104,7 @@ export function RestScreen({
       <Box marginTop={1} flexDirection="column">
         <Text>[r] Rest (heal {HEAL_PCT}% of max HP)</Text>
         <Text dimColor={options.length === 0}>
-          [u] Upgrade a card{options.length === 0 ? ' (none upgradeable)' : ''}
+          [u] Upgrade a card{options.length === 0 ? ' (none upgradeable)' : ` (${options.length} upgradeable)`}
         </Text>
       </Box>
     </Box>
