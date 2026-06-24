@@ -15,9 +15,12 @@ const KIND_LABEL: Readonly<Record<NodeKind, string>> = {
 export function MapScreen({
   state,
   dispatch,
+  onViewDeck,
 }: {
   readonly state: RunState;
   readonly dispatch: (action: GameAction) => void;
+  /** Opens the read-only deck overlay (App-local UI state; no engine change). */
+  readonly onViewDeck: () => void;
 }) {
   const node = state.map.nodes[state.currentNodeId];
   const options = (node?.next ?? [])
@@ -26,6 +29,10 @@ export function MapScreen({
   const bossRow = state.map.nodes[state.map.bossId]?.row ?? 0;
 
   useInput((input) => {
+    if (input === 'v') {
+      onViewDeck();
+      return;
+    }
     const n = Number(input);
     if (Number.isInteger(n) && n >= 1 && n <= options.length) {
       dispatch({ type: 'chooseNode', nodeId: (options[n - 1] as MapNode).id });
@@ -49,7 +56,7 @@ export function MapScreen({
         ))}
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>press a number to descend</Text>
+        <Text dimColor>press a number to descend  [v] view deck</Text>
       </Box>
     </Box>
   );
