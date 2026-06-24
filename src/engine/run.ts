@@ -33,6 +33,12 @@ export interface RunConfig {
   readonly tempoHint?: number;
   /** Difficulty enemy-HP multiplier (default 1 = neutral). */
   readonly enemyHpMult?: number;
+  /**
+   * Per-act enemy-HP scalars indexed by `node.act`; multiplied onto `enemyHpMult`.
+   * Index 0 MUST be 1.0 so single mode (act 0 only) and the default config stay
+   * byte-identical. Missing/undefined → every act uses 1.0 (no-op).
+   */
+  readonly actHpRamp?: readonly number[];
   /** Number of acts (1 = single session, 3 = multi-act arc). Default 1. */
   readonly acts?: number;
   /** Potion slot limit (default 3). */
@@ -71,6 +77,7 @@ export function createRun(
     event: null,
     modifiers: { nextCombatStatuses: {}, queuedEliteIds: [] },
     enemyHpMult: config.enemyHpMult ?? 1,
+    actHpRamp: config.actHpRamp ?? [],
   };
 }
 
@@ -267,8 +274,13 @@ function enterCombat(
   state: RunState,
   enemyIds: readonly string[],
 ): RunState {
+  // Effective HP mult = base difficulty mult * this act's ramp scalar. Act 0's
+  // scalar is always 1.0 (and the ramp is empty for single/default runs), so the
+  // `*1` after-roll scale in startCombat stays a byte-identical no-op there.
+  const act = state.map.nodes[state.currentNodeId]?.act ?? 0;
+  const effectiveMult = state.enemyHpMult * (state.actHpRamp[act] ?? 1);
   const [initialCombat, rng] = withStream(state.rng, 'combat', (r) =>
-    startCombat(content, state.deck, state.hp, state.maxHp, state.relics, enemyIds, r, state.enemyHpMult),
+    startCombat(content, state.deck, state.hp, state.maxHp, state.relics, enemyIds, r, effectiveMult),
   );
   let combat = initialCombat;
   // Consume any pending blessing from bounded modifiers.

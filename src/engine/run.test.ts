@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyAction, createRun } from './run.js';
 import { legalActions } from '../search/legalActions.js';
 import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
-import { EngineError } from './types.js';
+import { EngineError, eventRequirementMet } from './types.js';
 import type { RunState } from './types.js';
 
 const run = (seed: string) => createRun(content, seed, DEFAULT_RUN_CONFIG);
@@ -24,6 +24,112 @@ describe('createRun', () => {
     const nHp = n.combat?.enemies[0]?.maxHp ?? 0;
     const sHp = s.combat?.enemies[0]?.maxHp ?? 0;
     expect(sHp).toBe(Math.round(nHp * 2)); // same seed roll, scaled after
+  });
+
+  it('applies the per-act HP ramp: act 0 is a no-op, later acts scale', () => {
+    // Walk an arc run, at each map node taking the first edge that leads to a
+    // plain combat, and capture the first enemy's maxHp + the node's act. Run
+    // the SAME walk with no ramp and with a steep ramp, then compare per-act.
+    // Huge HP so ending turns won't kill the player before later acts; the ramp
+    // does not affect player HP, so this only changes how far the walk reaches.
+    const ARC = (ramp: readonly number[] | undefined) => ({
+      ...DEFAULT_RUN_CONFIG,
+      acts: 3,
+      maxHp: 100_000,
+      enemyHpMult: 1,
+      ...(ramp ? { actHpRamp: ramp } : {}),
+    });
+
+    const walkCombats = (cfg: Parameters<typeof createRun>[2]) => {
+      let s = createRun(content, 'arc-ramp-seed', cfg);
+      const seen: { act: number; hp: number }[] = [];
+      let prevPhase = s.phase;
+      for (let guard = 0; guard < 2000 && seen.length < 6; guard++) {
+        if (s.phase === 'combat' && prevPhase !== 'combat' && s.combat) {
+          const node = s.map.nodes[s.currentNodeId];
+          const first = s.combat.enemies[0];
+          if (node && first) seen.push({ act: node.act, hp: first.maxHp });
+        }
+        prevPhase = s.phase;
+        if (s.phase === 'map') {
+          const next = s.map.nodes[s.currentNodeId]?.next ?? [];
+          // Prefer a plain-combat edge so we sample enemy HP across acts.
+          const combatEdge = next.find((id) => s.map.nodes[id]?.kind === 'combat');
+          const target = combatEdge ?? next[0];
+          if (target === undefined) break;
+          s = applyAction(content, s, { type: 'chooseNode', nodeId: target });
+        } else if (s.phase === 'combat' && s.combat) {
+          const combat = s.combat;
+          // Play the first affordable attack at a living enemy, else end turn,
+          // so combats actually resolve and the walk advances through the acts.
+          const handIdx = combat.hand.findIndex((id) => {
+            const c = content.cards[id];
+            return c && c.type === 'attack' && c.cost <= combat.energy;
+          });
+          const tgt = combat.enemies.findIndex((e) => e.hp > 0);
+          s =
+            handIdx >= 0
+              ? applyAction(content, s, {
+                  type: 'playCard',
+                  handIndex: handIdx,
+                  targetIndex: tgt,
+                })
+              : applyAction(content, s, { type: 'endTurn' });
+        } else if (s.phase === 'reward') {
+          s = applyAction(content, s, { type: 'skipReward' });
+        } else if (s.phase === 'victory' || s.phase === 'defeat') {
+          break;
+        } else if (s.phase === 'shop') {
+          s = applyAction(content, s, { type: 'leaveShop' });
+        } else if (s.phase === 'rest') {
+          s = applyAction(content, s, { type: 'rest' });
+        } else if (s.phase === 'event') {
+          if (s.event?.result) {
+            s = applyAction(content, s, { type: 'continueEvent' });
+          } else {
+            const def = s.event ? content.events[s.event.eventId] : undefined;
+            const idx = (def?.options ?? []).findIndex((o) =>
+              eventRequirementMet(s, o.requires),
+            );
+            s = applyAction(content, s, {
+              type: 'chooseEventOption',
+              index: idx < 0 ? 0 : idx,
+            });
+          }
+        } else {
+          break;
+        }
+      }
+      return seen;
+    };
+
+    const flat = walkCombats(ARC(undefined));
+    const ramped = walkCombats(ARC([1.0, 2.0, 3.0]));
+    expect(flat.length).toBeGreaterThan(0);
+    expect(ramped.length).toBe(flat.length);
+
+    let sawAct0 = false;
+    let sawLater = false;
+    for (let i = 0; i < flat.length; i++) {
+      const f = flat[i]!;
+      const r = ramped[i]!;
+      expect(r.act).toBe(f.act);
+      if (f.act === 0) {
+        // Act 0's scalar is 1.0 → identical roll (single byte-identity preserved).
+        expect(r.hp).toBe(f.hp);
+        sawAct0 = true;
+      } else {
+        // Later acts scale by the ramp, applied AFTER the roll.
+        expect(r.hp).toBe(Math.max(1, Math.round(f.hp * (f.act === 1 ? 2 : 3))));
+        sawLater = true;
+      }
+    }
+    expect(sawAct0).toBe(true);
+    expect(sawLater).toBe(true);
+  });
+
+  it('defaults actHpRamp to empty (every act multiplies by 1 → no-op)', () => {
+    expect(run('alpha').actHpRamp).toEqual([]);
   });
 
   it('starts at the map start with the starter deck', () => {

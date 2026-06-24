@@ -51,6 +51,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       maxHp: cls.maxHp,
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
+      ...(k.actHpRamp ? { actHpRamp: k.actHpRamp } : {}),
       acts: actsForMode(runMode),
       // Dev/snapshot-only seam; production never sets this (stays undefined → []).
       ...(deps.startingPotions ? { startingPotions: deps.startingPotions } : {}),

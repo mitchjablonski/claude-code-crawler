@@ -10,9 +10,14 @@ import {
   DEFAULT_RUN_CONFIG,
   content as baseContent,
 } from '../src/engine/content/index.js';
+import {
+  type Difficulty,
+  type RunMode,
+  actsForMode,
+  knobsFor,
+} from '../src/config.js';
 import type {
   ContentRegistry,
-  EnemyDef,
   GameAction,
   RunState,
 } from '../src/engine/types.js';
@@ -31,16 +36,23 @@ function arg(name: string, fallback: string): string {
 }
 const RUNS = Number(arg('runs', '500'));
 const POLICY = arg('policy', 'greedy') as PolicyName;
-const ENEMY_HP_MULT = Number(arg('enemyhp', '1'));
-const MAX_HP = Number(arg('maxhp', String(DEFAULT_RUN_CONFIG.maxHp)));
-const START_GOLD = Number(arg('gold', String(DEFAULT_RUN_CONFIG.startingGold)));
 const TEMPO = Number(arg('tempo', '0.5'));
 const SEED_BASE = arg('seedbase', 'play');
 const ITERS = Number(arg('iters', '200'));
-const MODE = arg('mode', 'single'); // 'single' | 'arc'
-const ACTS = MODE === 'arc' ? 3 : 1;
+const MODE = arg('mode', 'single') as RunMode; // 'single' | 'arc'
+const ACTS = actsForMode(MODE);
+const DIFFICULTY = arg('difficulty', 'normal') as Difficulty;
 const CHARACTER = arg('character', 'knight');
 const charDef = CHARACTERS[CHARACTER] ?? CHARACTERS['knight']!;
+
+// Validate the REAL shipped knobs players actually get, then allow explicit
+// overrides for sweeping. This is the whole point: balance must be checked
+// against knobsFor, with the engine's after-roll enemyHpMult doing the scaling
+// (no content pre-scaling — that would not match the live game path).
+const KNOBS = knobsFor(DIFFICULTY, MODE);
+const ENEMY_HP_MULT = Number(arg('enemyhp', String(KNOBS.enemyHpMult)));
+const MAX_HP = Number(arg('maxhp', String(KNOBS.maxHp)));
+const START_GOLD = Number(arg('gold', String(KNOBS.startingGold)));
 
 // Tally of card plays across all runs (any policy) — surfaces which cards a
 // strong agent actually leans on (note: dominated by starters via deck share).
@@ -67,19 +79,6 @@ function mulberry(seedStr: string): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
-
-// --- difficulty: scale enemy HP without touching shipped content ---
-function scaleContent(content: ContentRegistry, mult: number): ContentRegistry {
-  if (mult === 1) return content;
-  const enemies: Record<string, EnemyDef> = {};
-  for (const [id, def] of Object.entries(content.enemies)) {
-    enemies[id] = {
-      ...def,
-      hp: [Math.max(1, Math.round(def.hp[0] * mult)), Math.max(1, Math.round(def.hp[1] * mult))],
-    };
-  }
-  return { ...content, enemies };
 }
 
 // --- policies ---
@@ -258,13 +257,17 @@ function playRun(seed: string, content: ContentRegistry, config: RunConfig, poli
 }
 
 // --- sweep ---
-const content = scaleContent(baseContent, ENEMY_HP_MULT);
+// Engine does the after-roll scaling, exactly like the live game (no content
+// pre-scaling). Arc gets the per-act ramp straight from knobsFor.
+const content: ContentRegistry = baseContent;
 const config: RunConfig = {
   ...DEFAULT_RUN_CONFIG,
   starterDeck: charDef.starterDeck,
   startingRelics: charDef.startingRelics,
   maxHp: MAX_HP,
   startingGold: START_GOLD,
+  enemyHpMult: ENEMY_HP_MULT,
+  ...(KNOBS.actHpRamp ? { actHpRamp: KNOBS.actHpRamp } : {}),
   tempoHint: TEMPO,
   acts: ACTS,
 };
@@ -301,7 +304,7 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
 console.log(
   JSON.stringify(
     {
-      params: { runs: RUNS, policy: POLICY, mode: MODE, iters: POLICY === 'mcts' ? ITERS : undefined, enemyHpMult: ENEMY_HP_MULT, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
+      params: { runs: RUNS, policy: POLICY, mode: MODE, difficulty: DIFFICULTY, iters: POLICY === 'mcts' ? ITERS : undefined, enemyHpMult: ENEMY_HP_MULT, actHpRamp: KNOBS.actHpRamp, maxHp: MAX_HP, startGold: START_GOLD, tempo: TEMPO },
       winRate: +(wins.length / RUNS).toFixed(3),
       avgCombatsEntered: +avg(results.map((r) => r.combatsEntered)).toFixed(2),
       avgEndHpOnWin: +avg(wins.map((r) => r.endHp)).toFixed(1),
