@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, createRun } from './run.js';
+import {
+  applyAction,
+  createRun,
+  rollCardChoices,
+  RARITY_WEIGHTS_BY_ACT,
+} from './run.js';
 import { legalActions } from '../search/legalActions.js';
 import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
+import { UPGRADE_TARGET_IDS } from './content/cards.js';
 import { EngineError, eventRequirementMet } from './types.js';
+import { Rng, seedFromString } from './rng.js';
 import type { RunState } from './types.js';
 
 const run = (seed: string) => createRun(content, seed, DEFAULT_RUN_CONFIG);
@@ -433,5 +440,118 @@ describe('applyAction', () => {
     };
     const prayed = applyAction(content, shrine, { type: 'chooseEventOption', index: 0 });
     expect(legalActions(content, prayed)).toEqual([{ type: 'continueEvent' }]);
+  });
+});
+
+describe('rollCardChoices depth-scaled rarity weighting (D3)', () => {
+  const weightOf = (act: number, rarity: 'common' | 'uncommon' | 'rare') =>
+    RARITY_WEIGHTS_BY_ACT[act]!.find(([r]) => r === rarity)![1];
+
+  it('act 0 weight row is exactly [0.6, 0.3, 0.1] (single-mode invariant)', () => {
+    // Single mode is act 0 only; this row must never change or act-0/single
+    // reward & shop draws would diverge from the historical flat weighting.
+    expect(RARITY_WEIGHTS_BY_ACT[0]).toEqual([
+      ['common', 0.6],
+      ['uncommon', 0.3],
+      ['rare', 0.1],
+    ]);
+  });
+
+  it('every act row sums to ~1', () => {
+    for (const row of RARITY_WEIGHTS_BY_ACT) {
+      const sum = row.reduce((a, [, w]) => a + w, 0);
+      expect(sum).toBeCloseTo(1, 5);
+    }
+  });
+
+  it('deeper acts tilt toward higher rarity (monotonic non-decreasing)', () => {
+    for (let act = 1; act < RARITY_WEIGHTS_BY_ACT.length; act++) {
+      // uncommon and rare weights never drop vs act 0, and at least one rises.
+      expect(weightOf(act, 'uncommon')).toBeGreaterThanOrEqual(weightOf(0, 'uncommon'));
+      expect(weightOf(act, 'rare')).toBeGreaterThanOrEqual(weightOf(0, 'rare'));
+      expect(weightOf(act, 'common')).toBeLessThanOrEqual(weightOf(0, 'common'));
+      // and strictly improving versus the previous act
+      expect(weightOf(act, 'rare')).toBeGreaterThan(weightOf(act - 1, 'rare'));
+      expect(weightOf(act, 'uncommon')).toBeGreaterThanOrEqual(weightOf(act - 1, 'uncommon'));
+    }
+  });
+
+  it('act 0 rolls are byte-identical to a flat [0.6,0.3,0.1] reference roll', () => {
+    // Re-implement the historical flat algorithm and assert act-0 matches it
+    // for a fixed seed and identical rng consumption.
+    const flatWeights: [string, number][] = [
+      ['common', 0.6],
+      ['uncommon', 0.3],
+      ['rare', 0.1],
+    ];
+    const byRarity = new Map<string, { id: string }[]>();
+    for (const card of Object.values(content.cards).sort((a, b) => a.id.localeCompare(b.id))) {
+      if (card.rarity === 'starter') continue;
+      if (UPGRADE_TARGET_IDS.has(card.id)) continue;
+      byRarity.set(card.rarity, [...(byRarity.get(card.rarity) ?? []), card]);
+    }
+    const flatRoll = (rng: Rng, count: number): string[] => {
+      const choices: string[] = [];
+      for (let i = 0; i < count * 10 && choices.length < count; i++) {
+        let roll = rng.next();
+        let rarity = 'common';
+        for (const [r, w] of flatWeights) {
+          roll -= w;
+          if (roll < 0) {
+            rarity = r;
+            break;
+          }
+        }
+        const pool = byRarity.get(rarity);
+        if (!pool || pool.length === 0) continue;
+        const picked = rng.pick(pool);
+        if (!choices.includes(picked.id)) choices.push(picked.id);
+      }
+      return choices;
+    };
+    for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo']) {
+      const a = rollCardChoices(content, new Rng(seedFromString(seed)), 3, 0);
+      const b = flatRoll(new Rng(seedFromString(seed)), 3);
+      expect(a).toEqual(b);
+    }
+  });
+
+  it('act 2 yields more uncommon+rare than act 0 over many seeded rolls', () => {
+    const tally = (act: number) => {
+      let higher = 0;
+      let total = 0;
+      for (let i = 0; i < 4000; i++) {
+        const ids = rollCardChoices(content, new Rng(seedFromString(`s-${i}`)), 1, act);
+        for (const id of ids) {
+          total++;
+          if (content.cards[id]!.rarity !== 'common') higher++;
+        }
+      }
+      return higher / total;
+    };
+    const act0 = tally(0);
+    const act2 = tally(2);
+    // Act 0 ~0.4 higher-rarity share; act 2 should be meaningfully larger.
+    expect(act2).toBeGreaterThan(act0 + 0.05);
+  });
+
+  it('excludes starters and upgrade targets at every act, with no dupes', () => {
+    for (let act = 0; act < RARITY_WEIGHTS_BY_ACT.length; act++) {
+      for (let i = 0; i < 200; i++) {
+        const ids = rollCardChoices(content, new Rng(seedFromString(`x-${act}-${i}`)), 3, act);
+        expect(new Set(ids).size).toBe(ids.length); // dedupe within offer
+        for (const id of ids) {
+          expect(content.cards[id]!.rarity).not.toBe('starter');
+          expect(UPGRADE_TARGET_IDS.has(id)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('clamps act beyond the table to the deepest row', () => {
+    const seed = () => new Rng(seedFromString('clamp'));
+    expect(rollCardChoices(content, seed(), 3, 99)).toEqual(
+      rollCardChoices(content, seed(), 3, RARITY_WEIGHTS_BY_ACT.length - 1),
+    );
   });
 });
