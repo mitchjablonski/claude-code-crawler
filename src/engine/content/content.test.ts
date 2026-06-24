@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
+import { UPGRADE_TARGET_IDS } from './cards.js';
+
+/**
+ * Re-derive the draftable pool the way run.ts's rollCardChoices builds it:
+ * non-starter cards that are NOT some card's upgradeTo target.
+ */
+function draftablePool(): string[] {
+  return Object.values(content.cards)
+    .filter((c) => c.rarity !== 'starter' && !UPGRADE_TARGET_IDS.has(c.id))
+    .map((c) => c.id);
+}
 
 describe('content quota (REQ-1)', () => {
   it('meets the authored quota', () => {
@@ -30,6 +41,38 @@ describe('content integrity', () => {
         }
       }
     }
+  });
+
+  it('every upgradeTo references a real card (and the base/target differ)', () => {
+    for (const card of Object.values(content.cards)) {
+      if (card.upgradeTo === undefined) continue;
+      expect(content.cards[card.upgradeTo], `${card.id} -> ${card.upgradeTo}`).toBeDefined();
+      expect(card.upgradeTo).not.toBe(card.id);
+    }
+  });
+
+  it('upgraded variants are not themselves upgradeable (no chains/cycles)', () => {
+    for (const targetId of UPGRADE_TARGET_IDS) {
+      const target = content.cards[targetId];
+      expect(target, targetId).toBeDefined();
+      // An upgrade target must not carry its own upgradeTo (no chains), which
+      // also rules out any A<->B cycle.
+      expect(target?.upgradeTo, `${targetId} should be terminal`).toBeUndefined();
+    }
+  });
+
+  it('a meaningful subset of cards is upgradeable', () => {
+    // All starters + commons + a handful of uncommon/rare were authored.
+    expect(UPGRADE_TARGET_IDS.size).toBeGreaterThanOrEqual(15);
+  });
+
+  it('no upgraded variant is draftable (excluded from the reward/shop pool)', () => {
+    const pool = new Set(draftablePool());
+    for (const targetId of UPGRADE_TARGET_IDS) {
+      expect(pool.has(targetId), `${targetId} must not be draftable`).toBe(false);
+    }
+    // Sanity: the pool is still non-empty after exclusion.
+    expect(pool.size).toBeGreaterThan(0);
   });
 
   it('every character kit resolves to real cards and relics', () => {

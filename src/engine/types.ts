@@ -30,6 +30,12 @@ export interface CardDef {
   /** What the player must select when playing this card. */
   readonly target: TargetKind;
   readonly effects: readonly Effect[];
+  /**
+   * Id of the upgraded variant of this card, if any. Upgrading at a rest swaps
+   * a deck slot to this id. Upgraded variants are NOT draftable (excluded from
+   * reward/shop pools) and have no further `upgradeTo` (no chains this far).
+   */
+  readonly upgradeTo?: string;
 }
 
 /**
@@ -209,6 +215,7 @@ export type GameAction =
   | { type: 'buyPotion'; index: number }
   | { type: 'leaveShop' }
   | { type: 'rest' }
+  | { type: 'upgradeCard'; deckIndex: number }
   | { type: 'chooseEventOption'; index: number };
 
 export class EngineError extends Error {

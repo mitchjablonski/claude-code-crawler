@@ -52,11 +52,52 @@ describe('applyAction', () => {
     expect(() => applyAction(content, state, { type: 'rest' })).toThrow(EngineError);
   });
 
-  it('rest heals 30% of max HP, capped', () => {
+  it('rest heals 20% of max HP, capped', () => {
     const state: RunState = { ...run('alpha'), phase: 'rest', hp: 10 };
     const rested = applyAction(content, state, { type: 'rest' });
     expect(rested.hp).toBe(10 + Math.floor(70 * 0.2));
     expect(rested.phase).toBe('map');
+  });
+
+  it('upgradeCard swaps the deck slot to the upgraded id and returns to the map', () => {
+    const base: RunState = {
+      ...run('alpha'),
+      phase: 'rest',
+      deck: ['rusty-shortsword', 'battered-buckler', 'rusty-shortsword'],
+    };
+    const upgraded = applyAction(content, base, { type: 'upgradeCard', deckIndex: 0 });
+    expect(upgraded.deck).toEqual([
+      'rusty-shortsword-plus',
+      'battered-buckler',
+      'rusty-shortsword',
+    ]);
+    expect(upgraded.phase).toBe('map');
+  });
+
+  it('upgradeCard is rest-phase only', () => {
+    const onMap: RunState = {
+      ...run('alpha'),
+      phase: 'map',
+      deck: ['rusty-shortsword'],
+    };
+    expect(() =>
+      applyAction(content, onMap, { type: 'upgradeCard', deckIndex: 0 }),
+    ).toThrow(EngineError);
+  });
+
+  it('upgradeCard rejects an out-of-range deck index', () => {
+    const state: RunState = { ...run('alpha'), phase: 'rest', deck: ['rusty-shortsword'] };
+    expect(() =>
+      applyAction(content, state, { type: 'upgradeCard', deckIndex: 5 }),
+    ).toThrow(EngineError);
+  });
+
+  it('upgradeCard rejects a card that has no upgrade', () => {
+    // adrenaline-rush is authored without an upgradeTo.
+    const state: RunState = { ...run('alpha'), phase: 'rest', deck: ['adrenaline-rush'] };
+    expect(() =>
+      applyAction(content, state, { type: 'upgradeCard', deckIndex: 0 }),
+    ).toThrow(EngineError);
   });
 
   it('reward pick adds the card and returns to the map', () => {

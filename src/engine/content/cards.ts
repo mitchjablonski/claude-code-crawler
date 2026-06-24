@@ -10,6 +10,7 @@ const defs: readonly CardDef[] = [
     cost: 1,
     target: 'enemy',
     effects: [{ kind: 'damage', amount: 6, target: 'enemy' }],
+    upgradeTo: 'rusty-shortsword-plus',
   },
   {
     id: 'battered-buckler',
@@ -20,6 +21,7 @@ const defs: readonly CardDef[] = [
     cost: 1,
     target: 'self',
     effects: [{ kind: 'block', amount: 5 }],
+    upgradeTo: 'battered-buckler-plus',
   },
   {
     id: 'goblin-stomp',
@@ -33,6 +35,7 @@ const defs: readonly CardDef[] = [
       { kind: 'damage', amount: 8, target: 'enemy' },
       { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' },
     ],
+    upgradeTo: 'goblin-stomp-plus',
   },
   {
     id: 'cleave-the-horde',
@@ -43,6 +46,7 @@ const defs: readonly CardDef[] = [
     cost: 1,
     target: 'allEnemies',
     effects: [{ kind: 'damage', amount: 4, target: 'allEnemies' }],
+    upgradeTo: 'cleave-the-horde-plus',
   },
   {
     id: 'weakening-jab',
@@ -56,6 +60,7 @@ const defs: readonly CardDef[] = [
       { kind: 'damage', amount: 5, target: 'enemy' },
       { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' },
     ],
+    upgradeTo: 'weakening-jab-plus',
   },
   {
     id: 'second-breakfast',
@@ -66,6 +71,7 @@ const defs: readonly CardDef[] = [
     cost: 1,
     target: 'self',
     effects: [{ kind: 'heal', amount: 4 }],
+    upgradeTo: 'second-breakfast-plus',
   },
   {
     id: 'shield-wall',
@@ -76,6 +82,7 @@ const defs: readonly CardDef[] = [
     cost: 2,
     target: 'self',
     effects: [{ kind: 'block', amount: 12 }],
+    upgradeTo: 'shield-wall-plus',
   },
   {
     id: 'adrenaline-rush',
@@ -96,6 +103,7 @@ const defs: readonly CardDef[] = [
     cost: 1,
     target: 'enemy',
     effects: [{ kind: 'damage', amount: 3, target: 'enemy', times: 3 }],
+    upgradeTo: 'flurry-of-knives-plus',
   },
   {
     id: 'liquid-courage',
@@ -129,6 +137,7 @@ const defs: readonly CardDef[] = [
       { kind: 'damage', amount: 9, target: 'enemy' },
       { kind: 'draw', count: 1 },
     ],
+    upgradeTo: 'lucky-dagger-plus',
   },
   {
     id: 'last-stand',
@@ -142,30 +151,30 @@ const defs: readonly CardDef[] = [
   },
   // --- M6 content quota ---
   // Commons
-  { id: 'rat-bite', name: 'Rat Bite', description: 'Deal 5 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }] },
+  { id: 'rat-bite', name: 'Rat Bite', description: 'Deal 5 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }], upgradeTo: 'rat-bite-plus' },
   { id: 'brace', name: 'Brace', description: 'Gain 5 Block.', type: 'skill', rarity: 'common', cost: 0, target: 'self', effects: [{ kind: 'block', amount: 5 }] },
-  { id: 'pommel-strike', name: 'Pommel Strike', description: 'Deal 4 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'draw', count: 1 }] },
-  { id: 'torch-jab', name: 'Torch Jab', description: 'Deal 6 damage. Apply 1 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'enemy' }] },
-  { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }] },
+  { id: 'pommel-strike', name: 'Pommel Strike', description: 'Deal 4 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'draw', count: 1 }], upgradeTo: 'pommel-strike-plus' },
+  { id: 'torch-jab', name: 'Torch Jab', description: 'Deal 6 damage. Apply 1 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'enemy' }], upgradeTo: 'torch-jab-plus' },
+  { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }], upgradeTo: 'heavy-swing-plus' },
   { id: 'spiked-shield', name: 'Spiked Shield', description: 'Gain 6 Block. Deal 3 damage.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 6 }, { kind: 'damage', amount: 3, target: 'enemy' }] },
   { id: 'field-rations', name: 'Field Rations', description: 'Heal 3 HP. Gain 3 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 3 }, { kind: 'block', amount: 3 }] },
   // Uncommons
-  { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }] },
+  { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }], upgradeTo: 'whirlwind-plus' },
   { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 3 cards.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 3 }] },
   { id: 'iron-hide', name: 'Iron Hide', description: 'Gain 3 Regen.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'regen', stacks: 3, target: 'self' }] },
   { id: 'second-wind', name: 'Second Wind', description: 'Heal 6 HP.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 6 }] },
-  { id: 'crippling-blow', name: 'Crippling Blow', description: 'Deal 10 damage. Apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }] },
+  { id: 'crippling-blow', name: 'Crippling Blow', description: 'Deal 10 damage. Apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }], upgradeTo: 'crippling-blow-plus' },
   { id: 'shield-bash', name: 'Shield Bash', description: 'Deal 6 damage. Gain 4 Block.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'block', amount: 4 }] },
   // Rares
   { id: 'avalanche', name: 'Avalanche', description: 'Deal 12 damage to all enemies.', type: 'attack', rarity: 'rare', cost: 3, target: 'allEnemies', effects: [{ kind: 'damage', amount: 12, target: 'allEnemies' }] },
   { id: 'berserker-brew', name: 'Berserker Brew', description: 'Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
   { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'heal', amount: 12 }] },
   { id: 'perfect-parry', name: 'Perfect Parry', description: 'Gain 10 Block. Draw 1 card.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10 }, { kind: 'draw', count: 1 }] },
-  { id: 'guillotine', name: 'Guillotine', description: 'Deal 24 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 24, target: 'enemy' }] },
+  { id: 'guillotine', name: 'Guillotine', description: 'Deal 24 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 24, target: 'enemy' }], upgradeTo: 'guillotine-plus' },
   // --- M12 expansion: poison + dexterity archetypes ---
   // Commons
-  { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
-  { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }] },
+  { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }], upgradeTo: 'venom-dart-plus' },
+  { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }], upgradeTo: 'tipped-blade-plus' },
   { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'sidestep', name: 'Sidestep', description: 'Gain 4 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 4 }, { kind: 'draw', count: 1 }] },
   { id: 'throwing-knife', name: 'Throwing Knife', description: 'Deal 4 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }] },
@@ -185,7 +194,41 @@ const defs: readonly CardDef[] = [
   { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   { id: 'last-bastion', name: 'Last Bastion', description: 'Gain 18 Block and 1 Dexterity.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  // --- D1: upgraded variants ('<base>-plus'). NEVER draftable: each is some
+  // other card's upgradeTo target, so the draft pool filters them out. Reachable
+  // only by upgrading a base card at a rest site. No further upgradeTo (no chains).
+  // Starter upgrades
+  { id: 'rusty-shortsword-plus', name: 'Rusty Shortsword+', description: 'Deal 9 damage.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }] },
+  { id: 'battered-buckler-plus', name: 'Battered Buckler+', description: 'Gain 8 Block.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
+  // Common upgrades
+  { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 11 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
+  { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 7 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }] },
+  { id: 'weakening-jab-plus', name: 'Weakening Jab+', description: 'Deal 7 damage. Apply 3 Weak.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
+  { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 7 HP.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 7 }] },
+  { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 16 Block.', type: 'skill', rarity: 'common', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 16 }] },
+  { id: 'rat-bite-plus', name: 'Rat Bite+', description: 'Deal 8 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }] },
+  { id: 'pommel-strike-plus', name: 'Pommel Strike+', description: 'Deal 7 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  { id: 'torch-jab-plus', name: 'Torch Jab+', description: 'Deal 9 damage. Apply 2 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }] },
+  { id: 'heavy-swing-plus', name: 'Heavy Swing+', description: 'Deal 19 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 19, target: 'enemy' }] },
+  { id: 'venom-dart-plus', name: 'Venom Dart+', description: 'Apply 5 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }] },
+  { id: 'tipped-blade-plus', name: 'Tipped Blade+', description: 'Deal 6 damage. Apply 4 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 4, target: 'enemy' }] },
+  // Uncommon upgrades
+  { id: 'flurry-of-knives-plus', name: 'Flurry of Knives+', description: 'Deal 4 damage three times.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 3 }] },
+  { id: 'whirlwind-plus', name: 'Whirlwind+', description: 'Deal 9 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }] },
+  { id: 'crippling-blow-plus', name: 'Crippling Blow+', description: 'Deal 14 damage. Apply 3 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
+  // Rare upgrades
+  { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 13 damage. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 13, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  { id: 'guillotine-plus', name: 'Guillotine+', description: 'Deal 32 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 32, target: 'enemy' }] },
 ];
+
+/**
+ * Set of card ids that are SOME card's `upgradeTo` target — i.e. upgraded
+ * variants. Derived from the registry so the draft/reward/shop pools can
+ * exclude them: upgraded cards are only reachable by upgrading, never drafted.
+ */
+export const UPGRADE_TARGET_IDS: ReadonlySet<string> = new Set(
+  defs.map((c) => c.upgradeTo).filter((id): id is string => id !== undefined),
+);
 
 export const cards: Readonly<Record<string, CardDef>> = Object.fromEntries(
   defs.map((c) => [c.id, c]),

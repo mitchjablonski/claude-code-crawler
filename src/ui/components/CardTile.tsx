@@ -53,6 +53,11 @@ export function CardTile({
           </Text>
           {') '}
           <Text color={theme.colors.rarity[card.rarity]}>{card.name}</Text>
+          {card.upgradeTo === undefined && card.id.endsWith('-plus') && (
+            <Text color={theme.colors.success} dimColor={dim}>
+              {' [+]'}
+            </Text>
+          )}
         </Text>
         <Text color={theme.colors.cardType[card.type]} dimColor={dim}>
           {card.type}
