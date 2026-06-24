@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
+import { theme } from '../theme.js';
 
 export function ShopScreen({
   state,
@@ -38,7 +39,11 @@ export function ShopScreen({
           return (
             <Text key={`${item.cardId}-${i}`} dimColor={!buyable}>
               [{i + 1}] {card.name} - {card.description}{' '}
-              {item.sold ? '(sold)' : `${item.price}g`}
+              {item.sold ? (
+                '(sold)'
+              ) : (
+                <Text color={theme.colors.gold}>{item.price}g</Text>
+              )}
             </Text>
           );
         })}

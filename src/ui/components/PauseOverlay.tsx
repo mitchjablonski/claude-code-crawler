@@ -1,6 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import type { SnarkLevel } from '../../config.js';
 import type { PauseState } from '../useEvents.js';
+import { theme } from '../theme.js';
 
 const TITLES: Record<PauseState['reason'], string> = {
   awaits: 'CLAUDE AWAITS YOUR COMMAND',
@@ -41,14 +42,14 @@ export function PauseOverlay({
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text bold color="yellow">
+      <Text bold color={theme.colors.title}>
         {TITLES[pause.reason]}
       </Text>
-      <Box marginTop={1} width={76}>
+      <Box marginTop={1} width={theme.layout.contentWidth}>
         <Text wrap="wrap">{BODIES[pause.reason][snark]}</Text>
       </Box>
       {pause.detail !== undefined && (
-        <Box marginTop={1} width={76}>
+        <Box marginTop={1} width={theme.layout.contentWidth}>
           <Text dimColor wrap="wrap">
             {pause.detail}
           </Text>

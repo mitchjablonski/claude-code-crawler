@@ -9,22 +9,41 @@
  * visual truth across the terminal and any future art mirror.
  */
 import { createCanvas, type Canvas } from '@napi-rs/canvas';
+import {
+  background,
+  defaultFg,
+  palette,
+  type InkColor,
+} from '../../src/ui/theme.js';
 
-/** ANSI SGR foreground code -> hex. Mirrors what Ink emits for color names. */
-export const COLORS: Record<number, string> = {
-  31: '#ff6b6b', // red
-  32: '#8bd55a', // green
-  33: '#ffd166', // yellow
-  34: '#6ea8fe', // blue
-  35: '#d98cff', // magenta
-  36: '#56d4d4', // cyan
-  37: '#e6e6e6', // white
-  90: '#7a8290', // bright black / grey
-  39: '#cdd3de', // default foreground
+/** Ink color name -> ANSI SGR foreground code (what Ink/chalk emits). */
+const INK_TO_SGR: Record<InkColor, number> = {
+  red: 31,
+  green: 32,
+  yellow: 33,
+  blue: 34,
+  magenta: 35,
+  cyan: 36,
+  white: 37,
+  grey: 90,
 };
 
-export const DEFAULT_FG = '#cdd3de';
-export const BG = '#0b0e14';
+/**
+ * ANSI SGR foreground code -> hex, DERIVED from the theme palette so the
+ * canvas renderer and the terminal UI share one source of visual truth.
+ */
+export const COLORS: Record<number, string> = {
+  ...Object.fromEntries(
+    (Object.entries(palette) as [InkColor, string][]).map(([name, hex]) => [
+      INK_TO_SGR[name],
+      hex,
+    ]),
+  ),
+  39: defaultFg, // default foreground
+};
+
+export const DEFAULT_FG = defaultFg;
+export const BG = background;
 
 export const CELL_W = 9;
 export const CELL_H = 19;
