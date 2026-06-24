@@ -1,6 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
+import { CardTile } from '../components/CardTile.js';
 
 export function RewardScreen({
   state,
@@ -46,17 +47,13 @@ export function RewardScreen({
       )}
       <Box marginTop={1} flexDirection="column">
         <Text bold>Take a card for your deck:</Text>
-        {cards.map((cardId, i) => {
-          const card = content.cards[cardId];
-          if (!card) return null;
-          return (
-            <Text key={cardId}>
-              [{i + 1}] (
-              <Text color={theme.colors.cardCost}>{card.cost}</Text>) {card.name} -{' '}
-              {card.description}
-            </Text>
-          );
-        })}
+        <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
+          {cards.map((cardId, i) => {
+            const card = content.cards[cardId];
+            if (!card) return null;
+            return <CardTile key={cardId} marker={`[${i + 1}]`} card={card} />;
+          })}
+        </Box>
         <Text dimColor>[s] Skip</Text>
       </Box>
     </Box>

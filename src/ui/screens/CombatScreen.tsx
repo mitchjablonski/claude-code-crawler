@@ -9,6 +9,7 @@ import type {
   Statuses,
 } from '../../engine/types.js';
 import { theme, statusSegments, POTION_KEYS } from '../theme.js';
+import { CardTile } from '../components/CardTile.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
 function StatusTags({ statuses }: { readonly statuses: Statuses }) {
@@ -155,18 +156,25 @@ export function CombatScreen({
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text bold>{pending ? 'Choose a target:' : 'Your hand:'}</Text>
-        {combat.hand.map((cardId, i) => {
-          const card = content.cards[cardId];
-          if (!card) return null;
-          const affordable = card.cost <= combat.energy;
-          return (
-            <Text key={`${cardId}-${i}`} dimColor={!affordable}>
-              [{i + 1}] (
-              <Text color={theme.colors.cardCost}>{card.cost}</Text>) {card.name} -{' '}
-              {card.description}
-            </Text>
-          );
-        })}
+        <Box
+          flexDirection="row"
+          flexWrap="wrap"
+          width={theme.layout.contentWidth}
+        >
+          {combat.hand.map((cardId, i) => {
+            const card = content.cards[cardId];
+            if (!card) return null;
+            const affordable = card.cost <= combat.energy;
+            return (
+              <CardTile
+                key={`${cardId}-${i}`}
+                marker={`[${i + 1}]`}
+                card={card}
+                dim={!affordable}
+              />
+            );
+          })}
+        </Box>
       </Box>
       {state.potions.length > 0 && (
         <Box marginTop={1}>
