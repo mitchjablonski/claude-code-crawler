@@ -50,7 +50,8 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
 | E1  | **Meaningful events**: expand events with real risk/reward branches and stat checks (not just pick-an-option). | P1 | — | **done** (PR #6) |
-| E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | todo |
+| E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | **done** (PR #16) — milestone-derived unlocks of 8 extra cards/relics; classes left always-available |
+| E7  | **Meta-progression follow-ups** (from E2): smooth the front-loadable milestone curve (a single Hard-arc win crosses 3 milestones at once — add a variety milestone, e.g. win with both classes); richer Title UX showing WHICH milestone unlocks WHAT + a locked-teaser list; (framework already supports class-gating if a new unlockable class is ever authored). | P3 | E2 | todo |
 | E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | todo |
 | E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | **done** (PR #11) — lint pass/fail + git commit |
 | E6  | **More Claude-Code signals** (E4 follow-ups): `git push` = "ship it" bounded buff (detectable now — highest-value easy win); a distinct elite for test/build failures so the Lint Goblin is lint's exclusive payoff; `long_thinking`/`big_diff` once a hook/payload exposes thinking-duration / diff-size. | P3 | E4 | todo |

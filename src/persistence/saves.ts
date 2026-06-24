@@ -114,12 +114,14 @@ export function createSaveStore(saveDir: string, now: () => number = Date.now): 
         if (data !== null) quarantine(metaFile);
         return EMPTY_META;
       }
-      const raw = data as { version?: unknown; runs: unknown[]; settings?: MetaSettings };
+      const raw = data as { version?: unknown; runs: unknown[]; settings?: unknown };
       const runs = raw.runs.filter(isRunRecord);
+      const settingsOk =
+        typeof raw.settings === 'object' && raw.settings !== null && !Array.isArray(raw.settings);
       return {
         version: META_VERSION,
         runs,
-        ...(raw.settings ? { settings: raw.settings } : {}),
+        ...(settingsOk ? { settings: raw.settings as MetaSettings } : {}),
       };
     },
 
