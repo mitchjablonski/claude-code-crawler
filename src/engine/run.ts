@@ -351,7 +351,7 @@ function finishCombat(content: ContentRegistry, state: RunState): RunState {
   const hasPotionSlot = state.potions.length < state.maxPotions;
   const [reward, rng] = withStream(state.rng, 'loot', (r) => {
     const gold = isElite ? r.intBetween(30, 50) : r.intBetween(15, 30);
-    const cards = rollCardChoices(content, r, 3);
+    const cards = rollCardChoices(content, r, 3, node.act);
     let relicId: string | undefined;
     if (isElite) {
       const unowned = Object.keys(content.relics)
@@ -387,13 +387,49 @@ function potionIds(content: ContentRegistry): string[] {
 
 // ---- loot / shop / events ----
 
-const RARITY_WEIGHTS: readonly [Rarity, number][] = [
-  ['common', 0.6],
-  ['uncommon', 0.3],
-  ['rare', 0.1],
+/**
+ * Per-act draft-rarity weights, indexed by `node.act`. Deeper acts skew toward
+ * higher rarity to pair with D7's per-act enemy escalation (harder fights, better
+ * loot). Each row is [common, uncommon, rare] and MUST sum to ~1.
+ *
+ * INVARIANT: act 0 MUST stay exactly [0.6, 0.3, 0.1]. Single mode is act 0 only,
+ * so this row keeps single-mode reward/shop draws byte-identical to the historical
+ * flat weighting (same rng consumption + same weights → same draws). Only deeper
+ * acts (arc) change. The tilt is kept MODEST so D7 arc parity is preserved.
+ */
+export const RARITY_WEIGHTS_BY_ACT: readonly (readonly [Rarity, number][])[] = [
+  // act 0 — UNCHANGED (single-mode invariant; do not touch)
+  [
+    ['common', 0.6],
+    ['uncommon', 0.3],
+    ['rare', 0.1],
+  ],
+  // act 1 — modest tilt
+  [
+    ['common', 0.52],
+    ['uncommon', 0.34],
+    ['rare', 0.14],
+  ],
+  // act 2+ — a touch more
+  [
+    ['common', 0.46],
+    ['uncommon', 0.36],
+    ['rare', 0.18],
+  ],
 ];
 
-function rollCardChoices(content: ContentRegistry, rng: Rng, count: number): string[] {
+function rarityWeightsForAct(act: number): readonly [Rarity, number][] {
+  const idx = Math.max(0, Math.min(act, RARITY_WEIGHTS_BY_ACT.length - 1));
+  return RARITY_WEIGHTS_BY_ACT[idx] as readonly [Rarity, number][];
+}
+
+export function rollCardChoices(
+  content: ContentRegistry,
+  rng: Rng,
+  count: number,
+  act = 0,
+): string[] {
+  const weights = rarityWeightsForAct(act);
   const byRarity = new Map<Rarity, CardDef[]>();
   for (const card of Object.values(content.cards).sort((a, b) => a.id.localeCompare(b.id))) {
     if (card.rarity === 'starter') continue;
@@ -405,7 +441,7 @@ function rollCardChoices(content: ContentRegistry, rng: Rng, count: number): str
   for (let i = 0; i < count * 10 && choices.length < count; i++) {
     let roll = rng.next();
     let rarity: Rarity = 'common';
-    for (const [r, w] of RARITY_WEIGHTS) {
+    for (const [r, w] of weights) {
       roll -= w;
       if (roll < 0) {
         rarity = r;
@@ -438,10 +474,11 @@ const POTION_PRICES: Readonly<Record<Rarity, number>> = {
 const SHOP_POTION_COUNT = 2;
 
 function enterShop(content: ContentRegistry, state: RunState): RunState {
+  const act = state.map.nodes[state.currentNodeId]?.act ?? 0;
   const [shop, rng] = withStream(state.rng, 'loot', (r) => {
     // Card stock rolls FIRST so existing shop fixtures keep their card rolls;
     // the potion rolls are appended afterwards on the same stream.
-    const stock = rollCardChoices(content, r, 3).map((cardId) => {
+    const stock = rollCardChoices(content, r, 3, act).map((cardId) => {
       const card = content.cards[cardId] as CardDef;
       return {
         cardId,
