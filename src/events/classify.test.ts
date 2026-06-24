@@ -53,6 +53,33 @@ describe('classify', () => {
     expect(classify(bash('npm run build', { stdout: 'done' })).kind).toBe('activity');
   });
 
+  it('detects lint outcomes from command + exit info', () => {
+    expect(classify(bash('npm run lint', { exitCode: 0 })).kind).toBe('lint_passed');
+    expect(classify(bash('npx eslint .', { exitCode: 1 })).kind).toBe('lint_failed');
+    expect(classify(bash('cargo clippy', { success: true })).kind).toBe('lint_passed');
+    expect(classify(bash('ruff check src', { exitCode: 2 })).kind).toBe('lint_failed');
+    expect(classify(bash('prettier --check .', { exitCode: 0 })).kind).toBe('lint_passed');
+    // Indeterminate lint degrades to activity, like tests/build.
+    expect(classify(bash('npm run lint')).kind).toBe('activity');
+  });
+
+  it('does not confuse lint with test/build (and vice-versa)', () => {
+    // Lint commands must NOT be read as test/build...
+    expect(classify(bash('npm run lint', { exitCode: 0 })).kind).toBe('lint_passed');
+    // ...and real test/build commands must NOT be read as lint.
+    expect(classify(bash('npm test', { exitCode: 0 })).kind).toBe('tests_passed');
+    expect(classify(bash('npm run build', { exitCode: 0 })).kind).toBe('build_passed');
+    expect(classify(bash('cargo test', { exitCode: 0 })).kind).toBe('tests_passed');
+    expect(classify(bash('cargo build', { exitCode: 0 })).kind).toBe('build_passed');
+  });
+
+  it('detects git commits regardless of verdict', () => {
+    expect(classify(bash('git commit -m "wip"', { exitCode: 0 })).kind).toBe('committed');
+    expect(classify(bash('git commit --amend')).kind).toBe('committed');
+    // git push is not (yet) classified; stays ambient.
+    expect(classify(bash('git push', { exitCode: 0 })).kind).toBe('activity');
+  });
+
   it('spawns agents and pings deepPairing reviews', () => {
     expect(classify(rec('PreToolUse', { tool_name: 'Task' })).kind).toBe('agent_spawned');
     const review = classify(

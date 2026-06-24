@@ -65,6 +65,42 @@ export function ruleFor(event: GameEvent, snark: SnarkLevel = 1): RuleOutcome {
           snark,
         ),
       };
+    case 'lint_failed':
+      return {
+        modifier: { kind: 'queueElite', enemyId: 'lint-goblin' },
+        narration: pick(
+          {
+            0: 'Lint failed. An elite approaches.',
+            1: 'The linter flagged you. The Lint Goblin straightens its glasses and stands up.',
+            2: 'Lint errors? The Lint Goblin was BORN for this. It cracks its knuckles and cites the style guide.',
+          },
+          snark,
+        ),
+      };
+    case 'lint_passed':
+      return {
+        modifier: { kind: 'lootRoll', size: 'small' },
+        narration: pick(
+          {
+            0: 'Lint passed. Minor gold.',
+            1: 'Clean code, clean conscience. A few tidy coins clink down.',
+            2: 'No lint errors? Show-off. The dungeon flips you a coin and tells you not to get used to it.',
+          },
+          snark,
+        ),
+      };
+    case 'committed':
+      return {
+        modifier: { kind: 'healPlayer', amount: 5 },
+        narration: pick(
+          {
+            0: 'Committed. +5 HP checkpoint.',
+            1: 'You saved your progress. The dungeon bookmarks your soul. +5 HP.',
+            2: 'A commit? Brave, given that history. The dungeon stitches you up at the checkpoint anyway. +5 HP.',
+          },
+          snark,
+        ),
+      };
     case 'agent_spawned':
       return {
         modifier: { kind: 'blessNextCombat', status: 'strength', stacks: 1 },
@@ -125,6 +161,11 @@ const LIMITS: Partial<Record<GameEventKind, BucketConfig>> = {
   // At most 2 goblins can be queued anyway (engine cap); don't burn tokens.
   tests_failed: { capacity: 2, refillPerMinute: 0.5 },
   build_failed: { capacity: 2, refillPerMinute: 0.5 },
+  // Linters run constantly (often on save); keep both directions tight.
+  lint_passed: { capacity: 1, refillPerMinute: 0.5 },
+  lint_failed: { capacity: 2, refillPerMinute: 0.5 },
+  // Commits are deliberate but can come in bursts; modest checkpoint heals.
+  committed: { capacity: 2, refillPerMinute: 0.5 },
   agent_spawned: { capacity: 1, refillPerMinute: 1 },
   session_started: { capacity: 1, refillPerMinute: 0.2 },
 };

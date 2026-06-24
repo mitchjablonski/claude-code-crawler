@@ -1,5 +1,22 @@
 import type { GameEvent, GameEventKind, HookRecord } from './types.js';
 
+// Linters / formatter-checks. Checked BEFORE build/test so "npm run lint" and
+// the like aren't misread, and scoped tightly so they don't swallow real
+// test/build commands (e.g. plain "cargo build" / "go test" never match here).
+const LINT_PATTERNS: readonly RegExp[] = [
+  /\beslint\b/,
+  /\bbiome\b/,
+  /\bruff\b/,
+  /\bflake8\b/,
+  /\bpylint\b/,
+  /\bcargo clippy\b/,
+  /\bclippy-driver\b/,
+  /\brubocop\b/,
+  /\bgolangci-lint\b/,
+  /\bprettier\b[^&;|]*--check\b/,
+  /\b(npm|yarn|pnpm|bun)(?: run)? lint\b/,
+];
+
 const TEST_PATTERNS: readonly RegExp[] = [
   /\bvitest\b/,
   /\bjest\b/,
@@ -67,6 +84,15 @@ function classifyPostToolUse(
   if (toolName === 'Bash') {
     const command = asString(input['command']) ?? '';
     const verdict = commandVerdict(payload);
+    // Order matters: lint before build/test so "npm run lint" isn't misread,
+    // and commit is checked independently of exit-code verdicts.
+    if (LINT_PATTERNS.some((p) => p.test(command))) {
+      if (verdict === null) return ev('activity', at, truncate(command));
+      return ev(verdict ? 'lint_passed' : 'lint_failed', at, truncate(command));
+    }
+    if (/\bgit\s+commit\b/.test(command)) {
+      return ev('committed', at, truncate(command));
+    }
     if (TEST_PATTERNS.some((p) => p.test(command))) {
       if (verdict === null) return ev('activity', at, truncate(command));
       return ev(verdict ? 'tests_passed' : 'tests_failed', at, truncate(command));
