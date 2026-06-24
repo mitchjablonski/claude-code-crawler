@@ -16,7 +16,12 @@ import {
   type InkColor,
 } from '../../src/ui/theme.js';
 
-/** Ink color name -> ANSI SGR foreground code (what Ink/chalk emits). */
+/**
+ * Ink color name -> ANSI SGR foreground code (what Ink/chalk emits). Must stay
+ * in lockstep with `theme.palette` in src/ui/theme.ts: every InkColor needs an
+ * SGR code here (the `Record<InkColor, number>` type enforces full coverage, so
+ * adding a palette color will fail the build until its SGR code is added here).
+ */
 const INK_TO_SGR: Record<InkColor, number> = {
   red: 31,
   green: 32,
