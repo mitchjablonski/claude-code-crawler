@@ -60,8 +60,6 @@ const colors = {
   energy: 'magenta',
   /** Currency. */
   gold: 'yellow',
-  /** Enemy intent / incoming threat. */
-  enemyIntent: 'red',
   /** Positive outcome (victory, buff). */
   success: 'green',
   /** Negative outcome (defeat, debuff, danger). */

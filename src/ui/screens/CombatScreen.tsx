@@ -192,7 +192,7 @@ export function CombatScreen({
               </Text>
               {/* Detail row: HP bar + telegraphed intent (icon + name + dmg). */}
               {alive && (
-                <Text dimColor={!alive}>
+                <Text>
                   {'      '}
                   <Text>[</Text>
                   <Text color={theme.colors.hp}>{bar.filled}</Text>
