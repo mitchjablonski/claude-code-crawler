@@ -50,7 +50,8 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | E1  | **Meaningful events**: expand events with real risk/reward branches and stat checks (not just pick-an-option). | P1 | — | **done** (PR #6) |
 | E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | todo |
 | E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | todo |
-| E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | todo |
+| E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | **done** (PR #11) — lint pass/fail + git commit |
+| E6  | **More Claude-Code signals** (E4 follow-ups): `git push` = "ship it" bounded buff (detectable now — highest-value easy win); a distinct elite for test/build failures so the Lint Goblin is lint's exclusive payoff; `long_thinking`/`big_diff` once a hook/payload exposes thinking-duration / diff-size. | P3 | E4 | todo |
 | E5  | **Richer event mechanics** (E1 follow-ups): lean harder on `conditional` build-checks (deck/maxHp/relics) over plain gold-gates; add a `gainPotion` event outcome (compose with D2); per-event result flavor text; consider smarter playtest policies (EV-aware for event gambles; rarity-seeking for D3 reward draws) so the harness stress-tests choices the rarity-blind greedy bot ignores. Also track apothecary-arc-normal as the weakest balance seam (~−13pt, pre-existing kit asymmetry). | P2 | E1 | todo |
 
 ---

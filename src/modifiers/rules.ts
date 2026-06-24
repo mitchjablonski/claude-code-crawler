@@ -118,9 +118,9 @@ export function ruleFor(event: GameEvent, snark: SnarkLevel = 1): RuleOutcome {
         modifier: { kind: 'healPlayer', amount: 10 },
         narration: pick(
           {
-            0: 'Session started. +5 HP.',
+            0: 'Session started. +10 HP.',
             1: 'The dungeon stirs awake. You feel slightly less terrible.',
-            2: 'The dungeon wakes, sighs at your return, and heals you out of pity. +5 HP.',
+            2: 'The dungeon wakes, sighs at your return, and heals you out of pity. +10 HP.',
           },
           snark,
         ),
