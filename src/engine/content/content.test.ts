@@ -58,7 +58,7 @@ describe('content quota (REQ-1)', () => {
     expect(enemies.filter((e) => e.isBoss).length).toBeGreaterThanOrEqual(1);
     // tiered normal enemies exist for act escalation
     expect(enemies.filter((e) => (e.tier ?? 1) >= 2).length).toBeGreaterThanOrEqual(4);
-    expect(Object.keys(content.relics).length).toBeGreaterThanOrEqual(12);
+    expect(Object.keys(content.relics).length).toBeGreaterThanOrEqual(15);
     expect(Object.keys(content.events).length).toBeGreaterThanOrEqual(10);
     expect(Object.keys(content.potions).length).toBeGreaterThanOrEqual(6);
   });
@@ -211,6 +211,18 @@ describe('content integrity', () => {
     expect(phaseNames.some((n) => !baseNames.has(n)), 'signature move is new').toBe(true);
     for (const relic of Object.values(content.relics)) {
       expect(relic.effects.length, relic.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('relics use a valid trigger and any condition is well-formed', () => {
+    const TRIGGERS = ['combatStart', 'turnStart', 'onCardPlayed', 'onKill'];
+    for (const relic of Object.values(content.relics)) {
+      expect(TRIGGERS, `${relic.id}:${relic.trigger}`).toContain(relic.trigger);
+      if (relic.condition) {
+        expect(relic.condition.kind, relic.id).toBe('hpBelow');
+        expect(relic.condition.pct, relic.id).toBeGreaterThan(0);
+        expect(relic.condition.pct, relic.id).toBeLessThanOrEqual(100);
+      }
     }
   });
 

@@ -91,7 +91,7 @@ export function applyAction(
       return chooseNode(content, state, action.nodeId);
     case 'playCard':
       return inCombat(content, state, (rng, s) =>
-        playCard(content, requireCombat(s), action.handIndex, action.targetIndex, rng),
+        playCard(content, requireCombat(s), action.handIndex, action.targetIndex, rng, s.relics),
       );
     case 'usePotion':
       return usePotionAction(content, state, action.potionIndex, action.targetIndex);
