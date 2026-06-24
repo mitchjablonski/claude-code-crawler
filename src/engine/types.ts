@@ -70,6 +70,11 @@ export interface EnemyDef {
   readonly isBoss?: boolean;
   /** Normal-enemy act tier (1-3, default 1); higher tiers appear deeper in an arc. */
   readonly tier?: number;
+  /**
+   * Optional short ASCII emblem shown next to the enemy in combat (e.g. `>_<`).
+   * Pure flavor/presentation — never required and never read by the engine.
+   */
+  readonly sigil?: string;
 }
 
 export interface RelicDef {

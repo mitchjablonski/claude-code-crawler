@@ -72,6 +72,19 @@ const colors = {
   accent: 'cyan',
   /** Card cost pip. */
   cardCost: 'magenta',
+  /** Depleted/empty portion of an HP bar (the "missing" track). */
+  hpEmpty: 'grey',
+  /**
+   * Per intent-category color for the enemy's telegraphed next move. Mirrors the
+   * `intent` icon map below so a future art mirror can color the same glyphs.
+   */
+  intent: {
+    attack: 'red',
+    defend: 'cyan',
+    buff: 'green',
+    debuff: 'magenta',
+    unknown: 'grey',
+  } satisfies Record<IntentKind, InkColor>,
   /** Per node-kind label color (map). */
   nodeKind: {
     start: 'green',
@@ -96,6 +109,35 @@ const colors = {
     power: 'magenta',
   } satisfies Record<CardType, InkColor>,
 } satisfies Record<string, InkColor | Record<string, InkColor>>;
+
+/**
+ * Semantic category for an enemy's telegraphed next move, derived from its
+ * effects (attack = deals damage, defend = gains block, buff = buffs self,
+ * debuff = applies a negative status to the player). Drives both icon and color
+ * so terminal and a future art mirror read the same semantics.
+ */
+export type IntentKind = 'attack' | 'defend' | 'buff' | 'debuff' | 'unknown';
+
+/** Plain-terminal-safe ASCII glyph per intent category (verified to render). */
+export const intentIcons: Readonly<Record<IntentKind, string>> = {
+  attack: '>>', // incoming strike
+  defend: '[]', // raising guard
+  buff: '^^', // empowering self
+  debuff: 'vv', // weakening you
+  unknown: '??',
+};
+
+/**
+ * Fixed-width HP-bar glyphs. Deliberately ASCII (`#`/`-`): the snapshot canvas
+ * renders one cell per character in a `monospace` font, and box-drawing blocks
+ * (█/░) do not reliably align there, so we use characters guaranteed to render
+ * and keep columns square. `width` is the fixed inner length of every bar.
+ */
+export const hpBar = {
+  width: 10,
+  full: '#',
+  empty: '-',
+} as const;
 
 /** Display metadata for every status effect: short label, plain glyph, color. */
 export interface StatusStyle {
@@ -155,10 +197,33 @@ export const theme = {
   palette,
   defaultFg,
   background,
+  intentIcons,
+  hpBar,
 } as const;
 
 export type Theme = typeof theme;
 export type BoxTheme = typeof box;
+
+/**
+ * Build a fixed-width HP bar split into its filled and empty runs. Pure: the
+ * screen colors `filled` with `colors.hp` and `empty` with `colors.hpEmpty`.
+ * Always exactly `hpBar.width` glyphs wide so columns stay aligned; a living
+ * enemy keeps at least one filled glyph so it never reads as already dead.
+ */
+export function hpBarSegments(
+  hp: number,
+  maxHp: number,
+): { readonly filled: string; readonly empty: string } {
+  const w = hpBar.width;
+  const ratio = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
+  let fill = Math.round(ratio * w);
+  if (hp > 0 && fill === 0) fill = 1; // alive => never fully empty
+  if (hp < maxHp && fill === w) fill = w - 1; // hurt => never fully full
+  return {
+    filled: hpBar.full.repeat(fill),
+    empty: hpBar.empty.repeat(w - fill),
+  };
+}
 
 /**
  * Render an engine `Statuses` map into compact token-styled segments. Dumb
