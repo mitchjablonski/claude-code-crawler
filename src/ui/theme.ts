@@ -266,6 +266,9 @@ export function statusChip(
 ): { readonly icon: string; readonly text: string; readonly color: InkColor } {
   const style = status[id];
   const count = opts?.sign ? `+${stacks}` : `${stacks}`;
+  // `icon` is returned separately from `text` as a deliberate seam: terminal
+  // callers draw `text`, but a future art mirror can map the bare `icon` to a
+  // real status sprite. Keep it even though no current caller reads it alone.
   return { icon: style.icon, text: `${style.icon} ${count}`, color: style.color };
 }
 
