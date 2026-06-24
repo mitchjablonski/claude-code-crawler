@@ -14,6 +14,7 @@ import { theme, statusSegments, statusChip, hpBarSegments, POTION_KEYS } from '.
 import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
 import { resolveEnemyMove } from '../../engine/enemyMoves.js';
+import { usePrevOnChange, enemyBeats } from '../juice.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
 function StatusTags({ statuses }: { readonly statuses: Statuses }) {
@@ -135,6 +136,13 @@ export function CombatScreen({
   readonly nameFor?: (defId: string) => string | undefined;
 }) {
   const combat = state.combat as CombatState;
+  // V6 juice: diff the combat state the player's LAST action changed to derive
+  // transient beats (damage `-N`, slain `DOWN`, block `+Nblk`). The prior combat
+  // is held in a ref and only advances when a new action produces a new state
+  // object, so a beat PERSISTS until the next action recomputes it (and is
+  // snapshot-verifiable). Empty/zero on first combat render (no prior).
+  const priorCombat = usePrevOnChange(combat);
+  const beats = enemyBeats(priorCombat, combat);
   const [pendingCard, setPendingCard] = useState<number | null>(null);
   const [pendingPotion, setPendingPotion] = useState<number | null>(null);
   const living = combat.enemies
@@ -228,6 +236,7 @@ export function CombatScreen({
           const alive = enemy.hp > 0;
           const bar = hpBarSegments(enemy.hp, enemy.maxHp);
           const kind = intentKindFor(content, enemy);
+          const beat = beats[i];
           return (
             <Box key={`${enemy.defId}-${i}`} flexDirection="column">
               {/* Header: marker, sigil, name, numeric HP, block, statuses. */}
@@ -238,12 +247,28 @@ export function CombatScreen({
                 ) : null}
                 <Text bold>{nameFor?.(enemy.defId) ?? enemy.name}</Text>{' '}
                 {!alive ? (
-                  'slain'
+                  // A slain enemy that died THIS action gets an emphasized DOWN
+                  // beat (danger color) on top of the dimmed row; one that was
+                  // already dead just reads `slain`.
+                  beat?.slain ? (
+                    <Text color={theme.colors.danger} bold>
+                      DOWN
+                    </Text>
+                  ) : (
+                    'slain'
+                  )
                 ) : (
                   <>
                     <Text color={theme.colors.hp}>{enemy.hp}</Text>/{enemy.maxHp}
                     {enemy.block > 0 && (
                       <Text color={theme.colors.block}> +{enemy.block}blk</Text>
+                    )}
+                    {/* Damage DELTA from the last action (persists until next). */}
+                    {beat && beat.damage > 0 && (
+                      <Text color={theme.colors.danger} bold>
+                        {' '}
+                        -{beat.damage}
+                      </Text>
                     )}
                   </>
                 )}

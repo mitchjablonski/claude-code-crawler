@@ -63,4 +63,39 @@ describe('StatusBar', () => {
     expect(frame).not.toContain('STR');
     expect(frame).not.toContain('VUL');
   });
+
+  it('shows a +Nblk beat when block rose on the last action (V6 juice)', () => {
+    const start = combatState({});
+    const raised: RunState = {
+      ...start,
+      combat: { ...(start.combat as CombatState), playerBlock: 5 },
+    };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked narration={null} />,
+    );
+    expect(lastFrame() ?? '').not.toContain('+5blk'); // no prior on first render
+    rerender(<StatusBar state={raised} linked narration={null} />);
+    expect(lastFrame() ?? '').toContain('+5blk');
+  });
+
+  it('shows a +Ng gold beat when gold rose on the last action (V6 juice)', () => {
+    const start = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const richer: RunState = { ...start, gold: start.gold + 25 };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked={false} narration={null} />,
+    );
+    rerender(<StatusBar state={richer} linked={false} narration={null} />);
+    expect(lastFrame() ?? '').toContain('+25g');
+  });
+
+  it('shows a +Nhp beat when HP rose on the last action (V6 juice)', () => {
+    const start = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const hurt: RunState = { ...start, hp: start.hp - 10 };
+    const healed: RunState = { ...start, hp: start.hp - 4 };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={hurt} linked={false} narration={null} />,
+    );
+    rerender(<StatusBar state={healed} linked={false} narration={null} />);
+    expect(lastFrame() ?? '').toContain('+6hp');
+  });
 });
