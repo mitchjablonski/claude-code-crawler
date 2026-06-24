@@ -52,8 +52,10 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
       acts: actsForMode(runMode),
+      // Dev/snapshot-only seam; production never sets this (stays undefined → []).
+      ...(deps.startingPotions ? { startingPotions: deps.startingPotions } : {}),
     };
-  }, [difficulty, runMode, character]);
+  }, [difficulty, runMode, character, deps.startingPotions]);
   const cycleCharacter = useCallback(() => {
     setCharacter((prev) => {
       const next = CHARACTER_IDS[

@@ -8,7 +8,7 @@ import type {
   RunState,
   Statuses,
 } from '../../engine/types.js';
-import { theme, statusSegments } from '../theme.js';
+import { theme, statusSegments, POTION_KEYS } from '../theme.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
 function StatusTags({ statuses }: { readonly statuses: Statuses }) {
@@ -59,8 +59,8 @@ export function CombatScreen({
   const living = combat.enemies
     .map((enemy, index) => ({ enemy, index }))
     .filter(({ enemy }) => enemy.hp > 0);
-  // Letter keys a-f address the satchel (NOT 'e' = end turn).
-  const POTION_KEYS = ['a', 'b', 'c', 'd', 'f', 'g'];
+  // Letter keys address the satchel (shared with the shop; skips 'e' = end turn).
+  const potionKeys = POTION_KEYS.slice(0, state.maxPotions);
   const pending = pendingCard !== null || pendingPotion !== null;
 
   useInput((input, key) => {
@@ -78,7 +78,7 @@ export function CombatScreen({
 
     // Potion hotkeys (only when not mid-target-select).
     if (!pending) {
-      const potionIndex = POTION_KEYS.indexOf(input);
+      const potionIndex = potionKeys.indexOf(input);
       if (potionIndex >= 0) {
         const potionId = state.potions[potionIndex];
         if (potionId === undefined) return;
@@ -174,7 +174,7 @@ export function CombatScreen({
             <Text color={theme.colors.accent}>Satchel:</Text>
             {state.potions.map((potionId, i) => {
               const potion = content.potions[potionId];
-              const key = POTION_KEYS[i] ?? '?';
+              const key = potionKeys[i] ?? '?';
               return (
                 <Text key={`${potionId}-${i}`}>
                   {'  '}({key}) {potion?.name ?? potionId}
@@ -188,7 +188,7 @@ export function CombatScreen({
         <Text dimColor>
           {pending
             ? 'number: target  esc: cancel'
-            : `number: play card  ${state.potions.length > 0 ? 'a-: use potion  ' : ''}e: end turn`}
+            : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn`}
         </Text>
       </Box>
     </Box>

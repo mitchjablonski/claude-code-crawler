@@ -116,6 +116,13 @@ const layout = {
 } as const;
 
 /**
+ * Letter hotkeys for the potion satchel, shared by CombatScreen and ShopScreen
+ * so the same slot maps to the same letter everywhere. 'e' is deliberately
+ * skipped because combat reserves it for end-turn.
+ */
+export const POTION_KEYS: readonly string[] = ['a', 'b', 'c', 'd', 'f', 'g'];
+
+/**
  * Structural framing tokens. This is the SEAM for bordered panels (V2) and card
  * frames (V3): consumers should read border styles / divider glyphs from here
  * rather than hardcoding box-drawing. Defaults only — no screen draws borders

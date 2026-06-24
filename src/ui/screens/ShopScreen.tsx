@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
-import { theme } from '../theme.js';
+import { theme, POTION_KEYS } from '../theme.js';
 
 export function ShopScreen({
   state,
@@ -13,7 +13,7 @@ export function ShopScreen({
 }) {
   const stock = state.shop?.stock ?? [];
   const potionStock = state.shop?.potionStock ?? [];
-  const POTION_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const potionKeys = POTION_KEYS.slice(0, potionStock.length);
   const slotFree = state.potions.length < state.maxPotions;
 
   useInput((input) => {
@@ -21,7 +21,7 @@ export function ShopScreen({
       dispatch({ type: 'leaveShop' });
       return;
     }
-    const potionIndex = POTION_KEYS.indexOf(input);
+    const potionIndex = potionKeys.indexOf(input);
     if (potionIndex >= 0) {
       const item = potionStock[potionIndex];
       if (item && !item.sold && slotFree && state.gold >= item.price) {
@@ -68,7 +68,7 @@ export function ShopScreen({
             const buyable = !item.sold && slotFree && state.gold >= item.price;
             return (
               <Text key={`${item.potionId}-${i}`} dimColor={!buyable}>
-                ({POTION_KEYS[i] ?? '?'}) {potion.name} - {potion.description}{' '}
+                ({potionKeys[i] ?? '?'}) {potion.name} - {potion.description}{' '}
                 {item.sold ? (
                   '(sold)'
                 ) : (
@@ -80,7 +80,7 @@ export function ShopScreen({
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor>number: buy card  a-: buy potion  l: leave</Text>
+        <Text dimColor>number: buy card  letter: buy potion  l: leave</Text>
       </Box>
     </Box>
   );
