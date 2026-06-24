@@ -410,7 +410,7 @@ export const RARITY_WEIGHTS_BY_ACT: readonly (readonly [Rarity, number][])[] = [
     ['uncommon', 0.34],
     ['rare', 0.14],
   ],
-  // act 2+ — a touch more
+  // act 2 (deepest authored act; any higher act clamps to this row) — a touch more
   [
     ['common', 0.46],
     ['uncommon', 0.36],
@@ -420,7 +420,7 @@ export const RARITY_WEIGHTS_BY_ACT: readonly (readonly [Rarity, number][])[] = [
 
 function rarityWeightsForAct(act: number): readonly [Rarity, number][] {
   const idx = Math.max(0, Math.min(act, RARITY_WEIGHTS_BY_ACT.length - 1));
-  return RARITY_WEIGHTS_BY_ACT[idx] as readonly [Rarity, number][];
+  return RARITY_WEIGHTS_BY_ACT[idx]!;
 }
 
 export function rollCardChoices(
