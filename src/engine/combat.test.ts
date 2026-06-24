@@ -178,3 +178,63 @@ describe('usePotion', () => {
     expect(() => usePotion(T.potions.bomb!, c, undefined, new Rng(2))).toThrow(EngineError);
   });
 });
+
+describe('phase changes in combat', () => {
+  // A boss with a base pool (len 2) and an enraged pool (len 3) that activates
+  // at/under 50% HP. The differing pool lengths catch index-vs-pool mismatches.
+  const PT: ContentRegistry = {
+    ...T,
+    enemies: {
+      boss: {
+        id: 'boss', name: 'Boss', hp: [100, 100], isBoss: true,
+        moves: [
+          { name: 'Tap', effects: [{ kind: 'damage', amount: 1, target: 'enemy' }] },
+          { name: 'Stall', effects: [{ kind: 'block', amount: 5 }] },
+        ],
+        phases: [
+          {
+            hpThreshold: 0.5, name: 'Enraged',
+            moves: [
+              { name: 'Signature', effects: [{ kind: 'damage', amount: 20, target: 'enemy' }] },
+              { name: 'Jab', effects: [{ kind: 'damage', amount: 2, target: 'enemy' }] },
+              { name: 'Hook', effects: [{ kind: 'damage', amount: 3, target: 'enemy' }] },
+            ],
+          },
+        ],
+      },
+    },
+  };
+
+  function bossCombat(hp: number, nextMoveIndex: number) {
+    const c = startCombat(PT, DECK, 200, 200, [], ['boss'], new Rng(1));
+    return {
+      ...c,
+      enemies: c.enemies.map((e) => ({ ...e, hp, maxHp: 100, nextMoveIndex })),
+    };
+  }
+
+  it('uses the base pool above the threshold', () => {
+    const c = bossCombat(80, 0); // 80% -> base move 0 = Tap (1 dmg)
+    const after = endTurn(PT, c, new Rng(9));
+    expect(after.playerHp).toBe(200 - 1);
+    // index advanced against base pool length (2): 0 -> 1
+    expect(after.enemies[0]?.nextMoveIndex).toBe(1);
+  });
+
+  it('switches to the enraged signature once HP drops below the threshold', () => {
+    const c = bossCombat(40, 0); // 40% -> enraged move 0 = Signature (20 dmg)
+    const after = endTurn(PT, c, new Rng(9));
+    expect(after.playerHp).toBe(200 - 20);
+    // index advanced against ENRAGED pool length (3): 0 -> 1
+    expect(after.enemies[0]?.nextMoveIndex).toBe(1);
+  });
+
+  it('advances the index consistently against the active pool (no wrap mismatch)', () => {
+    // nextMoveIndex 2 in the base pool (len 2) would be out of range; the
+    // enraged pool (len 3) maps index 2 -> Hook, and advances 2 -> 0 % 3.
+    const c = bossCombat(10, 2);
+    const after = endTurn(PT, c, new Rng(9));
+    expect(after.playerHp).toBe(200 - 3); // Hook
+    expect(after.enemies[0]?.nextMoveIndex).toBe(0);
+  });
+});

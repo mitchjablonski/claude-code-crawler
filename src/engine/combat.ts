@@ -14,6 +14,7 @@ import {
   drawCards,
   getStatus,
 } from './effects.js';
+import { resolveEnemyPool } from './enemyMoves.js';
 
 export const HAND_SIZE = 5;
 export const BASE_ENERGY = 3;
@@ -138,13 +139,18 @@ export function endTurn(
     if (enemy.hp <= 0) continue;
     const def = content.enemies[enemy.defId];
     if (!def) throw new EngineError(`unknown enemy ${enemy.defId}`);
-    const move = def.moves[enemy.nextMoveIndex % def.moves.length];
+    // Pick the active move pool ONCE per turn from current HP, execute that
+    // move, and advance the index against THIS SAME pool length — so a phase
+    // change can never desync the index from the pool (pure: no rng).
+    const pool = resolveEnemyPool(def, enemy);
+    const poolLen = pool.length;
+    const move = poolLen > 0 ? pool[enemy.nextMoveIndex % poolLen] : undefined;
     if (!move) continue;
     next = {
       ...next,
       enemies: next.enemies.map((e, j) =>
         j === i
-          ? { ...e, block: 0, nextMoveIndex: (e.nextMoveIndex + 1) % def.moves.length }
+          ? { ...e, block: 0, nextMoveIndex: (e.nextMoveIndex + 1) % poolLen }
           : e,
       ),
     };
