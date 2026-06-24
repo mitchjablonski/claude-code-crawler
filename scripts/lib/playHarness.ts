@@ -247,7 +247,6 @@ export async function autoPlay(
         usedPotion,
         upgradedCard,
         eventResolved,
-    viewedDeck,
         viewedDeck,
       };
     }
