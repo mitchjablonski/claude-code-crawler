@@ -15,6 +15,7 @@ import {
 } from '../config.js';
 import type { RunConfig } from '../engine/run.js';
 import { CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER } from '../engine/content/index.js';
+import { deriveUnlocks, ALL_UNLOCKABLE_IDS } from '../progression/milestones.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
 import { StatusBar } from './components/StatusBar.js';
 import { PauseOverlay } from './components/PauseOverlay.js';
@@ -43,6 +44,24 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       validClass(deps.store.loadMeta().settings?.character) ??
       DEFAULT_CHARACTER,
   );
+  // E2: unlocks are DERIVED from run history. `unlocked` is the set of EXTRA
+  // content ids earned so far; it is re-read from meta whenever a run finishes
+  // (see refreshUnlocks below) so a milestone crossed mid-session takes effect on
+  // the next run and surfaces on the Title. The allow set fed to the engine is
+  // exactly these ids → still-locked unlockables stay out of the draft pool.
+  const [unlocked, setUnlocked] = useState<readonly string[]>(
+    () => [...deriveUnlocks(deps.store.loadMeta())],
+  );
+  const refreshUnlocks = useCallback(() => {
+    setUnlocked((prev) => {
+      const next = [...deriveUnlocks(deps.store.loadMeta())];
+      // Stable identity when nothing changed, so the Title diff stays accurate.
+      return next.length === prev.length && next.every((id) => prev.includes(id)) ? prev : next;
+    });
+  }, [deps.store]);
+  // Ids that crossed a milestone in the just-finished run (before/after diff),
+  // surfaced as a "NEW unlocked" highlight on the Title until the next new run.
+  const [justUnlocked, setJustUnlocked] = useState<readonly string[]>([]);
   const runConfig = useMemo<RunConfig>(() => {
     const k = knobsFor(difficulty, runMode);
     const cls = CHARACTERS[character] ?? CHARACTERS[DEFAULT_CHARACTER]!;
@@ -54,10 +73,13 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       enemyHpMult: k.enemyHpMult,
       ...(k.actHpRamp ? { actHpRamp: k.actHpRamp } : {}),
       acts: actsForMode(runMode),
+      // E2: only EARNED unlockables enter the pool. Empty for a fresh player →
+      // core-only pool, byte-identical to pre-E2 (and the harness uses DEFAULT).
+      ...(unlocked.length > 0 ? { allowedUnlockIds: unlocked } : {}),
       // Dev/snapshot-only seam; production never sets this (stays undefined → []).
       ...(deps.startingPotions ? { startingPotions: deps.startingPotions } : {}),
     };
-  }, [difficulty, runMode, character, deps.startingPotions]);
+  }, [difficulty, runMode, character, unlocked, deps.startingPotions]);
   const cycleCharacter = useCallback(() => {
     setCharacter((prev) => {
       const next = CHARACTER_IDS[
@@ -84,7 +106,9 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     });
   }, [deps.store]);
 
-  const game = useGame({ ...deps, runConfig });
+  // E2: pass the RESOLVED difficulty/mode/character so run-end records carry them
+  // for milestone matching (deps.* are only the explicit flag/env overrides).
+  const game = useGame({ ...deps, runConfig, difficulty, runMode, character });
   // UI-only overlay: inspect the full deck from the map. App-local state, like
   // the pause overlay — the engine has no deck-view phase and no GameAction.
   const [deckOpen, setDeckOpen] = useState(false);
@@ -159,14 +183,40 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     requestChristening('relic', relicId, gameContent.relics[relicId]?.name ?? relicId);
   }, [state, requestChristening, gameContent]);
 
+  // E2: when a run resolves, the record is already written; re-derive unlocks and
+  // capture the before/after diff so the Title can flash "NEW unlocked". Runs once
+  // per terminal phase (guarded by a ref) so re-renders don't re-fire the diff.
+  const recordedOutcomeRef = useRef<string | null>(null);
+  const overPhase =
+    game.state && (game.state.phase === 'victory' || game.state.phase === 'defeat')
+      ? game.state.phase
+      : null;
+  useEffect(() => {
+    if (!overPhase) {
+      recordedOutcomeRef.current = null;
+      return;
+    }
+    if (recordedOutcomeRef.current === overPhase) return;
+    recordedOutcomeRef.current = overPhase;
+    const before = unlocked;
+    const after = [...deriveUnlocks(deps.store.loadMeta())];
+    const fresh = after.filter((id) => !before.includes(id));
+    if (fresh.length > 0) setJustUnlocked(fresh);
+    refreshUnlocks();
+  }, [overPhase, unlocked, deps.store, refreshUnlocks]);
+
   const newRun = () => {
     christenings.reset();
+    setJustUnlocked([]);
+    refreshUnlocks();
     game.newRun();
   };
   const enemyDisplayName = (defId: string) =>
     christenings.nameFor('boss', defId) ?? christenings.nameFor('enemy', defId);
 
   if (!game.state) {
+    const nameOf = (id: string): string =>
+      game.content.cards[id]?.name ?? game.content.relics[id]?.name ?? id;
     return (
       <Title
         hasSave={game.hasSave}
@@ -175,6 +225,10 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         runMode={runMode}
         characterName={CHARACTERS[character]?.name ?? character}
         aiBackend={deps.ai?.backend ?? 'static'}
+        unlockedCount={unlocked.length}
+        unlockableTotal={ALL_UNLOCKABLE_IDS.size}
+        unlockedNames={unlocked.map(nameOf).sort()}
+        justUnlockedNames={justUnlocked.map(nameOf).sort()}
         onNew={newRun}
         onContinue={game.continueRun}
         onCycleSnark={cycleSnark}

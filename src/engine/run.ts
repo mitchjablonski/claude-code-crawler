@@ -10,7 +10,8 @@ import {
   usePotion,
 } from './combat.js';
 import { addStatus } from './effects.js';
-import { UPGRADE_TARGET_IDS } from './content/cards.js';
+import { UPGRADE_TARGET_IDS, UNLOCKABLE_CARD_IDS } from './content/cards.js';
+import { UNLOCKABLE_RELIC_IDS } from './content/relics.js';
 import type {
   CardDef,
   ContentRegistry,
@@ -45,6 +46,14 @@ export interface RunConfig {
   readonly maxPotions?: number;
   /** Potions the run begins with (default none). */
   readonly startingPotions?: readonly string[];
+  /**
+   * E2 meta-progression: the set of EXTRA unlockable card/relic ids this run is
+   * allowed to draft. Unlockable content NOT in this set stays excluded from the
+   * draft/elite-relic pools. Default (omitted/empty) → ALL unlockables locked,
+   * so DEFAULT_RUN_CONFIG + the harness draw the core pool byte-identical to
+   * pre-E2. Captured onto RunState so a resumed run replays deterministically.
+   */
+  readonly allowedUnlockIds?: readonly string[];
 }
 
 export const DEFAULT_MAX_POTIONS = 3;
@@ -78,6 +87,7 @@ export function createRun(
     modifiers: { nextCombatStatuses: {}, queuedEliteIds: [] },
     enemyHpMult: config.enemyHpMult ?? 1,
     actHpRamp: config.actHpRamp ?? [],
+    allowedUnlockIds: [...(config.allowedUnlockIds ?? [])],
   };
 }
 
@@ -351,11 +361,16 @@ function finishCombat(content: ContentRegistry, state: RunState): RunState {
   const hasPotionSlot = state.potions.length < state.maxPotions;
   const [reward, rng] = withStream(state.rng, 'loot', (r) => {
     const gold = isElite ? r.intBetween(30, 50) : r.intBetween(15, 30);
-    const cards = rollCardChoices(content, r, 3, node.act);
+    const cards = rollCardChoices(content, r, 3, node.act, state.allowedUnlockIds);
     let relicId: string | undefined;
     if (isElite) {
+      const allowed = new Set(state.allowedUnlockIds);
       const unowned = Object.keys(content.relics)
         .filter((id) => !state.relics.includes(id))
+        // E2: exclude unlockable relics unless this run has earned them. With no
+        // unlockable relics owned and none allowed, the filtered list is the same
+        // set (in the same sorted order) as pre-E2 → identical r.pick draw.
+        .filter((id) => !UNLOCKABLE_RELIC_IDS.has(id) || allowed.has(id))
         .sort();
       if (unowned.length > 0) relicId = r.pick(unowned);
     }
@@ -428,13 +443,24 @@ export function rollCardChoices(
   rng: Rng,
   count: number,
   act = 0,
+  /**
+   * E2: EXTRA unlockable card ids this run is allowed to draft. Unlockable cards
+   * NOT listed are excluded from the pool. Default (empty) → all unlockables
+   * excluded, so the pool (and thus every rng draw) is byte-identical to pre-E2.
+   */
+  allowedUnlockIds: readonly string[] = [],
 ): string[] {
   const weights = rarityWeightsForAct(act);
+  const allowed = allowedUnlockIds.length > 0 ? new Set(allowedUnlockIds) : null;
   const byRarity = new Map<Rarity, CardDef[]>();
   for (const card of Object.values(content.cards).sort((a, b) => a.id.localeCompare(b.id))) {
     if (card.rarity === 'starter') continue;
     // Upgraded variants are reachable only by upgrading at a rest — never drafted.
     if (UPGRADE_TARGET_IDS.has(card.id)) continue;
+    // E2: unlockable cards stay out of the pool unless this run has earned them.
+    // With nothing allowed (default/harness) the iteration produces the exact
+    // same per-rarity lists as pre-E2 → identical rng consumption and draws.
+    if (UNLOCKABLE_CARD_IDS.has(card.id) && !(allowed && allowed.has(card.id))) continue;
     byRarity.set(card.rarity, [...(byRarity.get(card.rarity) ?? []), card]);
   }
   const choices: string[] = [];
@@ -478,7 +504,7 @@ function enterShop(content: ContentRegistry, state: RunState): RunState {
   const [shop, rng] = withStream(state.rng, 'loot', (r) => {
     // Card stock rolls FIRST so existing shop fixtures keep their card rolls;
     // the potion rolls are appended afterwards on the same stream.
-    const stock = rollCardChoices(content, r, 3, act).map((cardId) => {
+    const stock = rollCardChoices(content, r, 3, act, state.allowedUnlockIds).map((cardId) => {
       const card = content.cards[cardId] as CardDef;
       return {
         cardId,

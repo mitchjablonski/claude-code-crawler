@@ -36,6 +36,12 @@ export interface CardDef {
    * reward/shop pools) and have no further `upgradeTo` (no chains this far).
    */
   readonly upgradeTo?: string;
+  /**
+   * Meta-progression gate (E2). If set, this card is EXTRA content: excluded
+   * from the draft pool until the named milestone unlocks it. Core cards leave
+   * this undefined and are always draftable (byte-identical to pre-E2 pools).
+   */
+  readonly unlock?: string;
 }
 
 /**
@@ -132,6 +138,12 @@ export interface RelicDef {
   readonly effects: readonly Effect[];
   /** Optional gate; if present the relic fires only when it holds (pure, no rng). */
   readonly condition?: RelicCondition;
+  /**
+   * Meta-progression gate (E2). If set, this relic is EXTRA content: excluded
+   * from the elite-relic pool until the named milestone unlocks it. Core relics
+   * leave this undefined and are always available (byte-identical to pre-E2).
+   */
+  readonly unlock?: string;
 }
 
 /** Player-state fields an event can branch or gate on (deterministic). */
@@ -312,6 +324,14 @@ export interface RunState {
    * Empty for single/default runs → every act multiplies by 1.0 (a no-op).
    */
   readonly actHpRamp: readonly number[];
+  /**
+   * E2: EXTRA unlockable card/relic ids this run may draft (captured at
+   * createRun from the run config). Unlockables NOT listed stay excluded from
+   * the draft/elite-relic pools. Empty for default/fresh runs and the harness →
+   * core-only pool, byte-identical to pre-E2. Stored on state (not re-derived)
+   * so a resumed save replays with the exact same legal pool.
+   */
+  readonly allowedUnlockIds: readonly string[];
 }
 
 export type GameAction =

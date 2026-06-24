@@ -1,6 +1,7 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Difficulty, RunMode, SnarkLevel } from '../../config.js';
 import { Screen } from '../components/Screen.js';
+import { theme } from '../theme.js';
 
 const SNARK_LABEL: Readonly<Record<SnarkLevel, string>> = {
   0: 'dry',
@@ -27,6 +28,10 @@ export function Title({
   runMode,
   characterName,
   aiBackend,
+  unlockedCount,
+  unlockableTotal,
+  unlockedNames,
+  justUnlockedNames,
   onNew,
   onContinue,
   onCycleSnark,
@@ -40,6 +45,14 @@ export function Title({
   readonly runMode: RunMode;
   readonly characterName: string;
   readonly aiBackend: string;
+  /** E2: count of EXTRA content ids unlocked so far. */
+  readonly unlockedCount: number;
+  /** E2: total unlockable extras across all milestones. */
+  readonly unlockableTotal: number;
+  /** E2: display names of unlocked extras (sorted). */
+  readonly unlockedNames: readonly string[];
+  /** E2: extras whose milestone was crossed in the just-finished run. */
+  readonly justUnlockedNames: readonly string[];
   readonly onNew: () => void;
   readonly onContinue: () => void;
   readonly onCycleSnark: () => void;
@@ -69,6 +82,20 @@ export function Title({
         <Text>[d] Difficulty: {DIFFICULTY_LABEL[difficulty]}</Text>
         <Text>[s] Snark: {SNARK_LABEL[snark]}</Text>
         <Text>[q] Quit</Text>
+      </Box>
+      <Box marginTop={1} flexDirection="column">
+        {justUnlockedNames.length > 0 && (
+          <Text color={theme.colors.success} bold>
+            NEW: {justUnlockedNames.join(', ')} unlocked!
+          </Text>
+        )}
+        <Text color={theme.colors.accent}>
+          Unlocks: {unlockedCount}/{unlockableTotal}
+          {unlockedNames.length > 0 ? ` — ${unlockedNames.join(', ')}` : ''}
+        </Text>
+        {unlockedCount === 0 && (
+          <Text dimColor>Win runs to unlock extra cards and relics.</Text>
+        )}
       </Box>
     </Screen>
   );
