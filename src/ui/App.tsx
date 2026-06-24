@@ -18,6 +18,7 @@ import { CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER } from '../engine/content/
 import type { RunSummary } from '../ai/dungeonAi.js';
 import { StatusBar } from './components/StatusBar.js';
 import { PauseOverlay } from './components/PauseOverlay.js';
+import { DeckView } from './components/DeckView.js';
 import { Title } from './screens/Title.js';
 import { MapScreen } from './screens/MapScreen.js';
 import { CombatScreen } from './screens/CombatScreen.js';
@@ -84,6 +85,9 @@ export function App({ deps }: { readonly deps: GameDeps }) {
   }, [deps.store]);
 
   const game = useGame({ ...deps, runConfig });
+  // UI-only overlay: inspect the full deck from the map. App-local state, like
+  // the pause overlay — the engine has no deck-view phase and no GameAction.
+  const [deckOpen, setDeckOpen] = useState(false);
   const [snark, setSnark] = useState<SnarkLevel>(
     () => deps.snarkLevel ?? deps.store.loadMeta().settings?.snarkLevel ?? 1,
   );
@@ -191,9 +195,18 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       )}
       {events.pause && !over ? (
         <PauseOverlay pause={events.pause} snark={snark} onDismiss={events.dismissPause} />
+      ) : deckOpen && run.phase === 'map' && !over ? (
+        // Deck-view overlay captures input; the underlying map's keys don't fire.
+        <DeckView state={run} content={game.content} onClose={() => setDeckOpen(false)} />
       ) : (
         <>
-          {run.phase === 'map' && <MapScreen state={run} dispatch={game.dispatch} />}
+          {run.phase === 'map' && (
+            <MapScreen
+              state={run}
+              dispatch={game.dispatch}
+              onViewDeck={() => setDeckOpen(true)}
+            />
+          )}
           {run.phase === 'combat' && (
             <CombatScreen
               state={run}

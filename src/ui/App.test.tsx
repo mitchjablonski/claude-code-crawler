@@ -114,6 +114,49 @@ const hookRec = (hookType: string, payload: Record<string, unknown> = {}): HookR
   payload,
 });
 
+describe('App deck-view overlay', () => {
+  it('opens the read-only deck overlay from the map and closes back to it', async () => {
+    const mem = memoryStore();
+    const { lastFrame, stdin } = await renderApp(<App deps={deps(mem)} />);
+    stdin.write('n');
+    await tick();
+    expect(lastFrame()).toContain('Choose your path');
+    expect(lastFrame()).toContain('[v] view deck');
+
+    // Open the overlay: header + a starter card name; map prompt is gone.
+    stdin.write('v');
+    await tick();
+    const open = lastFrame() ?? '';
+    expect(open).toContain('Your deck');
+    expect(open).toContain('cards)');
+    expect(open).not.toContain('Choose your path');
+    // The knight starter deck lists its cards with grouped counts.
+    expect(open).toContain('Rusty Shortsword');
+    expect(open).toContain('x5'); // identical ids collapse to one xN row
+
+    // Close with v -> back to the map; deck-view input did not descend a node.
+    stdin.write('v');
+    await tick();
+    expect(lastFrame()).toContain('Choose your path');
+    expect(lastFrame()).not.toContain('Your deck');
+  });
+
+  it('closes the deck overlay with esc', async () => {
+    const mem = memoryStore();
+    const { lastFrame, stdin } = await renderApp(<App deps={deps(mem)} />);
+    stdin.write('n');
+    await tick();
+    stdin.write('v');
+    await tick();
+    expect(lastFrame()).toContain('Your deck');
+
+    stdin.write('\x1b'); // escape
+    await tick();
+    expect(lastFrame()).toContain('Choose your path');
+    expect(lastFrame()).not.toContain('Your deck');
+  });
+});
+
 describe('App with hook events', () => {
   it('flips the link indicator and grants bounded gold at the map', async () => {
     const mem = memoryStore();

@@ -163,6 +163,8 @@ export interface AutoPlayResult {
   upgradedCard: boolean;
   /** True iff the autoplayer resolved an event through its result screen. */
   eventResolved: boolean;
+  /** True iff the autoplayer opened (and closed) the deck-view overlay. */
+  viewedDeck: boolean;
 }
 
 /** First potion hotkey letter shown on a Satchel: line, or null if none. */
@@ -217,6 +219,9 @@ export async function autoPlay(
   let upgradedCard = false;
   let triedUpgrade = false;
   let eventResolved = false;
+  // Open the deck-view overlay once (first map) so the overlay path gets smoke
+  // coverage: press 'v' to open, snapshot it, press 'v' to close.
+  let viewedDeck = false;
   // The option to try next on an event screen; advances if a press changes nothing
   // (gated/unavailable option), resets once an option is taken.
   let eventOption = 1;
@@ -242,6 +247,8 @@ export async function autoPlay(
         usedPotion,
         upgradedCard,
         eventResolved,
+    viewedDeck,
+        viewedDeck,
       };
     }
 
@@ -296,6 +303,26 @@ export async function autoPlay(
       // Upgrade view didn't open (no upgradeable cards) — heal instead.
       await h.press('r');
       steps.push({ step, phase, input: 'r' });
+      continue;
+    }
+
+    // --- Deck-view overlay smoke coverage ---
+    // On the first map, open the read-only deck overlay, snapshot it, then close
+    // it. The overlay is App-local UI (no engine phase), so detectPhase still
+    // reads 'map' underneath; we drive it directly here.
+    if (phase === 'map' && !viewedDeck) {
+      viewedDeck = true;
+      await h.press('v');
+      steps.push({ step, phase, input: 'v' });
+      const open = h.text();
+      if (open.includes('Your deck')) {
+        if (opts.onSnapshot && !seen.has('deck' as Phase)) {
+          seen.add('deck' as Phase);
+          await opts.onSnapshot('deck' as Phase, h.raw());
+        }
+      }
+      await h.press('v'); // close back to the map
+      steps.push({ step, phase, input: 'v' });
       continue;
     }
 

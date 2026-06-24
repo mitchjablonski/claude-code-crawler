@@ -7,6 +7,9 @@ import { CardTile } from '../components/CardTile.js';
 /** Heal fraction must match the `rest` reducer in run.ts (state.maxHp * 0.2). */
 const HEAL_PCT = 20;
 
+/** Upgradeable cards per page; single-digit hotkeys cap a page at 9. */
+const PER_PAGE = 9;
+
 /** Deck cards (with their deck index) that have a valid upgrade target. */
 function upgradeable(
   state: RunState,
@@ -33,12 +36,21 @@ export function RestScreen({
 }) {
   // The engine has no rest sub-phase; the rest/upgrade choice lives here only.
   const [view, setView] = useState<'menu' | 'upgrade'>('menu');
+  // Pages of 9 keep every upgradeable card reachable via single-digit hotkeys.
+  const [page, setPage] = useState(0);
   const options = upgradeable(state, content);
+  const pageCount = Math.max(1, Math.ceil(options.length / PER_PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * PER_PAGE;
+  const pageOptions = options.slice(start, start + PER_PAGE);
 
   useInput((input, key) => {
     if (view === 'menu') {
       if (input === 'r') dispatch({ type: 'rest' });
-      else if (input === 'u' && options.length > 0) setView('upgrade');
+      else if (input === 'u' && options.length > 0) {
+        setPage(0);
+        setView('upgrade');
+      }
       return;
     }
     // upgrade view
@@ -46,10 +58,18 @@ export function RestScreen({
       setView('menu');
       return;
     }
+    if (input === 'n') {
+      setPage((p) => Math.min(p + 1, pageCount - 1));
+      return;
+    }
+    if (input === 'p') {
+      setPage((p) => Math.max(p - 1, 0));
+      return;
+    }
     const n = Number(input);
-    // Only the first 9 upgradeable cards are hotkeyed (single-digit keys).
-    if (Number.isInteger(n) && n >= 1 && n <= Math.min(9, options.length)) {
-      dispatch({ type: 'upgradeCard', deckIndex: options[n - 1]!.deckIndex });
+    // Single-digit keys select within the current page (page-relative index).
+    if (Number.isInteger(n) && n >= 1 && n <= pageOptions.length) {
+      dispatch({ type: 'upgradeCard', deckIndex: pageOptions[n - 1]!.deckIndex });
     }
   });
 
@@ -61,15 +81,18 @@ export function RestScreen({
           Upgrade a card:
         </Text>
         <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
-          {options.slice(0, 9).map(({ upgradeId }, i) => {
+          {pageOptions.map(({ upgradeId, deckIndex }, i) => {
             const upgraded = content.cards[upgradeId];
             if (!upgraded) return null;
             return (
-              <CardTile key={`${upgradeId}-${i}`} marker={`[${i + 1}]`} card={upgraded} />
+              <CardTile key={`${upgradeId}-${deckIndex}`} marker={`[${i + 1}]`} card={upgraded} />
             );
           })}
         </Box>
-        <Text dimColor>[esc] Back</Text>
+        <Text dimColor>
+          {pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}
+          [esc] Back
+        </Text>
       </Box>
     );
   }
