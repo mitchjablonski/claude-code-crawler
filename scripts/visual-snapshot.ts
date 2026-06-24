@@ -42,6 +42,9 @@ async function main(): Promise<void> {
       runMode: MODE,
       character: CHARACTER,
       difficulty: DIFFICULTY,
+      // Seed the satchel so the combat snapshot actually renders the potion
+      // line (snapshot harness only — game defaults untouched).
+      startingPotions: ['fire-flask', 'iron-tonic'],
     });
     try {
       await autoPlay(h, {

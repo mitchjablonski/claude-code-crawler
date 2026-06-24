@@ -157,6 +157,34 @@ export interface AutoPlayResult {
   phasesSeen: Phase[];
   finalPhase: Phase;
   reachedGameOver: boolean;
+  /** True iff the autoplayer used at least one potion through the UI. */
+  usedPotion: boolean;
+}
+
+/** First potion hotkey letter shown on a Satchel: line, or null if none. */
+function firstSatchelKey(text: string): string | null {
+  const line = text.split('\n').find((l) => l.includes('Satchel:'));
+  if (!line) return null;
+  const m = /\(([a-z])\)/.exec(line);
+  return m ? m[1]! : null;
+}
+
+/** First affordable+buyable shop potion letter, or null. */
+function buyablePotionKey(text: string): string | null {
+  let inPotions = false;
+  for (const line of text.split('\n')) {
+    if (line.includes('Potions:')) {
+      inPotions = true;
+      continue;
+    }
+    if (!inPotions) continue;
+    // A buyable potion line shows "(x) Name - desc  NNg"; sold/unaffordable
+    // lines either say "(sold)" or are dim — but dim is lost after stripAnsi,
+    // so we gate buying on the shop letter existing and a price being shown.
+    const m = /\(([a-z])\)\s.+\s(\d+)g\b/.exec(line);
+    if (m) return m[1]!;
+  }
+  return null;
 }
 
 /**
@@ -175,6 +203,11 @@ export async function autoPlay(
   const steps: StepLog[] = [];
   const seen = new Set<Phase>();
   let combatCard = 1;
+  let usedPotion = false;
+  // Use a held potion at most twice across the run so the satchel→usePotion
+  // keypath is exercised end-to-end without stalling progress.
+  let potionUseBudget = 2;
+  let boughtPotion = false;
 
   const snapshotIfNew = async (phase: Phase) => {
     if (phase !== 'unknown' && !seen.has(phase)) {
@@ -189,7 +222,45 @@ export async function autoPlay(
     await snapshotIfNew(phase);
 
     if (phase === 'victory' || phase === 'defeat') {
-      return { steps, phasesSeen: [...seen], finalPhase: phase, reachedGameOver: true };
+      return {
+        steps,
+        phasesSeen: [...seen],
+        finalPhase: phase,
+        reachedGameOver: true,
+        usedPotion,
+      };
+    }
+
+    // --- Potion keypath coverage (highest priority) ---
+    // In combat: if the satchel holds a potion and budget remains, use the
+    // first slot; a self potion resolves immediately, an enemy potion enters
+    // target-select which the normal combat branch then answers with '1'.
+    if (phase === 'combat' && potionUseBudget > 0 && !before.includes('Choose a target:')) {
+      const key = firstSatchelKey(before);
+      if (key) {
+        await h.press(key);
+        steps.push({ step, phase, input: key });
+        const afterKey = h.text();
+        if (afterKey.includes('Choose a target:')) {
+          await h.press('1');
+          steps.push({ step, phase, input: '1' });
+        }
+        potionUseBudget--;
+        usedPotion = true;
+        combatCard = 1;
+        continue;
+      }
+    }
+    // In the shop: buy one affordable potion (slot permitting) before leaving so
+    // a satchel gets populated for the combat keypath above.
+    if (phase === 'shop' && !boughtPotion) {
+      const key = buyablePotionKey(before);
+      if (key) {
+        await h.press(key);
+        steps.push({ step, phase, input: key });
+        boughtPotion = true;
+        continue;
+      }
     }
 
     let input: string;
@@ -249,7 +320,7 @@ export async function autoPlay(
   }
 
   const finalPhase = detectPhase(h.text());
-  return { steps, phasesSeen: [...seen], finalPhase, reachedGameOver: false };
+  return { steps, phasesSeen: [...seen], finalPhase, reachedGameOver: false, usedPotion };
 }
 
 /** Prefer a Combat/elite node so a smoke run actually fights; else first path. */

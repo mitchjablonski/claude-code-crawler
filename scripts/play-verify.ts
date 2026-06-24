@@ -46,6 +46,7 @@ interface Verdict {
     phasesSeen: Phase[];
     finalPhase: Phase;
     reachedGameOver: boolean;
+    usedPotion: boolean;
   } | null;
   integration: { testsPassFlavor: boolean; stopReturnsToSurface: boolean } | null;
   balance: { mode: string; character: string; winRate: number }[];
@@ -70,7 +71,11 @@ async function writeSnapshot(name: string, raw: string): Promise<void> {
 }
 
 async function runSmoke(): Promise<void> {
-  const h = await startApp({ seed: SEED });
+  // Seed the satchel so the satchel→usePotion keypath (POTION_KEYS, target
+  // select, satchel render) is exercised end-to-end every run, regardless of
+  // which map the seed walks. Acquisition (shop buy) is also covered by the
+  // autoplayer whenever a run hits a shop with an affordable potion.
+  const h = await startApp({ seed: SEED, startingPotions: ['fire-flask', 'iron-tonic'] });
   try {
     const result = await autoPlay(h, {
       onSnapshot: (phase, raw) => writeSnapshot(phase, raw),
@@ -80,9 +85,12 @@ async function runSmoke(): Promise<void> {
       phasesSeen: result.phasesSeen,
       finalPhase: result.finalPhase,
       reachedGameOver: result.reachedGameOver,
+      usedPotion: result.usedPotion,
     };
     if (!result.phasesSeen.includes('combat'))
       verdict.errors.push('smoke: never reached combat');
+    if (!result.usedPotion)
+      verdict.errors.push('smoke: autoplayer never used a potion (satchel keypath unproven)');
     if (!result.reachedGameOver)
       verdict.warnings.push(
         `smoke: run did not reach an ending in the step budget (final: ${result.finalPhase})`,
@@ -190,6 +198,7 @@ async function main(): Promise<void> {
   process.stderr.write(
     `\nplay-verify: ${verdict.ok ? 'PASS' : 'FAIL'}\n` +
       `  screens: ${verdict.smoke?.phasesSeen.join(', ') ?? 'none'}\n` +
+      `  usedPotion: ${verdict.smoke?.usedPotion ?? false}\n` +
       `  integration: testsPass=${verdict.integration?.testsPassFlavor} stop=${verdict.integration?.stopReturnsToSurface}\n` +
       `  balance: ${verdict.balance.map((b) => `${b.mode}/${b.character}=${(b.winRate * 100).toFixed(0)}%`).join('  ') || 'skipped'}\n` +
       `  snapshots: ${verdict.snapshots.length} -> ${OUT}\n` +

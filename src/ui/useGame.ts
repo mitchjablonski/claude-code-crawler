@@ -30,6 +30,8 @@ export interface GameDeps {
   readonly runMode?: RunMode;
   /** Explicit flag/env character id; undefined → in-game setting, then default. */
   readonly character?: string;
+  /** Dev/snapshot-only: seed a fresh run's satchel. Not wired to game defaults. */
+  readonly startingPotions?: readonly string[];
 }
 
 const DEFAULT_RUN_TTL_MS = 24 * 60 * 60 * 1000;
