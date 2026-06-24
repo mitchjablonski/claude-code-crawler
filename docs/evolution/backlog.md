@@ -38,7 +38,8 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | D1  | **Card upgrades** (rest-site "smith" option + upgraded card variants). | P1 | — | **done** (PR #4) |
 | D2  | **Potions**: consumable one-shot items with a slot limit; drops + shop stock. | P1 | — | **done** (PR #2) |
 | D3  | **Card rarity + reward weighting**: common/uncommon/rare tiers driving reward + shop pools (flat + depth-scaled). | P1 | — | **done** (PR #8) |
-| D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | todo |
+| D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | **done** (PR #13) — onKill/onCardPlayed + hpBelow |
+| D9  | **Relic follow-ups** (from D4): `onCombatEnd` (post-fight heal/gold — needs run-level effect application) and `onShuffle` triggers; richer conditions (status-present, enemy-count, energy-spent) only when a relic concept demands one. | P3 | D4 | todo |
 | D5  | **Boss mechanics**: HP-threshold phase changes + signature moves so bosses aren't stat-sticks. | P2 | — | **done** (PR #10) |
 | D6  | **Intent variety**: enemies telegraph multi-effect moves (attack+debuff, charge-up) reflected in the intent UI. | P2 | V4 | todo |
 | D8  | **Boss/phase follow-ups** (from D5): phase-entry one-time effects (heal-to-block burst, status-on-cross) vs today's pure pool-swap; more phased elites; a first-class `signature` move flag so the UI can emphasize it. | P3 | D5 | todo |
