@@ -209,11 +209,16 @@ describe('applyAction', () => {
       event: { eventId: 'shrine-of-the-crawl' },
     };
     // Choosing an option that applies outcomes shows a result, not the map.
+    // "Tithe and pray" costs 20 gold for +6 max HP.
     const prayed = applyAction(content, shrine, { type: 'chooseEventOption', index: 0 });
     expect(prayed.maxHp).toBe(base.maxHp + 6);
     expect(prayed.hp).toBe(base.hp + 6);
+    expect(prayed.gold).toBe(base.gold - 20);
     expect(prayed.phase).toBe('event');
-    expect(prayed.event?.result?.applied).toEqual([{ kind: 'gainMaxHp', amount: 6 }]);
+    expect(prayed.event?.result?.applied).toEqual([
+      { kind: 'loseGold', amount: 20 },
+      { kind: 'gainMaxHp', amount: 6 },
+    ]);
     expect(prayed.event?.result?.rolled).toBe(false);
 
     // Continue clears the event and returns to the map.

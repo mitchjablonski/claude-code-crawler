@@ -38,7 +38,13 @@ const defs: readonly NarrativeEventDef[] = [
     prompt:
       'A squat stone shrine, worn smooth by ten thousand desperate hands. Coins glitter in the offering bowl. A sign reads: THE DUNGEON IS WATCHING.',
     options: [
-      { label: 'Pray', outcomes: [{ kind: 'gainMaxHp', amount: 6 }] },
+      {
+        label: 'Tithe and pray',
+        outcomes: [
+          { kind: 'loseGold', amount: 20 },
+          { kind: 'gainMaxHp', amount: 6 },
+        ],
+      },
       {
         label: 'Pry up the offerings',
         outcomes: [

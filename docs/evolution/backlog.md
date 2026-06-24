@@ -23,7 +23,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | V1  | **Central theme module** (`src/ui/theme.ts`): semantic tokens (palette, frame/box styles, status icons, rarity colors, layout widths). Built **art-mirror-ready** — tokens are semantic ("elite", "rare", "poison"), not raw colors — so a future companion app maps the same tokens to real art. Refactor all screens + StatusBar to consume it. `termRender.ts` COLORS derives from it. | P0 | — | **done** (PR #1) |
 | V2  | **Consistent screen chrome**: every screen gets a unified header/footer + bordered panels via theme box styles. Kill ad-hoc spacing. | P1 | V1 | todo |
 | V3  | **Card frames**: render cards as bordered tiles with cost pip, name, type/rarity color, and description — replace the flat `[1] (1) Strike - ...` lines. | P1 | V1 | **done** (PR #3) |
-| V4  | **Enemy presentation**: per-enemy ASCII sigil/banner + HP bar glyphs + clearer intent iconography (attack/block/buff/debuff). | P1 | V1 | todo |
+| V4  | **Enemy presentation**: per-enemy ASCII sigil/banner + HP bar glyphs + clearer intent iconography (attack/block/buff/debuff). | P1 | V1 | **done** (PR #5) |
 | V5  | **Status-effect icons**: glyph + color per status (poison, dexterity, block, strength…) used consistently in combat + status bar. | P2 | V1 | todo |
 | V6  | **Juice / feedback**: brief visual beats for damage, block, gold gain, card play (within the deterministic engine — presentation only). | P2 | V1, V3 | todo |
 | V7  | **Unify item tiles**: generalize `CardTile` into a shared item frame so shop **potions** are framed like cards (V3 left shop potions as plain text). Small follow-up to remove the half-framed shop. | P2 | V3 | todo |
@@ -33,7 +33,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
-| D1  | **Card upgrades** (rest-site "smith" option + upgraded card variants). | P1 | — | todo |
+| D1  | **Card upgrades** (rest-site "smith" option + upgraded card variants). | P1 | — | **done** (PR #4) |
 | D2  | **Potions**: consumable one-shot items with a slot limit; drops + shop stock. | P1 | — | **done** (PR #2) |
 | D3  | **Card rarity + reward weighting**: common/uncommon/rare tiers driving reward + shop pools. | P1 | — | todo |
 | D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | todo |
@@ -45,10 +45,11 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
-| E1  | **Meaningful events**: expand events with real risk/reward branches and stat checks (not just pick-an-option). | P1 | — | todo |
+| E1  | **Meaningful events**: expand events with real risk/reward branches and stat checks (not just pick-an-option). | P1 | — | **done** (PR #6) |
 | E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | todo |
 | E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | todo |
 | E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | todo |
+| E5  | **Richer event mechanics** (E1 follow-ups): lean harder on `conditional` build-checks (deck/maxHp/relics) over plain gold-gates; add a `gainPotion` event outcome (compose with D2); per-event result flavor text; consider an EV-aware playtest policy so the harness stress-tests gambles. | P2 | E1 | todo |
 
 ---
 
