@@ -98,12 +98,34 @@ export interface EnemyDef {
   readonly sigil?: string;
 }
 
+/**
+ * When a relic's effects fire.
+ * - combatStart / turnStart: fired from startCombat / endTurn (COMBAT rng stream).
+ * - onCardPlayed: fired ONCE after each card the player plays.
+ * - onKill: fired ONCE per enemy a played card kills this card (per-death).
+ *
+ * Determinism note: the new triggers (onCardPlayed/onKill) fire at the playCard
+ * chokepoint and are strict NO-OPS (consume no rng, change no state) for any
+ * player who owns no relic with that trigger — so existing runs whose relics are
+ * all combatStart/turnStart stay byte-identical.
+ */
+export type RelicTrigger = 'combatStart' | 'turnStart' | 'onCardPlayed' | 'onKill';
+
+/**
+ * An optional, light condition gating whether a relic's effects fire. Pure —
+ * reads only combat state, consumes no rng. `hpBelow` is a comeback gate: the
+ * relic fires only while combat.playerHp / combat.playerMaxHp < pct/100.
+ */
+export type RelicCondition = { readonly kind: 'hpBelow'; readonly pct: number };
+
 export interface RelicDef {
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  readonly trigger: 'combatStart' | 'turnStart';
+  readonly trigger: RelicTrigger;
   readonly effects: readonly Effect[];
+  /** Optional gate; if present the relic fires only when it holds (pure, no rng). */
+  readonly condition?: RelicCondition;
 }
 
 /** Player-state fields an event can branch or gate on (deterministic). */

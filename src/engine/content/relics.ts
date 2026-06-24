@@ -36,6 +36,19 @@ const defs: readonly RelicDef[] = [
   { id: 'war-paint', name: 'War Paint', description: 'At the start of each combat, gain 1 Strength and 1 Dexterity.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'bulwark-charm', name: 'Bulwark Charm', description: 'At the start of each combat, gain 10 Block.', trigger: 'combatStart', effects: [{ kind: 'block', amount: 10 }] },
   { id: 'second-stomach', name: 'Second Stomach', description: 'At the start of each combat, heal 6 HP.', trigger: 'combatStart', effects: [{ kind: 'heal', amount: 6 }] },
+  // --- D4: richer trigger points (onCardPlayed / onKill) + a comeback conditional ---
+  // onKill relics: bounded by the (few) kills a single card can land; each kill
+  // fires once. Modest per-kill payoffs keep AoE multi-kills fair.
+  { id: 'bloodthirster', name: 'Bloodthirster', description: 'Whenever a card you play kills an enemy, gain 1 Strength.', trigger: 'onKill', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+  { id: 'gravediggers-glove', name: "Gravedigger's Glove", description: 'Whenever a card you play kills an enemy, draw 1 card.', trigger: 'onKill', effects: [{ kind: 'draw', count: 1 }] },
+  { id: 'reapers-tithe', name: "Reaper's Tithe", description: 'Whenever a card you play kills an enemy, heal 3 HP.', trigger: 'onKill', effects: [{ kind: 'heal', amount: 3 }] },
+  // onCardPlayed relics fire once per card — they stack across a turn quickly, so
+  // payoffs are kept to 1.
+  { id: 'tempo-band', name: 'Tempo Band', description: 'Every time you play a card, gain 1 Block.', trigger: 'onCardPlayed', effects: [{ kind: 'block', amount: 1 }] },
+  // Comeback conditional: only fires while below half HP — high value but gated to
+  // moments of real danger, so it never compounds an already-winning fight.
+  { id: 'cornered-instinct', name: 'Cornered Instinct', description: 'At the start of each turn, if below 50% HP, gain 6 Block.', trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 50 }, effects: [{ kind: 'block', amount: 6 }] },
+  { id: 'last-ember', name: 'Last Ember', description: 'At the start of each turn, if below 40% HP, gain 1 Strength.', trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 40 }, effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
 ];
 
 export const relics: Readonly<Record<string, RelicDef>> = Object.fromEntries(

@@ -4,6 +4,8 @@ import type {
   ContentRegistry,
   EnemyInstance,
   PotionDef,
+  RelicCondition,
+  RelicTrigger,
   Statuses,
 } from './types.js';
 import { EngineError } from './types.js';
@@ -70,6 +72,7 @@ export function playCard(
   handIndex: number,
   targetIndex: number | undefined,
   rng: Rng,
+  relicIds: readonly string[] = [],
 ): CombatState {
   const cardId = combat.hand[handIndex];
   if (cardId === undefined) throw new EngineError(`no card at hand index ${handIndex}`);
@@ -83,6 +86,10 @@ export function playCard(
     }
   }
 
+  // Snapshot which enemies are alive BEFORE the card resolves, so we can detect
+  // exactly the kills caused by THIS card (alive-then-dead transitions).
+  const wasAlive = combat.enemies.map((e) => e.hp > 0);
+
   let next: CombatState = {
     ...combat,
     energy: combat.energy - card.cost,
@@ -92,6 +99,18 @@ export function playCard(
   for (const effect of card.effects) {
     next = applyPlayerEffect(next, effect, targetIndex, rng);
   }
+
+  // Relic triggers at the playCard chokepoint. These are NO-OPS (no rng, no
+  // state change) when relicIds holds no relic with the matching trigger, so a
+  // player whose relics are all combatStart/turnStart replays byte-identically.
+  // Order: card effects → onKill (once per enemy this card killed) → onCardPlayed.
+  for (let i = 0; i < next.enemies.length; i++) {
+    const killedNow = wasAlive[i] === true && (next.enemies[i] as EnemyInstance).hp <= 0;
+    if (killedNow) {
+      next = applyRelics(content, next, relicIds, 'onKill', rng);
+    }
+  }
+  next = applyRelics(content, next, relicIds, 'onCardPlayed', rng);
   return next;
 }
 
@@ -203,18 +222,32 @@ export function applyRelics(
   content: ContentRegistry,
   combat: CombatState,
   relicIds: readonly string[],
-  trigger: 'combatStart' | 'turnStart',
+  trigger: RelicTrigger,
   rng: Rng,
 ): CombatState {
   let next = combat;
   for (const relicId of relicIds) {
     const relic = content.relics[relicId];
     if (!relic || relic.trigger !== trigger) continue;
+    // Optional comeback gate: pure HP-fraction check, consumes no rng. A relic
+    // whose condition fails applies nothing (so its rng-using effects don't run).
+    if (relic.condition && !relicConditionMet(relic.condition, next)) continue;
     for (const effect of relic.effects) {
       next = applyPlayerEffect(next, effect, undefined, rng);
     }
   }
   return next;
+}
+
+/** Pure predicate for a relic's optional firing condition (reads HP only). */
+function relicConditionMet(
+  condition: RelicCondition,
+  combat: CombatState,
+): boolean {
+  switch (condition.kind) {
+    case 'hpBelow':
+      return combat.playerMaxHp > 0 && combat.playerHp / combat.playerMaxHp < condition.pct / 100;
+  }
 }
 
 function decayStatuses(statuses: Statuses): Statuses {

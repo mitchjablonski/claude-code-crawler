@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Rng } from './rng.js';
 import { attackDamage } from './effects.js';
 import {
+  applyRelics,
   endTurn,
   isCombatLost,
   isCombatWon,
@@ -154,6 +155,88 @@ describe('combat flow', () => {
     const c = { ...freshCombat(), hand: ['pricey'] };
     expect(() => playCard(T, c, 0, undefined, new Rng(2))).toThrow(EngineError);
     expect(() => playCard(T, c, 5, undefined, new Rng(2))).toThrow(EngineError);
+  });
+});
+
+describe('relic triggers at the playCard chokepoint', () => {
+  // A content registry with the new-trigger relics layered onto T's cards/enemies.
+  const R: ContentRegistry = {
+    ...T,
+    cards: {
+      ...T.cards,
+      // hits ALL enemies for 6 — used to test per-kill onKill firing on AoE.
+      sweep: {
+        id: 'sweep', name: 'Sweep', description: '', type: 'attack', rarity: 'common',
+        cost: 1, target: 'allEnemies',
+        effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }],
+      },
+    },
+    relics: {
+      onPlayBlock: {
+        id: 'onPlayBlock', name: 'On Play Block', description: '',
+        trigger: 'onCardPlayed', effects: [{ kind: 'block', amount: 1 }],
+      },
+      onKillStr: {
+        id: 'onKillStr', name: 'On Kill Strength', description: '',
+        trigger: 'onKill', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }],
+      },
+      comeback: {
+        id: 'comeback', name: 'Comeback', description: '',
+        trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 50 },
+        effects: [{ kind: 'block', amount: 6 }],
+      },
+    },
+  };
+
+  const weakEnemies: ContentRegistry['enemies'] = {
+    weakling: {
+      id: 'weakling', name: 'Weakling', hp: [6, 6],
+      moves: [{ name: 'Tap', effects: [{ kind: 'damage', amount: 1, target: 'enemy' }] }],
+    },
+  };
+
+  it('onCardPlayed fires once after a card (owner gains the effect)', () => {
+    const c = freshCombat();
+    const idx = c.hand.indexOf('guard');
+    const next = playCard(R, c, idx, undefined, new Rng(2), ['onPlayBlock']);
+    // guard gives 5 block + 1 from the relic = 6.
+    expect(next.playerBlock).toBe(6);
+  });
+
+  it('onKill fires when a card kills an enemy', () => {
+    const env: ContentRegistry = { ...R, enemies: weakEnemies };
+    const c = startCombat(env, DECK, 30, 30, [], ['weakling'], new Rng(1));
+    const idx = c.hand.indexOf('jab'); // 6 dmg vs 6 hp = kill
+    const next = playCard(env, c, idx, 0, new Rng(2), ['onKillStr']);
+    expect(next.enemies[0]?.hp).toBe(0);
+    expect(next.playerStatuses.strength).toBe(1);
+  });
+
+  it('onKill fires once per kill on an AoE multi-kill', () => {
+    const env: ContentRegistry = { ...R, enemies: weakEnemies };
+    const c = startCombat(env, ['sweep'], 30, 30, [], ['weakling', 'weakling'], new Rng(1));
+    const idx = c.hand.indexOf('sweep'); // 6 dmg to all, both at 6 hp = 2 kills
+    const next = playCard(env, c, idx, undefined, new Rng(2), ['onKillStr']);
+    expect(next.enemies.every((e) => e.hp === 0)).toBe(true);
+    expect(next.playerStatuses.strength).toBe(2); // one stack per kill
+  });
+
+  it('hpBelow conditional fires only below the threshold', () => {
+    const c = freshCombat();
+    const healthy = applyRelics(R, { ...c, playerHp: 30, playerMaxHp: 30 }, ['comeback'], 'turnStart', new Rng(2));
+    expect(healthy.playerBlock).toBe(0); // 100% HP -> no fire
+    const hurt = applyRelics(R, { ...c, playerHp: 10, playerMaxHp: 30 }, ['comeback'], 'turnStart', new Rng(2));
+    expect(hurt.playerBlock).toBe(6); // ~33% HP -> fires
+  });
+
+  it('no-matching-relic playCard is byte-identical (determinism invariant)', () => {
+    const c = freshCombat();
+    const idx = c.hand.indexOf('jab');
+    const baseline = playCard(T, c, idx, 0, new Rng(7)); // no relics arg (pre-D4 path)
+    // Same card, with a relic set containing NO onKill/onCardPlayed relics: the
+    // new firing sites must consume no rng and change no state.
+    const withRelics = playCard(R, c, idx, 0, new Rng(7), ['comeback']);
+    expect(withRelics).toEqual(baseline);
   });
 });
 
