@@ -108,6 +108,12 @@ export interface EnemyDef {
  * chokepoint and are strict NO-OPS (consume no rng, change no state) for any
  * player who owns no relic with that trigger — so existing runs whose relics are
  * all combatStart/turnStart stay byte-identical.
+ *
+ * Firing sites (all via `applyRelics` on the combat rng stream):
+ *   - combatStart  → `startCombat` (combat.ts), after the opening hand is drawn
+ *   - turnStart    → `applyAction` 'endTurn' case (run.ts), after the enemy turn
+ *   - onKill       → `playCard` (combat.ts), once per enemy killed by that card
+ *   - onCardPlayed → `playCard` (combat.ts), once after the card resolves
  */
 export type RelicTrigger = 'combatStart' | 'turnStart' | 'onCardPlayed' | 'onKill';
 
