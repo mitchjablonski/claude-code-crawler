@@ -9,7 +9,7 @@ import type {
   Statuses,
 } from '../../engine/types.js';
 import type { Effect } from '../../engine/types.js';
-import type { IntentKind } from '../theme.js';
+import type { InkColor, IntentKind } from '../theme.js';
 import { theme, statusSegments, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
@@ -33,20 +33,67 @@ function StatusTags({ statuses }: { readonly statuses: Statuses }) {
   );
 }
 
-function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
+/** A compact, theme-tokenized telegraph token for one upcoming move effect. */
+interface IntentChip {
+  readonly text: string;
+  readonly color: InkColor;
+}
+
+/** The move name for an enemy's CURRENT-phase next move (anchor: `next: <icon> <name>`). */
+function intentNameFor(content: ContentRegistry, enemy: EnemyInstance): string {
   const def = content.enemies[enemy.defId];
   // Use the SAME resolver the combat reducer uses so the telegraph reflects the
   // enemy's CURRENT phase (it switches the instant the boss crosses a threshold).
   const move = def && resolveEnemyMove(def, enemy);
-  if (!move) return '?';
-  const damage = move.effects
-    .flatMap((fx) =>
-      fx.kind === 'damage'
-        ? [`${fx.amount}${(fx.times ?? 1) > 1 ? `x${fx.times}` : ''}`]
-        : [],
-    )
-    .join('+');
-  return damage ? `${move.name} (${damage})` : move.name;
+  return move ? move.name : '?';
+}
+
+/**
+ * Build the FULL telegraph for an enemy's next move as compact, theme-tokenized
+ * chips so the player can see every effect the single category icon hides:
+ *   - damage      -> `Ndmg` (multi-hit `NxT`), danger color (the headline threat)
+ *   - block       -> `+Nblk`, block/defend color
+ *   - self-buff   -> `<ICON>+N` (e.g. `STR+1`), the status' buff color
+ *   - debuff      -> `<ICON>N`  (e.g. `VUL2`), the status' debuff color (key new info)
+ *   - self-heal   -> `+Nhp`, success color
+ * gainEnergy/draw are vanishingly rare for enemies; omitted (no player-relevant
+ * threat). Pure: reads already-resolved move effects + only theme tokens.
+ */
+function intentChips(content: ContentRegistry, enemy: EnemyInstance): readonly IntentChip[] {
+  const def = content.enemies[enemy.defId];
+  const move = def && resolveEnemyMove(def, enemy);
+  if (!move) return [];
+  const chips: IntentChip[] = [];
+  for (const fx of move.effects) {
+    switch (fx.kind) {
+      case 'damage': {
+        const times = fx.times ?? 1;
+        const text = times > 1 ? `${fx.amount}x${times}dmg` : `${fx.amount}dmg`;
+        chips.push({ text, color: theme.colors.danger });
+        break;
+      }
+      case 'block':
+        chips.push({ text: `+${fx.amount}blk`, color: theme.colors.block });
+        break;
+      case 'heal':
+        chips.push({ text: `+${fx.amount}hp`, color: theme.colors.success });
+        break;
+      case 'applyStatus': {
+        const style = theme.status[fx.status];
+        // target 'self' = enemy buffs itself; otherwise it lands ON the player.
+        const isSelf = fx.target === 'self';
+        chips.push({
+          text: isSelf ? `${style.icon}+${fx.stacks}` : `${style.icon}${fx.stacks}`,
+          color: isSelf ? theme.colors.intent.buff : theme.colors.intent.debuff,
+        });
+        break;
+      }
+      // gainEnergy / draw: not a player-facing threat for enemies — omit.
+      default:
+        break;
+    }
+  }
+  return chips;
 }
 
 /**
@@ -207,8 +254,14 @@ export function CombatScreen({
                   <Text color={theme.colors.hpEmpty}>{bar.empty}</Text>
                   <Text>]</Text>
                   <Text color={theme.colors.intent[kind]}>
-                    {'  '}next: {theme.intentIcons[kind]} {intentFor(content, enemy)}
+                    {'  '}next: {theme.intentIcons[kind]} {intentNameFor(content, enemy)}
                   </Text>
+                  {intentChips(content, enemy).map((chip, ci) => (
+                    <Text key={`${chip.text}-${ci}`} color={chip.color}>
+                      {'  '}
+                      {chip.text}
+                    </Text>
+                  ))}
                 </Text>
               )}
             </Box>
