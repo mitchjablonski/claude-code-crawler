@@ -38,6 +38,12 @@ export function RewardScreen({
           {relicDisplayName ?? content.relics[reward.relicId]?.name ?? reward.relicId}
         </Text>
       )}
+      {reward?.potionId !== undefined && (
+        <Text color={theme.colors.success}>
+          Found a potion:{' '}
+          {content.potions[reward.potionId]?.name ?? reward.potionId} (added to your satchel)
+        </Text>
+      )}
       <Box marginTop={1} flexDirection="column">
         <Text bold>Take a card for your deck:</Text>
         {cards.map((cardId, i) => {

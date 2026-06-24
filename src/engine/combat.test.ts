@@ -7,6 +7,7 @@ import {
   isCombatWon,
   playCard,
   startCombat,
+  usePotion,
 } from './combat.js';
 import type { ContentRegistry } from './types.js';
 import { EngineError } from './types.js';
@@ -42,6 +43,16 @@ const T: ContentRegistry = {
   },
   relics: {},
   events: {},
+  potions: {
+    bomb: {
+      id: 'bomb', name: 'Bomb', description: '',
+      target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }],
+    },
+    tonic: {
+      id: 'tonic', name: 'Tonic', description: '',
+      target: 'self', effects: [{ kind: 'block', amount: 7 }],
+    },
+  },
 };
 
 const DECK = ['jab', 'jab', 'guard', 'expose', 'jab'];
@@ -143,5 +154,27 @@ describe('combat flow', () => {
     const c = { ...freshCombat(), hand: ['pricey'] };
     expect(() => playCard(T, c, 0, undefined, new Rng(2))).toThrow(EngineError);
     expect(() => playCard(T, c, 5, undefined, new Rng(2))).toThrow(EngineError);
+  });
+});
+
+describe('usePotion', () => {
+  it('applies a self potion without a target and costs no energy', () => {
+    const c = freshCombat();
+    const after = usePotion(T.potions.tonic!, c, undefined, new Rng(2));
+    expect(after.playerBlock).toBe(7);
+    expect(after.energy).toBe(c.energy); // potions are not cards: no energy spent
+  });
+
+  it('applies an enemy potion to the chosen target', () => {
+    const c = freshCombat();
+    const after = usePotion(T.potions.bomb!, c, 0, new Rng(2));
+    expect(after.enemies[0]?.hp).toBe(10 - 8);
+  });
+
+  it('rejects an enemy potion with no living target', () => {
+    const c = freshCombat();
+    const dead = { ...c, enemies: c.enemies.map((e) => ({ ...e, hp: 0 })) };
+    expect(() => usePotion(T.potions.bomb!, dead, 0, new Rng(2))).toThrow(EngineError);
+    expect(() => usePotion(T.potions.bomb!, c, undefined, new Rng(2))).toThrow(EngineError);
   });
 });

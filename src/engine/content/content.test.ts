@@ -12,6 +12,7 @@ describe('content quota (REQ-1)', () => {
     expect(enemies.filter((e) => (e.tier ?? 1) >= 2).length).toBeGreaterThanOrEqual(4);
     expect(Object.keys(content.relics).length).toBeGreaterThanOrEqual(12);
     expect(Object.keys(content.events).length).toBeGreaterThanOrEqual(10);
+    expect(Object.keys(content.potions).length).toBeGreaterThanOrEqual(6);
   });
 });
 
@@ -64,6 +65,31 @@ describe('content integrity', () => {
     }
     for (const relic of Object.values(content.relics)) {
       expect(relic.effects.length, relic.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('potions compose only valid effect kinds/targets', () => {
+    const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
+    const TARGETS = ['enemy', 'allEnemies', 'self'];
+    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+    for (const potion of Object.values(content.potions)) {
+      expect(potion.id).toMatch(/^[a-z0-9-]+$/);
+      expect(potion.effects.length, potion.id).toBeGreaterThan(0);
+      expect(TARGETS, potion.id).toContain(potion.target);
+      for (const fx of potion.effects) {
+        expect(KINDS, `${potion.id}:${fx.kind}`).toContain(fx.kind);
+        if ('target' in fx) expect(TARGETS, potion.id).toContain(fx.target);
+        if (fx.kind === 'applyStatus') {
+          expect(STATUSES, `${potion.id}:${fx.status}`).toContain(fx.status);
+        }
+      }
+      // An enemy-target potion must actually carry an enemy-directed effect.
+      if (potion.target !== 'self') {
+        expect(
+          potion.effects.some((fx) => 'target' in fx && fx.target !== 'self'),
+          potion.id,
+        ).toBe(true);
+      }
     }
   });
 });

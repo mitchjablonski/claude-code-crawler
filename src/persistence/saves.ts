@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 4; // v4: RunState gained enemyHpMult (difficulty)
+const SAVE_VERSION = 5; // v5: RunState gained potions/maxPotions + shop potionStock
 
 export interface RunRecord {
   readonly seed: string;

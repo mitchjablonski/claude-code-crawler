@@ -26,6 +26,17 @@ export function legalActions(content: ContentRegistry, state: RunState): GameAct
           actions.push({ type: 'playCard', handIndex });
         }
       });
+      state.potions.forEach((potionId, potionIndex) => {
+        const potion = content.potions[potionId];
+        if (!potion) return;
+        if (potion.target === 'enemy') {
+          for (const targetIndex of living) {
+            actions.push({ type: 'usePotion', potionIndex, targetIndex });
+          }
+        } else {
+          actions.push({ type: 'usePotion', potionIndex });
+        }
+      });
       return actions;
     }
     case 'reward': {
@@ -39,6 +50,11 @@ export function legalActions(content: ContentRegistry, state: RunState): GameAct
       const actions: GameAction[] = [{ type: 'leaveShop' }];
       (state.shop?.stock ?? []).forEach((item, index) => {
         if (!item.sold && state.gold >= item.price) actions.push({ type: 'buyCard', index });
+      });
+      const slotFree = state.potions.length < state.maxPotions;
+      (state.shop?.potionStock ?? []).forEach((item, index) => {
+        if (slotFree && !item.sold && state.gold >= item.price)
+          actions.push({ type: 'buyPotion', index });
       });
       return actions;
     }
