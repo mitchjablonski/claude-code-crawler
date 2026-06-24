@@ -27,6 +27,22 @@ describe('scenarioRecords', () => {
     expect(kinds).toContain('claude_awaits_user');
   });
 
+  it('lint-and-ship drives the new lint + commit vocabulary in order', () => {
+    const records = scenarioRecords('lint-and-ship', 0);
+    const kinds = records.map((t) => classify(t.record).kind);
+    expect(kinds).toContain('lint_failed');
+    expect(kinds).toContain('lint_passed');
+    expect(kinds).toContain('committed');
+    // lint fail must precede lint pass which must precede the commit.
+    expect(kinds.indexOf('lint_failed')).toBeLessThan(kinds.indexOf('lint_passed'));
+    expect(kinds.indexOf('lint_passed')).toBeLessThan(kinds.indexOf('committed'));
+    // Records ordered + session-tagged like the others.
+    for (let i = 1; i < records.length; i++) {
+      expect(records[i]!.atMs).toBeGreaterThan(records[i - 1]!.atMs);
+    }
+    expect(records[0]?.record.payload['session_id']).toBe('sim-lint-and-ship');
+  });
+
   it('review-time produces the deepPairing ping', () => {
     const kinds = scenarioRecords('review-time', 0).map((t) => classify(t.record).kind);
     expect(kinds).toContain('review_requested');
