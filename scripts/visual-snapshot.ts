@@ -6,6 +6,7 @@
  *
  *   npx tsx scripts/visual-snapshot.ts [--out=DIR] [--seeds=a,b,c] [--mode=single] [--character=knight] [--difficulty=normal]
  */
+import './lib/forceColor.js'; // must be first: set FORCE_COLOR before ink/chalk load
 import fs from 'node:fs';
 import path from 'node:path';
 import { startApp, autoPlay } from './lib/playHarness.js';
@@ -18,7 +19,14 @@ function arg(name: string, fallback: string): string {
 }
 
 const OUT = arg('out', process.env.EVOLUTION_OUT ?? '.evolution-artifacts/snapshots');
-const SEEDS = arg('seeds', 'demo,verify,atlas,gloom,ember').split(',').filter(Boolean);
+// Broad default seed sweep: more seeds raise the odds of surfacing the rarer
+// node types (shop, elite, boss) since each seed walks a different map.
+const SEEDS = arg(
+  'seeds',
+  'demo,verify,atlas,gloom,ember,forge,vault,relic,abyss,spire,crypt,hoard',
+)
+  .split(',')
+  .filter(Boolean);
 const MODE = arg('mode', 'single') as RunMode;
 const CHARACTER = arg('character', 'knight');
 const DIFFICULTY = arg('difficulty', 'normal') as Difficulty;

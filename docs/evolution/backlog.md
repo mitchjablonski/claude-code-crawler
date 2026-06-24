@@ -37,6 +37,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | todo |
 | D5  | **Boss mechanics**: phase changes / signature moves so bosses aren't stat-stick combats. | P2 | — | todo |
 | D6  | **Intent variety**: enemies telegraph multi-effect moves (attack+debuff, charge-up) reflected in the intent UI. | P2 | V4 | todo |
+| D7  | **Balance debt: arc mode runs hot.** Rebalance arc-mode difficulty so single/arc win-rates match. Playtest (greedy@300, `normal`) shows arc/knight ~81% and arc/apothecary ~75% vs single ~67-78%, with arc `avgEndHpOnWin` ~47 vs single ~21 — arc is materially easier and players end far healthier. Pre-existing (not caused by V1). Likely lever: per-act enemy-HP/difficulty scaling for arc. | P1 | — | todo |
 
 ## Pillar E — Engagement
 

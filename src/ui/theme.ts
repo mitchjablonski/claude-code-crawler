@@ -10,7 +10,7 @@
  * Purity: this module is data-only. It type-imports from the engine but must
  * not import engine runtime, RNG, or the wall clock.
  */
-import type { NodeKind, Rarity, StatusId } from '../engine/types.js';
+import type { NodeKind, Rarity, Statuses, StatusId } from '../engine/types.js';
 
 /**
  * The Ink color names the theme uses. Ink accepts any chalk ForegroundColorName
@@ -82,6 +82,7 @@ const colors = {
     rest: 'green',
     boss: 'red',
   } satisfies Record<NodeKind, InkColor>,
+  // TODO(card-frames): consumed by V3 card frames; keep even while unused.
   /** Per-rarity color (reserved for future card-frame work). */
   rarity: {
     starter: 'grey',
@@ -114,31 +115,50 @@ const layout = {
   contentWidth: 76,
 } as const;
 
+/**
+ * Structural framing tokens. This is the SEAM for bordered panels (V2) and card
+ * frames (V3): consumers should read border styles / divider glyphs from here
+ * rather than hardcoding box-drawing. Defaults only — no screen draws borders
+ * yet. `border` values match Ink's `<Box borderStyle>` names so they can be
+ * passed straight through once panels land.
+ */
+const box = {
+  /** Border style for generic bordered panels (Ink borderStyle name). */
+  panel: 'round',
+  /** Border style for emphasized/highlighted panels (e.g. selected card). */
+  emphasis: 'double',
+  /** Border color token name (key of `colors`-like semantic set). */
+  borderColor: 'muted',
+  /** Single-line horizontal divider glyph (plain-terminal safe). */
+  divider: '-',
+  /** Vertical separator glyph. */
+  separator: '|',
+} as const;
+
 export const theme = {
   colors,
   status,
   layout,
+  box,
   palette,
   defaultFg,
   background,
 } as const;
 
 export type Theme = typeof theme;
+export type BoxTheme = typeof box;
 
 /**
  * Render an engine `Statuses` map into compact token-styled segments. Dumb
  * presentational helper: returns data, the screen decides how to draw it.
- * Unknown ids (should not happen given the typed union) fall back to the raw id.
  */
 export function statusSegments(
-  statuses: Readonly<Record<string, number | undefined>>,
+  statuses: Statuses,
 ): readonly { readonly text: string; readonly color: InkColor }[] {
-  return Object.entries(statuses)
+  return (Object.entries(statuses) as [StatusId, number | undefined][])
     .filter(([, v]) => v !== undefined)
     .map(([id, v]) => {
-      const style = status[id as StatusId] as StatusStyle | undefined;
-      return style
-        ? { text: `${style.icon} ${v}`, color: style.color }
-        : { text: `${id} ${v}`, color: colors.accent };
+      const style = status[id];
+      return { text: `${style.icon} ${v}`, color: style.color };
     });
 }
