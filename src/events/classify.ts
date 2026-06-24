@@ -90,6 +90,11 @@ function classifyPostToolUse(
       if (verdict === null) return ev('activity', at, truncate(command));
       return ev(verdict ? 'lint_passed' : 'lint_failed', at, truncate(command));
     }
+    // Push before commit: a "git push" is its own celebratory beat and must not
+    // be read as a commit (nor vice-versa). Both are verdict-independent.
+    if (/\bgit\s+push\b/.test(command)) {
+      return ev('pushed', at, truncate(command));
+    }
     if (/\bgit\s+commit\b/.test(command)) {
       return ev('committed', at, truncate(command));
     }

@@ -14,6 +14,7 @@ export type GameEventKind =
   | 'lint_passed'
   | 'lint_failed'
   | 'committed'
+  | 'pushed'
   | 'code_changed'
   | 'file_explored'
   | 'agent_spawned'

@@ -33,9 +33,11 @@ describe('scenarioRecords', () => {
     expect(kinds).toContain('lint_failed');
     expect(kinds).toContain('lint_passed');
     expect(kinds).toContain('committed');
-    // lint fail must precede lint pass which must precede the commit.
+    expect(kinds).toContain('pushed');
+    // lint fail must precede lint pass, then the commit, then the push.
     expect(kinds.indexOf('lint_failed')).toBeLessThan(kinds.indexOf('lint_passed'));
     expect(kinds.indexOf('lint_passed')).toBeLessThan(kinds.indexOf('committed'));
+    expect(kinds.indexOf('committed')).toBeLessThan(kinds.indexOf('pushed'));
     // Records ordered + session-tagged like the others.
     for (let i = 1; i < records.length; i++) {
       expect(records[i]!.atMs).toBeGreaterThan(records[i - 1]!.atMs);
