@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
+import { Screen } from '../components/Screen.js';
 
 /** Heal fraction must match the `rest` reducer in run.ts (state.maxHp * 0.2). */
 const HEAL_PCT = 20;
@@ -75,11 +76,12 @@ export function RestScreen({
 
   if (view === 'upgrade') {
     return (
-      <Box flexDirection="column" paddingX={1}>
+      <Screen
+        title="Upgrade a card:"
+        footer={`${pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}[esc] Back`}
+        framed={false}
+      >
         <Text bold>A defensible alcove, warm and quiet.</Text>
-        <Text bold color={theme.colors.title}>
-          Upgrade a card:
-        </Text>
         <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
           {pageOptions.map(({ upgradeId, deckIndex }, i) => {
             const upgraded = content.cards[upgradeId];
@@ -89,16 +91,12 @@ export function RestScreen({
             );
           })}
         </Box>
-        <Text dimColor>
-          {pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}
-          [esc] Back
-        </Text>
-      </Box>
+      </Screen>
     );
   }
 
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Screen title="The Rest Site" footer="[r] rest  [u] upgrade">
       <Text bold>A defensible alcove, warm and quiet.</Text>
       <Text dimColor>Someone has carved {'"'}5 stars, would die here again{'"'} into the wall.</Text>
       <Box marginTop={1} flexDirection="column">
@@ -107,6 +105,6 @@ export function RestScreen({
           [u] Upgrade a card{options.length === 0 ? ' (none upgradeable)' : ` (${options.length} upgradeable)`}
         </Text>
       </Box>
-    </Box>
+    </Screen>
   );
 }

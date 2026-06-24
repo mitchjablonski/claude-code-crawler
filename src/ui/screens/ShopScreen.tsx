@@ -2,6 +2,7 @@ import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
+import { Screen } from '../components/Screen.js';
 
 export function ShopScreen({
   state,
@@ -39,7 +40,7 @@ export function ShopScreen({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Screen title="The Shop" footer="number: buy card  letter: buy potion  l: leave" framed={false}>
       <Text bold>
         A cloaked merchant grins. {'"'}Adventurer prices,{'"'} it says, of the markup.
       </Text>
@@ -89,9 +90,6 @@ export function ShopScreen({
           })}
         </Box>
       )}
-      <Box marginTop={1}>
-        <Text dimColor>number: buy card  letter: buy potion  l: leave</Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }

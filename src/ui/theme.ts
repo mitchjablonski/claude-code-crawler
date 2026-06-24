@@ -187,11 +187,33 @@ const box = {
   separator: '|',
 } as const;
 
+/**
+ * Screen-chrome tokens (V2): the shared frame every screen renders through
+ * (`components/Screen.tsx`). Centralizing the header/footer/spacing here keeps
+ * all screens visually identical and makes the chrome tunable from one place.
+ * Purely structural — colors still route through `colors`.
+ */
+const chrome = {
+  /** Horizontal padding applied inside the frame (was a per-screen magic 1). */
+  paddingX: 1,
+  /** Blank rows between the header rule and the body, and the body and footer. */
+  gap: 1,
+  /** Color token for the screen-title header text. */
+  titleColor: 'title',
+  /** Color token for the footer key-hint line. */
+  footerColor: 'muted',
+  /** Border style for the framed (calm) screen variant. */
+  borderStyle: 'round',
+  /** Border color token for the framed variant. */
+  borderColor: 'muted',
+} as const;
+
 export const theme = {
   colors,
   status,
   layout,
   box,
+  chrome,
   palette,
   defaultFg,
   background,

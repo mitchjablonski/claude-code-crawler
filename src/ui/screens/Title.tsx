@@ -1,6 +1,6 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Difficulty, RunMode, SnarkLevel } from '../../config.js';
-import { theme } from '../theme.js';
+import { Screen } from '../components/Screen.js';
 
 const SNARK_LABEL: Readonly<Record<SnarkLevel, string>> = {
   0: 'dry',
@@ -59,10 +59,7 @@ export function Title({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text color={theme.colors.title} bold>
-        CLAUDE CODE CRAWLER
-      </Text>
+    <Screen title="CLAUDE CODE CRAWLER" footer={`announcer: ${aiBackend}`}>
       <Text dimColor>A dungeon beneath your terminal.</Text>
       <Box marginTop={1} flexDirection="column">
         {hasSave && <Text>[c] Continue your delve</Text>}
@@ -73,9 +70,6 @@ export function Title({
         <Text>[s] Snark: {SNARK_LABEL[snark]}</Text>
         <Text>[q] Quit</Text>
       </Box>
-      <Box marginTop={1}>
-        <Text dimColor>announcer: {aiBackend}</Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }

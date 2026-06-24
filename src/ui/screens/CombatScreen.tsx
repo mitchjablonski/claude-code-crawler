@@ -12,6 +12,7 @@ import type { Effect } from '../../engine/types.js';
 import type { IntentKind } from '../theme.js';
 import { theme, statusSegments, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
+import { Screen } from '../components/Screen.js';
 import { resolveEnemyMove } from '../../engine/enemyMoves.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
@@ -163,8 +164,12 @@ export function CombatScreen({
     }
   });
 
+  const footer = pending
+    ? 'number: target  esc: cancel'
+    : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn`;
+
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Screen title="Combat" footer={footer} framed={false}>
       <Box flexDirection="column">
         {combat.enemies.map((enemy, i) => {
           const def = content.enemies[enemy.defId];
@@ -248,13 +253,6 @@ export function CombatScreen({
           </Text>
         </Box>
       )}
-      <Box marginTop={1}>
-        <Text dimColor>
-          {pending
-            ? 'number: target  esc: cancel'
-            : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn`}
-        </Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }

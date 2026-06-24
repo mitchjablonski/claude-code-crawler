@@ -1,6 +1,7 @@
-import { Box, Text, useInput } from 'ink';
+import { Text, useInput } from 'ink';
 import type { GameAction, MapNode, NodeKind, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
+import { Screen } from '../components/Screen.js';
 
 const KIND_LABEL: Readonly<Record<NodeKind, string>> = {
   start: 'Start',
@@ -40,24 +41,20 @@ export function MapScreen({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      <Text dimColor>
-        Depth {node?.row ?? 0}/{bossRow}
-      </Text>
-      <Box marginTop={1} flexDirection="column">
-        <Text bold>The passage forks. Choose your path:</Text>
-        {options.map((option, i) => (
-          <Text key={option.id}>
-            [{i + 1}]{' '}
-            <Text color={theme.colors.nodeKind[option.kind]}>
-              {KIND_LABEL[option.kind]}
-            </Text>
+    <Screen
+      title="The Map"
+      meta={`Depth ${node?.row ?? 0}/${bossRow}`}
+      footer="press a number to descend  [v] view deck"
+    >
+      <Text bold>The passage forks. Choose your path:</Text>
+      {options.map((option, i) => (
+        <Text key={option.id}>
+          [{i + 1}]{' '}
+          <Text color={theme.colors.nodeKind[option.kind]}>
+            {KIND_LABEL[option.kind]}
           </Text>
-        ))}
-      </Box>
-      <Box marginTop={1}>
-        <Text dimColor>press a number to descend  [v] view deck</Text>
-      </Box>
-    </Box>
+        </Text>
+      ))}
+    </Screen>
   );
 }

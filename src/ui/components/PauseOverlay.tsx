@@ -2,6 +2,7 @@ import { Box, Text, useInput } from 'ink';
 import type { SnarkLevel } from '../../config.js';
 import type { PauseState } from '../useEvents.js';
 import { theme } from '../theme.js';
+import { Screen } from './Screen.js';
 
 const TITLES: Record<PauseState['reason'], string> = {
   awaits: 'CLAUDE AWAITS YOUR COMMAND',
@@ -41,27 +42,25 @@ export function PauseOverlay({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text bold color={theme.colors.title}>
-        {TITLES[pause.reason]}
-      </Text>
-      <Box marginTop={1} width={theme.layout.contentWidth}>
+    <Screen
+      title={TITLES[pause.reason]}
+      footer={
+        pause.claudeActive
+          ? 'Claude is working again - [enter] descend'
+          : 'Go handle it, crawler. [p] keep playing anyway'
+      }
+      framed={false}
+    >
+      <Box width={theme.layout.contentWidth - 2}>
         <Text wrap="wrap">{BODIES[pause.reason][snark]}</Text>
       </Box>
       {pause.detail !== undefined && (
-        <Box marginTop={1} width={theme.layout.contentWidth}>
+        <Box marginTop={1} width={theme.layout.contentWidth - 2}>
           <Text dimColor wrap="wrap">
             {pause.detail}
           </Text>
         </Box>
       )}
-      <Box marginTop={1}>
-        <Text>
-          {pause.claudeActive
-            ? 'Claude is working again - [enter] descend'
-            : 'Go handle it, crawler. [p] keep playing anyway'}
-        </Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }

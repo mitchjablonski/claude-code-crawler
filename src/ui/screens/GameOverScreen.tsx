@@ -1,6 +1,7 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import type { RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
+import { Screen } from '../components/Screen.js';
 
 export function GameOverScreen({
   state,
@@ -21,7 +22,7 @@ export function GameOverScreen({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1}>
+    <Screen title={won ? 'Run Complete' : 'Run Ended'} footer="[n] new delve  [t] title  [q] quit">
       <Text bold color={won ? theme.colors.success : theme.colors.danger}>
         {won ? 'THE SCOPE CREEP IS SLAIN' : 'YOU DIED'}
       </Text>
@@ -30,16 +31,11 @@ export function GameOverScreen({
           ? 'The dungeon grumbles and starts drafting new requirements.'
           : 'The dungeon thanks you for your engagement.'}
       </Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1}>
         <Text>
           seed {state.seed}  -  deck {state.deck.length} cards  -  {state.gold}g
         </Text>
       </Box>
-      <Box marginTop={1} flexDirection="column">
-        <Text>[n] New delve</Text>
-        <Text>[t] Title</Text>
-        <Text>[q] Quit</Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }

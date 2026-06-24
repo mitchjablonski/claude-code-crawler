@@ -2,6 +2,7 @@ import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
+import { Screen } from '../components/Screen.js';
 
 export function RewardScreen({
   state,
@@ -29,10 +30,7 @@ export function RewardScreen({
   });
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      <Text bold color={theme.colors.title}>
-        Victory! +{reward?.gold ?? 0}g
-      </Text>
+    <Screen title={`Victory! +${reward?.gold ?? 0}g`} footer="number: take card  [s] skip" framed={false}>
       {reward?.relicId !== undefined && (
         <Text color={theme.colors.accent}>
           Relic claimed:{' '}
@@ -45,17 +43,14 @@ export function RewardScreen({
           {content.potions[reward.potionId]?.name ?? reward.potionId} (added to your satchel)
         </Text>
       )}
-      <Box marginTop={1} flexDirection="column">
-        <Text bold>Take a card for your deck:</Text>
-        <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
-          {cards.map((cardId, i) => {
-            const card = content.cards[cardId];
-            if (!card) return null;
-            return <CardTile key={cardId} marker={`[${i + 1}]`} card={card} />;
-          })}
-        </Box>
-        <Text dimColor>[s] Skip</Text>
+      <Text bold>Take a card for your deck:</Text>
+      <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
+        {cards.map((cardId, i) => {
+          const card = content.cards[cardId];
+          if (!card) return null;
+          return <CardTile key={cardId} marker={`[${i + 1}]`} card={card} />;
+        })}
       </Box>
-    </Box>
+    </Screen>
   );
 }

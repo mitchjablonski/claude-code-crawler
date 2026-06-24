@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { CardType, ContentRegistry, Rarity, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
+import { Screen } from './Screen.js';
 
 /**
  * Read-only overlay listing the player's whole deck outside combat.
@@ -112,11 +113,12 @@ export function DeckView({
   }
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text bold color={theme.colors.title}>
-        Your deck ({state.deck.length} cards)
-      </Text>
-      <Box marginTop={1} flexDirection="row" width={theme.layout.contentWidth}>
+    <Screen
+      title={`Your deck (${state.deck.length} cards)`}
+      footer={`${pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}[esc/v] close`}
+      framed={false}
+    >
+      <Box flexDirection="row" width={theme.layout.contentWidth}>
         {columns.map((col, ci) => (
           <Box key={ci} flexDirection="column" marginRight={ci === 0 ? 1 : 0}>
             {col.map((row) => (
@@ -125,12 +127,6 @@ export function DeckView({
           </Box>
         ))}
       </Box>
-      <Box marginTop={1}>
-        <Text dimColor>
-          {pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}
-          [esc/v] close
-        </Text>
-      </Box>
-    </Box>
+    </Screen>
   );
 }
