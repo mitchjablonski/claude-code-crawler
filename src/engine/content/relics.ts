@@ -55,7 +55,7 @@ const defs: readonly RelicDef[] = [
   // always available, so a fresh player's relic pool is byte-identical to pre-E2.
   { id: 'hard-won-medallion', name: 'Hard-Won Medallion', description: 'At the start of each combat, gain 1 Strength and 6 Block.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }, { kind: 'block', amount: 6 }], unlock: 'hard-victory' },
   { id: 'trophy-rack', name: 'Trophy Rack', description: 'Whenever a card you play kills an enemy, heal 2 HP and gain 1 Block.', trigger: 'onKill', effects: [{ kind: 'heal', amount: 2 }, { kind: 'block', amount: 1 }], unlock: 'three-victories' },
-  { id: 'veterans-banner', name: "Veteran's Banner", description: 'At the start of each combat, gain 1 Strength and 1 Dexterity and draw 1 card.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'draw', count: 1 }], unlock: 'three-victories' },
+  { id: 'veterans-banner', name: "Veteran's Banner", description: 'At the start of each combat, gain 1 Strength, 1 Dexterity and 5 Block.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 5 }], unlock: 'three-victories' },
 ];
 
 export const relics: Readonly<Record<string, RelicDef>> = Object.fromEntries(
