@@ -35,11 +35,11 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | --- | ---- | -------- | ------- | ------ |
 | D1  | **Card upgrades** (rest-site "smith" option + upgraded card variants). | P1 | — | **done** (PR #4) |
 | D2  | **Potions**: consumable one-shot items with a slot limit; drops + shop stock. | P1 | — | **done** (PR #2) |
-| D3  | **Card rarity + reward weighting**: common/uncommon/rare tiers driving reward + shop pools. | P1 | — | todo |
+| D3  | **Card rarity + reward weighting**: common/uncommon/rare tiers driving reward + shop pools (flat + depth-scaled). | P1 | — | **done** (PR #8) |
 | D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | todo |
 | D5  | **Boss mechanics**: phase changes / signature moves so bosses aren't stat-stick combats. | P2 | — | todo |
 | D6  | **Intent variety**: enemies telegraph multi-effect moves (attack+debuff, charge-up) reflected in the intent UI. | P2 | V4 | todo |
-| D7  | **Balance debt: arc mode runs hot.** Rebalance arc-mode difficulty so single/arc win-rates match. Playtest (greedy@300, `normal`) shows arc/knight ~81% and arc/apothecary ~75% vs single ~67-78%, with arc `avgEndHpOnWin` ~47 vs single ~21 — arc is materially easier and players end far healthier. Pre-existing (not caused by V1). Likely lever: per-act enemy-HP/difficulty scaling for arc. | P1 | — | todo |
+| D7  | **Balance debt: arc mode runs hot.** Rebalance arc-mode difficulty so single/arc win-rates match. Playtest (greedy@300, `normal`) shows arc/knight ~81% and arc/apothecary ~75% vs single ~67-78%, with arc `avgEndHpOnWin` ~47 vs single ~21 — arc is materially easier and players end far healthier. Pre-existing (not caused by V1). Likely lever: per-act enemy-HP/difficulty scaling for arc. | P1 | — | **done** (PR #7) |
 
 ## Pillar E — Engagement
 
@@ -49,7 +49,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | todo |
 | E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | todo |
 | E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | todo |
-| E5  | **Richer event mechanics** (E1 follow-ups): lean harder on `conditional` build-checks (deck/maxHp/relics) over plain gold-gates; add a `gainPotion` event outcome (compose with D2); per-event result flavor text; consider an EV-aware playtest policy so the harness stress-tests gambles. | P2 | E1 | todo |
+| E5  | **Richer event mechanics** (E1 follow-ups): lean harder on `conditional` build-checks (deck/maxHp/relics) over plain gold-gates; add a `gainPotion` event outcome (compose with D2); per-event result flavor text; consider smarter playtest policies (EV-aware for event gambles; rarity-seeking for D3 reward draws) so the harness stress-tests choices the rarity-blind greedy bot ignores. Also track apothecary-arc-normal as the weakest balance seam (~−13pt, pre-existing kit asymmetry). | P2 | E1 | todo |
 
 ---
 
