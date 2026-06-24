@@ -41,7 +41,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | D4  | **Richer relics**: more triggered/conditional relics (on-combat-start, on-kill, on-shuffle). | P2 | — | **done** (PR #13) — onKill/onCardPlayed + hpBelow |
 | D9  | **Relic follow-ups** (from D4): `onCombatEnd` (post-fight heal/gold — needs run-level effect application) and `onShuffle` triggers; richer conditions (status-present, enemy-count, energy-spent) only when a relic concept demands one. | P3 | D4 | todo |
 | D5  | **Boss mechanics**: HP-threshold phase changes + signature moves so bosses aren't stat-sticks. | P2 | — | **done** (PR #10) |
-| D6  | **Intent variety**: enemies telegraph multi-effect moves (attack+debuff, charge-up) reflected in the intent UI. | P2 | V4 | todo |
+| D6  | **Intent variety**: enemies telegraph multi-effect moves (attack+debuff, charge-up) reflected in the intent UI. | P2 | V4 | **done** (PR #14) — multi-effect chips; charge-up look-ahead deferred |
 | D8  | **Boss/phase follow-ups** (from D5): phase-entry one-time effects (heal-to-block burst, status-on-cross) vs today's pure pool-swap; more phased elites; a first-class `signature` move flag so the UI can emphasize it. | P3 | D5 | todo |
 | D7  | **Balance debt: arc mode runs hot.** Rebalance arc-mode difficulty so single/arc win-rates match. Playtest (greedy@300, `normal`) shows arc/knight ~81% and arc/apothecary ~75% vs single ~67-78%, with arc `avgEndHpOnWin` ~47 vs single ~21 — arc is materially easier and players end far healthier. Pre-existing (not caused by V1). Likely lever: per-act enemy-HP/difficulty scaling for arc. | P1 | — | **done** (PR #7) |
 
