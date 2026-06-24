@@ -21,7 +21,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | ID  | Item | Priority | Depends | Status |
 | --- | ---- | -------- | ------- | ------ |
 | V1  | **Central theme module** (`src/ui/theme.ts`): semantic tokens (palette, frame/box styles, status icons, rarity colors, layout widths). Built **art-mirror-ready** — tokens are semantic ("elite", "rare", "poison"), not raw colors — so a future companion app maps the same tokens to real art. Refactor all screens + StatusBar to consume it. `termRender.ts` COLORS derives from it. | P0 | — | **done** (PR #1) |
-| V2  | **Consistent screen chrome**: every screen gets a unified header/footer + bordered panels via theme box styles. Kill ad-hoc spacing. | P1 | V1 | todo |
+| V2  | **Consistent screen chrome**: every screen gets a unified header/footer + bordered panels via theme box styles. Kill ad-hoc spacing. | P1 | V1 | **done** (PR #12) |
 | V3  | **Card frames**: render cards as bordered tiles with cost pip, name, type/rarity color, and description — replace the flat `[1] (1) Strike - ...` lines. | P1 | V1 | **done** (PR #3) |
 | V4  | **Enemy presentation**: per-enemy ASCII sigil/banner + HP bar glyphs + clearer intent iconography (attack/block/buff/debuff). | P1 | V1 | **done** (PR #5) |
 | V5  | **Status-effect icons**: glyph + color per status (poison, dexterity, block, strength…) used consistently in combat + status bar. | P2 | V1 | todo |
@@ -29,6 +29,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | V7  | **Unify item tiles**: generalize `CardTile` into a shared item frame so shop **potions** are framed like cards (V3 left shop potions as plain text). Small follow-up to remove the half-framed shop. | P2 | V3 | todo |
 | V8  | **Deck view**: a screen to inspect your full deck outside combat (StatusBar only shows a count today). Unblocks the rest-site upgrade chooser's 9-card cap (add pagination) and a base→upgraded comparison. Surfaced by D1. | P2 | V3 | **done** (PR #9) |
 | V9  | **Deck-view follow-ups** (from V8): card detail / effect text on row-select (the compact list omits descriptions); reach the deck view from reward/shop/rest/combat, not map-only. | P3 | V8 | todo |
+| V10 | **Chrome polish** (from V2): fold the `contentWidth - 2` inner-width math into the `Screen` primitive so screens stop hand-deriving it; give the StatusBar's secondary "dungeon: linked" row width-discipline so it doesn't clip the snapshot right edge (tension: pinning it truncates the narration content a test asserts — resolve by separating the rows). | P3 | V2 | todo |
 
 ## Pillar D — Gameplay depth
 
