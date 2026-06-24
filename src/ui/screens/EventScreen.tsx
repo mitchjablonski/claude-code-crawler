@@ -9,6 +9,7 @@ import type {
 } from '../../engine/types.js';
 import { eventRequirementMet } from '../../engine/types.js';
 import { theme } from '../theme.js';
+import { Screen } from '../components/Screen.js';
 
 /** Human-readable noun for the field a requirement gates on. */
 const CHECK_NOUN: Readonly<Record<EventCheck, string>> = {
@@ -81,13 +82,8 @@ export function EventScreen({
   if (result) {
     const header = result.rolled ? 'The dice come up...' : 'It is done.';
     return (
-      <Box flexDirection="column" paddingX={1}>
-        <Text bold color={theme.colors.title}>
-          {def.name}
-        </Text>
-        <Box marginTop={1}>
-          <Text color={theme.colors.accent}>{header}</Text>
-        </Box>
+      <Screen title={def.name} footer="[1] Continue" framed={false}>
+        <Text color={theme.colors.accent}>{header}</Text>
         <Box marginTop={1} flexDirection="column">
           {result.applied.map((outcome, i) => {
             const line = outcomeLine(outcome, content);
@@ -100,20 +96,14 @@ export function EventScreen({
             );
           })}
         </Box>
-        <Box marginTop={1}>
-          <Text color={theme.colors.muted}>[1] Continue</Text>
-        </Box>
-      </Box>
+      </Screen>
     );
   }
 
   // ---- Option view ----
   return (
-    <Box flexDirection="column" paddingX={1}>
-      <Text bold color={theme.colors.title}>
-        {def.name}
-      </Text>
-      <Box marginTop={1} width={theme.layout.contentWidth}>
+    <Screen title={def.name} footer="press a number to choose" framed={false}>
+      <Box width={theme.layout.contentWidth - 2}>
         <Text wrap="wrap">{def.prompt}</Text>
       </Box>
       <Box marginTop={1} flexDirection="column">
@@ -135,6 +125,6 @@ export function EventScreen({
           );
         })}
       </Box>
-    </Box>
+    </Screen>
   );
 }

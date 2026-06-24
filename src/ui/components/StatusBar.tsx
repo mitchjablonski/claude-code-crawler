@@ -15,7 +15,7 @@ export function StatusBar({
   const hp = combat ? combat.playerHp : state.hp;
   return (
     <Box flexDirection="column">
-      <Box paddingX={1} justifyContent="space-between">
+      <Box width={theme.layout.contentWidth} paddingX={1} justifyContent="space-between">
         <Text>
           <Text color={theme.colors.hp} bold>
             HP {hp}/{state.maxHp}
