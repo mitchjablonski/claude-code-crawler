@@ -73,7 +73,8 @@ export function scenarioRecords(name: ScenarioName, startAt: number): TimedRecor
         rec(9_000, 'PostToolUse', bash('npm run lint', 0)),
         rec(12_000, 'PostToolUse', bash('npm test', 0)),
         rec(15_000, 'PostToolUse', bash('git commit -m "fix auth lint"', 0)),
-        rec(18_000, 'Stop'),
+        rec(18_000, 'PostToolUse', bash('git push origin main', 0)),
+        rec(21_000, 'Stop'),
       ];
   }
 }

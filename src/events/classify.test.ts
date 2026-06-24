@@ -76,8 +76,20 @@ describe('classify', () => {
   it('detects git commits regardless of verdict', () => {
     expect(classify(bash('git commit -m "wip"', { exitCode: 0 })).kind).toBe('committed');
     expect(classify(bash('git commit --amend')).kind).toBe('committed');
-    // git push is not (yet) classified; stays ambient.
-    expect(classify(bash('git push', { exitCode: 0 })).kind).toBe('activity');
+    // A commit is never a push.
+    expect(classify(bash('git commit -m "wip"', { exitCode: 0 })).kind).not.toBe('pushed');
+  });
+
+  it('detects git push regardless of verdict, distinct from commit', () => {
+    expect(classify(bash('git push', { exitCode: 0 })).kind).toBe('pushed');
+    expect(classify(bash('git push origin main', { exitCode: 0 })).kind).toBe('pushed');
+    expect(classify(bash('git push')).kind).toBe('pushed');
+    // A push is its own beat: never a commit, never plain activity.
+    const pushed = classify(bash('git push origin main', { exitCode: 0 })).kind;
+    expect(pushed).not.toBe('committed');
+    expect(pushed).not.toBe('activity');
+    // A non-git command is unaffected by the push branch.
+    expect(classify(bash('echo pushing the limits', { exitCode: 0 })).kind).toBe('activity');
   });
 
   it('spawns agents and pings deepPairing reviews', () => {

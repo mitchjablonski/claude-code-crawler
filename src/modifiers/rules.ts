@@ -101,6 +101,18 @@ export function ruleFor(event: GameEvent, snark: SnarkLevel = 1): RuleOutcome {
           snark,
         ),
       };
+    case 'pushed':
+      return {
+        modifier: { kind: 'blessNextCombat', status: 'strength', stacks: 1 },
+        narration: pick(
+          {
+            0: 'Pushed. +1 Strength next combat.',
+            1: 'You shipped it. The dungeon braces for the regressions; you carry the swagger. +1 Strength next combat.',
+            2: 'You PUSHED that? To main, no less. The dungeon respects the audacity and hands you +1 Strength for the fight that cleans up after you.',
+          },
+          snark,
+        ),
+      };
     case 'agent_spawned':
       return {
         modifier: { kind: 'blessNextCombat', status: 'strength', stacks: 1 },
@@ -166,6 +178,9 @@ const LIMITS: Partial<Record<GameEventKind, BucketConfig>> = {
   lint_failed: { capacity: 2, refillPerMinute: 0.5 },
   // Commits are deliberate but can come in bursts; modest checkpoint heals.
   committed: { capacity: 2, refillPerMinute: 0.5 },
+  // A push is the rarest, most deliberate signal; one celebratory bless at a
+  // time, refilling slowly so a CI retry storm can't farm Strength.
+  pushed: { capacity: 1, refillPerMinute: 0.25 },
   agent_spawned: { capacity: 1, refillPerMinute: 1 },
   session_started: { capacity: 1, refillPerMinute: 0.2 },
 };

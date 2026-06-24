@@ -32,6 +32,29 @@ describe('ruleFor', () => {
     expect(ruleFor(ev('committed')).modifier).toEqual({ kind: 'healPlayer', amount: 5 });
   });
 
+  it('maps a git push to a bounded ship-it bless, distinct from commit', () => {
+    expect(ruleFor(ev('pushed')).modifier).toEqual({
+      kind: 'blessNextCombat',
+      status: 'strength',
+      stacks: 1,
+    });
+    // Push and commit are different rewards.
+    expect(ruleFor(ev('pushed')).modifier).not.toEqual(ruleFor(ev('committed')).modifier);
+    expect(ruleFor(ev('pushed')).narration).toMatch(/ship|push/i);
+  });
+
+  it('pushed narration differs per tier, mechanics identical', () => {
+    const lines = [0, 1, 2].map((s) => ruleFor(ev('pushed'), s as 0 | 1 | 2).narration);
+    expect(new Set(lines).size).toBe(3);
+    for (const snark of [0, 1, 2] as const) {
+      expect(ruleFor(ev('pushed'), snark).modifier).toEqual({
+        kind: 'blessNextCombat',
+        status: 'strength',
+        stacks: 1,
+      });
+    }
+  });
+
   it('gives lint_failed distinct narration from tests_failed', () => {
     expect(ruleFor(ev('lint_failed')).narration).not.toBe(ruleFor(ev('tests_failed')).narration);
   });
@@ -110,6 +133,7 @@ describe('limitFor', () => {
     expect(limitFor('lint_passed')).toEqual({ capacity: 1, refillPerMinute: 0.5 });
     expect(limitFor('lint_failed')).toEqual({ capacity: 2, refillPerMinute: 0.5 });
     expect(limitFor('committed')).toEqual({ capacity: 2, refillPerMinute: 0.5 });
+    expect(limitFor('pushed')).toEqual({ capacity: 1, refillPerMinute: 0.25 });
     expect(limitFor('something_unknown')).toEqual({ capacity: 3, refillPerMinute: 1 });
   });
 });
