@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import type { Difficulty, RunMode, SnarkLevel } from '../../config.js';
+import { theme } from '../theme.js';
 
 const SNARK_LABEL: Readonly<Record<SnarkLevel, string>> = {
   0: 'dry',
@@ -59,7 +60,7 @@ export function Title({
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text color="yellow" bold>
+      <Text color={theme.colors.title} bold>
         CLAUDE CODE CRAWLER
       </Text>
       <Text dimColor>A dungeon beneath your terminal.</Text>

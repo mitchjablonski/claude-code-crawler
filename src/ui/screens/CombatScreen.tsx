@@ -6,7 +6,27 @@ import type {
   EnemyInstance,
   GameAction,
   RunState,
+  Statuses,
 } from '../../engine/types.js';
+import { theme, statusSegments } from '../theme.js';
+
+/** Render a statuses map as theme-styled segments wrapped in brackets. */
+function StatusTags({ statuses }: { readonly statuses: Statuses }) {
+  const segments = statusSegments(statuses);
+  if (segments.length === 0) return null;
+  return (
+    <Text>
+      {' ['}
+      {segments.map((seg, i) => (
+        <Text key={seg.text} color={seg.color}>
+          {i > 0 ? ', ' : ''}
+          {seg.text}
+        </Text>
+      ))}
+      {']'}
+    </Text>
+  );
+}
 
 function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
   const def = content.enemies[enemy.defId];
@@ -20,11 +40,6 @@ function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
     )
     .join('+');
   return damage ? `${move.name} (${damage})` : move.name;
-}
-
-function statusLine(enemy: EnemyInstance): string {
-  const parts = Object.entries(enemy.statuses).map(([k, v]) => `${k} ${v}`);
-  return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
 }
 
 export function CombatScreen({
@@ -93,11 +108,11 @@ export function CombatScreen({
               ? 'slain'
               : `${enemy.hp}/${enemy.maxHp}${enemy.block > 0 ? ` +${enemy.block}blk` : ''}`}
             {enemy.hp > 0 && (
-              <Text color="red">
+              <Text color={theme.colors.enemyIntent}>
                 {'  '}next: {intentFor(content, enemy)}
               </Text>
             )}
-            <Text color="cyan">{statusLine(enemy)}</Text>
+            <StatusTags statuses={enemy.statuses} />
           </Text>
         ))}
       </Box>
@@ -109,7 +124,9 @@ export function CombatScreen({
           const affordable = card.cost <= combat.energy;
           return (
             <Text key={`${cardId}-${i}`} dimColor={!affordable}>
-              [{i + 1}] ({card.cost}) {card.name} - {card.description}
+              [{i + 1}] (
+              <Text color={theme.colors.cardCost}>{card.cost}</Text>) {card.name} -{' '}
+              {card.description}
             </Text>
           );
         })}

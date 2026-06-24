@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
+import { theme } from '../theme.js';
 
 export function RewardScreen({
   state,
@@ -28,11 +29,11 @@ export function RewardScreen({
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text bold color="yellow">
+      <Text bold color={theme.colors.title}>
         Victory! +{reward?.gold ?? 0}g
       </Text>
       {reward?.relicId !== undefined && (
-        <Text color="cyan">
+        <Text color={theme.colors.accent}>
           Relic claimed:{' '}
           {relicDisplayName ?? content.relics[reward.relicId]?.name ?? reward.relicId}
         </Text>
@@ -44,7 +45,9 @@ export function RewardScreen({
           if (!card) return null;
           return (
             <Text key={cardId}>
-              [{i + 1}] ({card.cost}) {card.name} - {card.description}
+              [{i + 1}] (
+              <Text color={theme.colors.cardCost}>{card.cost}</Text>) {card.name} -{' '}
+              {card.description}
             </Text>
           );
         })}

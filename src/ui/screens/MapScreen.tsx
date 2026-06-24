@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from 'ink';
 import type { GameAction, MapNode, NodeKind, RunState } from '../../engine/types.js';
+import { theme } from '../theme.js';
 
 const KIND_LABEL: Readonly<Record<NodeKind, string>> = {
   start: 'Start',
@@ -40,7 +41,10 @@ export function MapScreen({
         <Text bold>The passage forks. Choose your path:</Text>
         {options.map((option, i) => (
           <Text key={option.id}>
-            [{i + 1}] {KIND_LABEL[option.kind]}
+            [{i + 1}]{' '}
+            <Text color={theme.colors.nodeKind[option.kind]}>
+              {KIND_LABEL[option.kind]}
+            </Text>
           </Text>
         ))}
       </Box>
