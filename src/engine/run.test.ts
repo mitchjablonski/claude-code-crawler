@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createRun } from './run.js';
+import { legalActions } from '../search/legalActions.js';
 import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
 import { EngineError } from './types.js';
 import type { RunState } from './types.js';
@@ -200,7 +201,119 @@ describe('applyAction', () => {
     expect(skipped.potions).toHaveLength(2); // unchanged, no overflow
   });
 
-  it('event outcomes apply, and lethal ones end the run', () => {
+  it('event outcomes apply via a result screen, then continue returns to map', () => {
+    const base = run('alpha');
+    const shrine: RunState = {
+      ...base,
+      phase: 'event',
+      event: { eventId: 'shrine-of-the-crawl' },
+    };
+    // Choosing an option that applies outcomes shows a result, not the map.
+    const prayed = applyAction(content, shrine, { type: 'chooseEventOption', index: 0 });
+    expect(prayed.maxHp).toBe(base.maxHp + 6);
+    expect(prayed.hp).toBe(base.hp + 6);
+    expect(prayed.phase).toBe('event');
+    expect(prayed.event?.result?.applied).toEqual([{ kind: 'gainMaxHp', amount: 6 }]);
+    expect(prayed.event?.result?.rolled).toBe(false);
+
+    // Continue clears the event and returns to the map.
+    const after = applyAction(content, prayed, { type: 'continueEvent' });
+    expect(after.phase).toBe('map');
+    expect(after.event).toBeNull();
+  });
+
+  it('lethal event outcomes end the run with no result screen', () => {
+    const base = run('alpha');
+    const shrine: RunState = {
+      ...base,
+      phase: 'event',
+      event: { eventId: 'shrine-of-the-crawl' },
+      hp: 3,
+    };
+    // "Pry up the offerings" costs 5 HP → lethal at 3 HP.
+    const looted = applyAction(content, shrine, { type: 'chooseEventOption', index: 1 });
+    expect(looted.phase).toBe('defeat');
+    expect(looted.event).toBeNull();
+  });
+
+  it('an empty-outcome option (Walk away) goes straight to the map', () => {
+    const base = run('alpha');
+    const vending: RunState = {
+      ...base,
+      phase: 'event',
+      event: { eventId: 'abandoned-vending-machine' },
+    };
+    // Option 2 (index 2) is "Walk away" with no outcomes.
+    const left = applyAction(content, vending, { type: 'chooseEventOption', index: 2 });
+    expect(left.phase).toBe('map');
+    expect(left.event).toBeNull();
+  });
+
+  it('rollOutcomes is deterministic per seed and varies across seeds', () => {
+    const onVending = (seed: string): RunState => ({
+      ...run(seed),
+      phase: 'event',
+      event: { eventId: 'abandoned-vending-machine' },
+    });
+    const resolve = (s: RunState) =>
+      applyAction(content, s, { type: 'chooseEventOption', index: 0 }).event?.result?.applied;
+
+    // Same seed → identical branch.
+    const a1 = resolve(onVending('roll-seed-A'));
+    const a2 = resolve(onVending('roll-seed-A'));
+    expect(a1).toEqual(a2);
+    // The result is flagged as rolled.
+    const rolledState = applyAction(content, onVending('roll-seed-A'), {
+      type: 'chooseEventOption',
+      index: 0,
+    });
+    expect(rolledState.event?.result?.rolled).toBe(true);
+
+    // Different seeds can pick different branches across the kick event.
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      seen.add(JSON.stringify(resolve(onVending(`roll-vary-${i}`))));
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('conditional outcomes branch on player state (ifPass vs ifFail)', () => {
+    const base = run('alpha');
+    const idol = (relics: readonly string[]): RunState => ({
+      ...base,
+      phase: 'event',
+      event: { eventId: 'cursed-idol' },
+      relics: [...relics],
+    });
+    // < 3 relics → heavy bite (ifFail: lose 9 HP).
+    const poor = applyAction(content, idol([]), { type: 'chooseEventOption', index: 0 });
+    expect(poor.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 9 });
+    // >= 3 relics → warded (ifPass: lose only 2 HP).
+    const rich = applyAction(content, idol(['whetstone', 'lucky-coin', 'troll-tooth']), {
+      type: 'chooseEventOption',
+      index: 0,
+    });
+    expect(rich.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 2 });
+  });
+
+  it('a stat-gated option is excluded from legalActions unless affordable', () => {
+    const base = run('alpha');
+    const toll = (gold: number): RunState => ({
+      ...base,
+      phase: 'event',
+      event: { eventId: 'goblin-toll-booth' },
+      gold,
+    });
+    // Option 0 "Pay the toll" requires 30 gold.
+    const poor = legalActions(content, toll(10));
+    expect(poor).not.toContainEqual({ type: 'chooseEventOption', index: 0 });
+    const rich = legalActions(content, toll(50));
+    expect(rich).toContainEqual({ type: 'chooseEventOption', index: 0 });
+    // Dispatching the gated option while unaffordable throws.
+    expect(() => applyAction(content, toll(10), { type: 'chooseEventOption', index: 0 })).toThrow();
+  });
+
+  it('continueEvent is the only legal action while a result is showing', () => {
     const base = run('alpha');
     const shrine: RunState = {
       ...base,
@@ -208,12 +321,6 @@ describe('applyAction', () => {
       event: { eventId: 'shrine-of-the-crawl' },
     };
     const prayed = applyAction(content, shrine, { type: 'chooseEventOption', index: 0 });
-    expect(prayed.maxHp).toBe(base.maxHp + 6);
-    expect(prayed.hp).toBe(base.hp + 6);
-    expect(prayed.phase).toBe('map');
-
-    const dying: RunState = { ...shrine, hp: 3 };
-    const looted = applyAction(content, dying, { type: 'chooseEventOption', index: 1 });
-    expect(looted.phase).toBe('defeat');
+    expect(legalActions(content, prayed)).toEqual([{ type: 'continueEvent' }]);
   });
 });

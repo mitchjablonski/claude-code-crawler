@@ -28,6 +28,30 @@ describe('run saves', () => {
     expect(loaded?.savedAt).toBe(1_750_000_000_000);
   });
 
+  it('roundtrips a run mid event-result sub-phase (v6 shape)', () => {
+    const store = createSaveStore(dir, () => 1_750_000_000_000);
+    const state = {
+      ...sampleRun(),
+      phase: 'event' as const,
+      event: {
+        eventId: 'shrine-of-the-crawl',
+        result: { applied: [{ kind: 'gainMaxHp' as const, amount: 6 }], rolled: false },
+      },
+    };
+    store.saveRun(state);
+    expect(store.loadRun()?.state).toEqual(state);
+  });
+
+  it('quarantines a pre-v6 (v5) save rather than half-loading the old event shape', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'run.json'),
+      JSON.stringify({ version: 5, savedAt: 1, state: { event: { eventId: 'x' } } }),
+    );
+    expect(store.loadRun()).toBeNull();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+  });
+
   it('returns null when no save exists, and after clearRun', () => {
     const store = createSaveStore(dir);
     expect(store.loadRun()).toBeNull();

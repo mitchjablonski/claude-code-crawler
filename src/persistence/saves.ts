@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 5; // v5: RunState gained potions/maxPotions + shop potionStock
+const SAVE_VERSION = 6; // v6: state.event gained an optional result sub-phase
 
 export interface RunRecord {
   readonly seed: string;

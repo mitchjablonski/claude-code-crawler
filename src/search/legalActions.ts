@@ -1,4 +1,5 @@
 import type { ContentRegistry, GameAction, RunState } from '../engine/types.js';
+import { eventRequirementMet } from '../engine/types.js';
 
 /** Every action applyAction will accept from this state. Mirrors run.ts guards. */
 export function legalActions(content: ContentRegistry, state: RunState): GameAction[] {
@@ -69,8 +70,16 @@ export function legalActions(content: ContentRegistry, state: RunState): GameAct
       return actions;
     }
     case 'event': {
+      // A result is showing → the only move is to continue back to the map.
+      if (state.event?.result) return [{ type: 'continueEvent' }];
       const def = state.event ? content.events[state.event.eventId] : undefined;
-      return (def?.options ?? []).map((_, index) => ({ type: 'chooseEventOption', index }));
+      const actions: GameAction[] = [];
+      (def?.options ?? []).forEach((option, index) => {
+        if (eventRequirementMet(state, option.requires)) {
+          actions.push({ type: 'chooseEventOption', index });
+        }
+      });
+      return actions;
     }
     case 'victory':
     case 'defeat':
