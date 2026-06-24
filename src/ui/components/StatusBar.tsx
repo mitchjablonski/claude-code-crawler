@@ -23,6 +23,9 @@ export function StatusBar({
   const prior = usePrevOnChange(state);
   const priorHp = prior ? (prior.combat ? prior.combat.playerHp : prior.hp) : hp;
   const hpGain = Math.max(0, hp - priorHp);
+  // The most important beat to feel: HP lost on the enemy's turn (symmetric to
+  // the enemy `-N` damage beat). Only one of gain/loss is ever non-zero.
+  const hpLoss = Math.max(0, priorHp - hp);
   const goldGain = prior ? Math.max(0, state.gold - prior.gold) : 0;
   const blockGain =
     prior && prior.combat && combat
@@ -44,6 +47,12 @@ export function StatusBar({
             <Text color={theme.colors.success} bold>
               {' '}
               +{hpGain}hp
+            </Text>
+          )}
+          {hpLoss > 0 && (
+            <Text color={theme.colors.danger} bold>
+              {' '}
+              -{hpLoss}hp
             </Text>
           )}
           {combat && (
