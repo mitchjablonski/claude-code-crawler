@@ -216,7 +216,9 @@ export function App({ deps }: { readonly deps: GameDeps }) {
           {run.phase === 'shop' && (
             <ShopScreen state={run} content={game.content} dispatch={game.dispatch} />
           )}
-          {run.phase === 'rest' && <RestScreen dispatch={game.dispatch} />}
+          {run.phase === 'rest' && (
+            <RestScreen state={run} content={game.content} dispatch={game.dispatch} />
+          )}
           {run.phase === 'event' && (
             <EventScreen state={run} content={game.content} dispatch={game.dispatch} />
           )}

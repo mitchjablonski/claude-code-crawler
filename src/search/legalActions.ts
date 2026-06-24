@@ -58,8 +58,16 @@ export function legalActions(content: ContentRegistry, state: RunState): GameAct
       });
       return actions;
     }
-    case 'rest':
-      return [{ type: 'rest' }];
+    case 'rest': {
+      const actions: GameAction[] = [{ type: 'rest' }];
+      state.deck.forEach((cardId, deckIndex) => {
+        const card = content.cards[cardId];
+        if (card?.upgradeTo && content.cards[card.upgradeTo]) {
+          actions.push({ type: 'upgradeCard', deckIndex });
+        }
+      });
+      return actions;
+    }
     case 'event': {
       const def = state.event ? content.events[state.event.eventId] : undefined;
       return (def?.options ?? []).map((_, index) => ({ type: 'chooseEventOption', index }));

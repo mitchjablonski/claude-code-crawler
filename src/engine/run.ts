@@ -10,6 +10,7 @@ import {
   usePotion,
 } from './combat.js';
 import { addStatus } from './effects.js';
+import { UPGRADE_TARGET_IDS } from './content/cards.js';
 import type {
   CardDef,
   ContentRegistry,
@@ -149,6 +150,21 @@ export function applyAction(
       requirePhase(state, 'rest');
       const healed = Math.min(state.maxHp, state.hp + Math.floor(state.maxHp * 0.2));
       return { ...state, hp: healed, phase: 'map' };
+    }
+    case 'upgradeCard': {
+      requirePhase(state, 'rest');
+      const cardId = state.deck[action.deckIndex];
+      if (cardId === undefined) throw new EngineError(`no deck card at ${action.deckIndex}`);
+      const card = content.cards[cardId];
+      if (!card) throw new EngineError(`unknown card ${cardId}`);
+      const upgradeId = card.upgradeTo;
+      if (upgradeId === undefined) throw new EngineError(`${cardId} has no upgrade`);
+      if (!content.cards[upgradeId]) throw new EngineError(`unknown upgrade ${upgradeId}`);
+      return {
+        ...state,
+        deck: state.deck.map((id, i) => (i === action.deckIndex ? upgradeId : id)),
+        phase: 'map',
+      };
     }
     case 'chooseEventOption': {
       requirePhase(state, 'event');
@@ -362,6 +378,8 @@ function rollCardChoices(content: ContentRegistry, rng: Rng, count: number): str
   const byRarity = new Map<Rarity, CardDef[]>();
   for (const card of Object.values(content.cards).sort((a, b) => a.id.localeCompare(b.id))) {
     if (card.rarity === 'starter') continue;
+    // Upgraded variants are reachable only by upgrading at a rest — never drafted.
+    if (UPGRADE_TARGET_IDS.has(card.id)) continue;
     byRarity.set(card.rarity, [...(byRarity.get(card.rarity) ?? []), card]);
   }
   const choices: string[] = [];

@@ -159,6 +159,8 @@ export interface AutoPlayResult {
   reachedGameOver: boolean;
   /** True iff the autoplayer used at least one potion through the UI. */
   usedPotion: boolean;
+  /** True iff the autoplayer upgraded a card via the rest-site upgrade path. */
+  upgradedCard: boolean;
 }
 
 /** First potion hotkey letter shown on a Satchel: line, or null if none. */
@@ -208,6 +210,10 @@ export async function autoPlay(
   // keypath is exercised end-to-end without stalling progress.
   let potionUseBudget = 2;
   let boughtPotion = false;
+  // Exercise the rest-site upgrade keypath ([u] then [1]) on the first rest that
+  // offers an upgradeable card; thereafter rests just heal ([r]).
+  let upgradedCard = false;
+  let triedUpgrade = false;
 
   const snapshotIfNew = async (phase: Phase) => {
     if (phase !== 'unknown' && !seen.has(phase)) {
@@ -228,6 +234,7 @@ export async function autoPlay(
         finalPhase: phase,
         reachedGameOver: true,
         usedPotion,
+        upgradedCard,
       };
     }
 
@@ -261,6 +268,28 @@ export async function autoPlay(
         boughtPotion = true;
         continue;
       }
+    }
+
+    // --- Rest-site upgrade keypath coverage ---
+    // On the first rest, try the upgrade view: press [u]; if it opens an upgrade
+    // list (a numbered card tile appears) press [1] to upgrade. Falls through to
+    // [r] (heal) on later rests or if nothing is upgradeable.
+    if (phase === 'rest' && !triedUpgrade) {
+      triedUpgrade = true;
+      await h.press('u');
+      steps.push({ step, phase, input: 'u' });
+      const afterU = h.text();
+      if (afterU.includes('Upgrade a card:') && /\[1\]/.test(afterU)) {
+        await h.press('1');
+        steps.push({ step, phase, input: '1' });
+        // Upgrading returns to the map; if it did, count it.
+        if (detectPhase(h.text()) !== 'rest') upgradedCard = true;
+        continue;
+      }
+      // Upgrade view didn't open (no upgradeable cards) — heal instead.
+      await h.press('r');
+      steps.push({ step, phase, input: 'r' });
+      continue;
     }
 
     let input: string;
@@ -320,7 +349,14 @@ export async function autoPlay(
   }
 
   const finalPhase = detectPhase(h.text());
-  return { steps, phasesSeen: [...seen], finalPhase, reachedGameOver: false, usedPotion };
+  return {
+    steps,
+    phasesSeen: [...seen],
+    finalPhase,
+    reachedGameOver: false,
+    usedPotion,
+    upgradedCard,
+  };
 }
 
 /** Prefer a Combat/elite node so a smoke run actually fights; else first path. */

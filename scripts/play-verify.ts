@@ -47,6 +47,7 @@ interface Verdict {
     finalPhase: Phase;
     reachedGameOver: boolean;
     usedPotion: boolean;
+    upgradedCard: boolean;
   } | null;
   integration: { testsPassFlavor: boolean; stopReturnsToSurface: boolean } | null;
   balance: { mode: string; character: string; winRate: number }[];
@@ -86,6 +87,7 @@ async function runSmoke(): Promise<void> {
       finalPhase: result.finalPhase,
       reachedGameOver: result.reachedGameOver,
       usedPotion: result.usedPotion,
+      upgradedCard: result.upgradedCard,
     };
     if (!result.phasesSeen.includes('combat'))
       verdict.errors.push('smoke: never reached combat');
@@ -199,6 +201,7 @@ async function main(): Promise<void> {
     `\nplay-verify: ${verdict.ok ? 'PASS' : 'FAIL'}\n` +
       `  screens: ${verdict.smoke?.phasesSeen.join(', ') ?? 'none'}\n` +
       `  usedPotion: ${verdict.smoke?.usedPotion ?? false}\n` +
+      `  upgradedCard: ${verdict.smoke?.upgradedCard ?? false}\n` +
       `  integration: testsPass=${verdict.integration?.testsPassFlavor} stop=${verdict.integration?.stopReturnsToSurface}\n` +
       `  balance: ${verdict.balance.map((b) => `${b.mode}/${b.character}=${(b.winRate * 100).toFixed(0)}%`).join('  ') || 'skipped'}\n` +
       `  snapshots: ${verdict.snapshots.length} -> ${OUT}\n` +
