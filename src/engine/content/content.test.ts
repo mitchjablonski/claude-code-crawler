@@ -169,6 +169,46 @@ describe('content integrity', () => {
       expect(enemy.hp[0], enemy.id).toBeGreaterThan(0);
       expect(enemy.moves.length, enemy.id).toBeGreaterThan(0);
     }
+  });
+
+  it('enemy phases are well-formed (thresholds in (0,1], ascending, valid effects)', () => {
+    const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
+    const TARGETS = ['enemy', 'allEnemies', 'self'];
+    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+    for (const enemy of Object.values(content.enemies)) {
+      const phases = enemy.phases;
+      if (!phases) continue;
+      expect(phases.length, enemy.id).toBeGreaterThan(0);
+      let prev = -Infinity;
+      for (const phase of phases) {
+        expect(phase.hpThreshold, `${enemy.id} threshold`).toBeGreaterThan(0);
+        expect(phase.hpThreshold, `${enemy.id} threshold`).toBeLessThanOrEqual(1);
+        // Ascending order is the selection contract (first phase with t >= ratio).
+        expect(phase.hpThreshold, `${enemy.id} phases must ascend`).toBeGreaterThan(prev);
+        prev = phase.hpThreshold;
+        expect(phase.moves.length, `${enemy.id} phase pool`).toBeGreaterThan(0);
+        for (const move of phase.moves) {
+          expect(move.effects.length, `${enemy.id}:${move.name}`).toBeGreaterThan(0);
+          for (const fx of move.effects) {
+            expect(KINDS, `${enemy.id}:${move.name}:${fx.kind}`).toContain(fx.kind);
+            if ('target' in fx) expect(TARGETS, `${enemy.id}:${move.name}`).toContain(fx.target);
+            if (fx.kind === 'applyStatus') {
+              expect(STATUSES, `${enemy.id}:${move.name}:${fx.status}`).toContain(fx.status);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('the boss has phases (dynamic fight, not a stat-stick)', () => {
+    const boss = Object.values(content.enemies).find((e) => e.isBoss);
+    expect(boss, 'a boss enemy exists').toBeDefined();
+    expect(boss?.phases?.length, `${boss?.id} should have phases`).toBeGreaterThan(0);
+    // The enraged pool surfaces a distinct signature move not in the base set.
+    const baseNames = new Set(boss!.moves.map((m) => m.name));
+    const phaseNames = boss!.phases!.flatMap((p) => p.moves.map((m) => m.name));
+    expect(phaseNames.some((n) => !baseNames.has(n)), 'signature move is new').toBe(true);
     for (const relic of Object.values(content.relics)) {
       expect(relic.effects.length, relic.id).toBeGreaterThan(0);
     }

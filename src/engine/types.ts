@@ -60,12 +60,33 @@ export interface EnemyMove {
   readonly effects: readonly Effect[];
 }
 
+/**
+ * An optional HP-gated move pool. When an enemy's HP fraction (hp/maxHp) drops
+ * to/under a phase's threshold, that phase's `moves` become the active cycle.
+ * See {@link EnemyDef.phases} for the ordering/selection rule.
+ */
+export interface EnemyPhase {
+  /** Activate this phase while hp/maxHp <= hpThreshold. A fraction in (0, 1]. */
+  readonly hpThreshold: number;
+  readonly moves: readonly EnemyMove[];
+  /** Optional flavor name for the phase (e.g. "Enraged"). Never read by the engine. */
+  readonly name?: string;
+}
+
 export interface EnemyDef {
   readonly id: string;
   readonly name: string;
   readonly hp: readonly [min: number, max: number];
   /** Moves cycle in order from a random starting index. */
   readonly moves: readonly EnemyMove[];
+  /**
+   * Optional HP-threshold phases. MUST be ordered ASCENDING by `hpThreshold`.
+   * The active pool is the FIRST phase whose `hpThreshold >= hp/maxHp` (the
+   * most-damaged applicable phase). If no phase matches (or `phases` is absent),
+   * the base `moves` are used. Phase selection is a PURE function of HP (no rng),
+   * so phaseless enemies stay byte-identical. See `resolveEnemyMove`.
+   */
+  readonly phases?: readonly EnemyPhase[];
   readonly isElite?: boolean;
   readonly isBoss?: boolean;
   /** Normal-enemy act tier (1-3, default 1); higher tiers appear deeper in an arc. */

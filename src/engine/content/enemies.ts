@@ -140,6 +140,40 @@ const defs: readonly EnemyDef[] = [
         effects: [{ kind: 'damage', amount: 7, target: 'enemy', times: 2 }],
       },
     ],
+    // At/under 50% HP the Scope Creep panics and ships everything at once: a
+    // tighter, all-offense pool with a telegraphed signature finisher. The set
+    // drops the defensive "Requirements Shift" entirely (no more stalling) and
+    // self-buffs strength so each subsequent hit escalates — the fight reads as
+    // a closing window, not a bigger stat-stick. Pure HP gate (no rng).
+    phases: [
+      {
+        hpThreshold: 0.5,
+        name: 'Ship It All',
+        moves: [
+          {
+            name: 'Feature Freeze',
+            effects: [{ kind: 'damage', amount: 12, target: 'enemy' }],
+          },
+          {
+            // Signature move: rallies (strength) then unloads a telegraphed
+            // flurry. Named so the player can block/heal the turn it lands. It is
+            // the big swing of the enraged phase — distinct and readable.
+            name: 'Ship Everything',
+            effects: [
+              { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' },
+              { kind: 'damage', amount: 4, target: 'enemy', times: 3 },
+            ],
+          },
+          {
+            // A defensive breather turn for the player: the boss gains block
+            // instead of attacking. Keeps the enraged phase from being an
+            // unbroken damage wall while still feeling like a frantic push.
+            name: 'Crunch Time',
+            effects: [{ kind: 'block', amount: 10 }],
+          },
+        ],
+      },
+    ],
   },
   // --- M6 content quota ---
   { id: 'gelatinous-snack', name: 'Gelatinous Snack', sigil: '(~~)', hp: [14, 18], moves: [
@@ -164,11 +198,25 @@ const defs: readonly EnemyDef[] = [
     { name: 'Fence Post', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }] },
     { name: 'Boundary Check', effects: [{ kind: 'block', amount: 3 }, { kind: 'damage', amount: 2, target: 'enemy' }] },
   ] },
-  { id: 'merge-conflict', name: 'Merge Conflict', sigil: '><=><', hp: [34, 40], isElite: true, moves: [
-    { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
-    { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
-    { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
-  ] },
+  { id: 'merge-conflict', name: 'Merge Conflict', sigil: '><=><', hp: [34, 40], isElite: true,
+    moves: [
+      { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
+      { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
+      { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
+    ],
+    // Showcase phase: once cornered (<=40% HP) it stops rebasing for block and
+    // just keeps force-pushing — a simple two-move all-offense pool.
+    phases: [
+      {
+        hpThreshold: 0.4,
+        name: 'Unresolvable',
+        moves: [
+          { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
+          { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
+        ],
+      },
+    ],
+  },
 ];
 
 export const enemies: Readonly<Record<string, EnemyDef>> = Object.fromEntries(

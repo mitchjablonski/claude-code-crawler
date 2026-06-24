@@ -12,6 +12,7 @@ import type { Effect } from '../../engine/types.js';
 import type { IntentKind } from '../theme.js';
 import { theme, statusSegments, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
+import { resolveEnemyMove } from '../../engine/enemyMoves.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
 function StatusTags({ statuses }: { readonly statuses: Statuses }) {
@@ -33,7 +34,9 @@ function StatusTags({ statuses }: { readonly statuses: Statuses }) {
 
 function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
   const def = content.enemies[enemy.defId];
-  const move = def?.moves[enemy.nextMoveIndex % (def?.moves.length ?? 1)];
+  // Use the SAME resolver the combat reducer uses so the telegraph reflects the
+  // enemy's CURRENT phase (it switches the instant the boss crosses a threshold).
+  const move = def && resolveEnemyMove(def, enemy);
   if (!move) return '?';
   const damage = move.effects
     .flatMap((fx) =>
@@ -54,7 +57,7 @@ function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
  */
 function intentKindFor(content: ContentRegistry, enemy: EnemyInstance): IntentKind {
   const def = content.enemies[enemy.defId];
-  const move = def?.moves[enemy.nextMoveIndex % (def?.moves.length ?? 1)];
+  const move = def && resolveEnemyMove(def, enemy);
   if (!move) return 'unknown';
   const fx = move.effects;
   const isBuff = (e: Effect) =>
