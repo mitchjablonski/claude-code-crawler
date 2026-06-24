@@ -1,6 +1,7 @@
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme, POTION_KEYS } from '../theme.js';
+import { CardTile } from '../components/CardTile.js';
 
 export function ShopScreen({
   state,
@@ -42,20 +43,29 @@ export function ShopScreen({
       <Text bold>
         A cloaked merchant grins. {'"'}Adventurer prices,{'"'} it says, of the markup.
       </Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1} flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
         {stock.map((item, i) => {
           const card = content.cards[item.cardId];
           if (!card) return null;
           const buyable = !item.sold && state.gold >= item.price;
           return (
-            <Text key={`${item.cardId}-${i}`} dimColor={!buyable}>
-              [{i + 1}] {card.name} - {card.description}{' '}
-              {item.sold ? (
-                '(sold)'
-              ) : (
-                <Text color={theme.colors.gold}>{item.price}g</Text>
-              )}
-            </Text>
+            <CardTile
+              key={`${item.cardId}-${i}`}
+              marker={`[${i + 1}]`}
+              card={card}
+              dim={!buyable}
+              trailing={
+                <Text dimColor={!buyable}>
+                  {item.sold ? (
+                    '(sold)'
+                  ) : (
+                    <Text color={theme.colors.gold} dimColor={false}>
+                      {item.price}g
+                    </Text>
+                  )}
+                </Text>
+              }
+            />
           );
         })}
       </Box>

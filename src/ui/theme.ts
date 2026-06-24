@@ -10,7 +10,7 @@
  * Purity: this module is data-only. It type-imports from the engine but must
  * not import engine runtime, RNG, or the wall clock.
  */
-import type { NodeKind, Rarity, Statuses, StatusId } from '../engine/types.js';
+import type { CardType, NodeKind, Rarity, Statuses, StatusId } from '../engine/types.js';
 
 /**
  * The Ink color names the theme uses. Ink accepts any chalk ForegroundColorName
@@ -82,14 +82,19 @@ const colors = {
     rest: 'green',
     boss: 'red',
   } satisfies Record<NodeKind, InkColor>,
-  // TODO(card-frames): consumed by V3 card frames; keep even while unused.
-  /** Per-rarity color (reserved for future card-frame work). */
+  /** Per-rarity color for card-frame names. */
   rarity: {
     starter: 'grey',
     common: 'white',
     uncommon: 'blue',
     rare: 'yellow',
   } satisfies Record<Rarity, InkColor>,
+  /** Per card-type color for the card-frame type indicator. */
+  cardType: {
+    attack: 'red',
+    skill: 'cyan',
+    power: 'magenta',
+  } satisfies Record<CardType, InkColor>,
 } satisfies Record<string, InkColor | Record<string, InkColor>>;
 
 /** Display metadata for every status effect: short label, plain glyph, color. */
