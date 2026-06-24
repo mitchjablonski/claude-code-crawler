@@ -7,7 +7,7 @@ import {
 } from './run.js';
 import { legalActions } from '../search/legalActions.js';
 import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
-import { UPGRADE_TARGET_IDS } from './content/cards.js';
+import { UPGRADE_TARGET_IDS, UNLOCKABLE_CARD_IDS } from './content/cards.js';
 import { EngineError, eventRequirementMet } from './types.js';
 import { Rng, seedFromString } from './rng.js';
 import type { RunState } from './types.js';
@@ -488,6 +488,9 @@ describe('rollCardChoices depth-scaled rarity weighting (D3)', () => {
     for (const card of Object.values(content.cards).sort((a, b) => a.id.localeCompare(b.id))) {
       if (card.rarity === 'starter') continue;
       if (UPGRADE_TARGET_IDS.has(card.id)) continue;
+      // E2: the default draft pool excludes unlockable extras (none allowed here),
+      // so the reference re-implementation must mirror that to stay byte-identical.
+      if (UNLOCKABLE_CARD_IDS.has(card.id)) continue;
       byRarity.set(card.rarity, [...(byRarity.get(card.rarity) ?? []), card]);
     }
     const flatRoll = (rng: Rng, count: number): string[] => {
@@ -553,5 +556,61 @@ describe('rollCardChoices depth-scaled rarity weighting (D3)', () => {
     expect(rollCardChoices(content, seed(), 3, 99)).toEqual(
       rollCardChoices(content, seed(), 3, RARITY_WEIGHTS_BY_ACT.length - 1),
     );
+  });
+});
+
+describe('E2 unlock gating of the draft pool', () => {
+  // Re-derive the full default pool (the way rollCardChoices builds it with no
+  // unlocks) so we can assert membership directly.
+  const defaultPool = (): Set<string> => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 600; i++) {
+      for (const id of rollCardChoices(content, new Rng(seedFromString(`pool-${i}`)), 3, 2)) {
+        seen.add(id);
+      }
+    }
+    return seen;
+  };
+
+  it('default (no allow set) excludes every unlockable card', () => {
+    const pool = defaultPool();
+    for (const id of UNLOCKABLE_CARD_IDS) {
+      expect(pool.has(id), `${id} must be locked out by default`).toBe(false);
+    }
+    // sanity: the core pool is still substantial
+    expect(pool.size).toBeGreaterThan(20);
+  });
+
+  it('an allowed unlockable card CAN be drafted once unlocked', () => {
+    const target = 'crawlers-resolve';
+    expect(UNLOCKABLE_CARD_IDS.has(target)).toBe(true);
+    let appeared = false;
+    for (let i = 0; i < 2000 && !appeared; i++) {
+      const ids = rollCardChoices(content, new Rng(seedFromString(`u-${i}`)), 3, 2, [target]);
+      if (ids.includes(target)) appeared = true;
+    }
+    expect(appeared, `${target} should be draftable when allowed`).toBe(true);
+  });
+
+  it('allowing one unlockable does NOT admit the others', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 600; i++) {
+      for (const id of rollCardChoices(content, new Rng(seedFromString(`o-${i}`)), 3, 2, [
+        'crawlers-resolve',
+      ])) {
+        seen.add(id);
+      }
+    }
+    for (const id of UNLOCKABLE_CARD_IDS) {
+      if (id === 'crawlers-resolve') continue;
+      expect(seen.has(id), `${id} must stay locked`).toBe(false);
+    }
+  });
+
+  it('createRun captures allowedUnlockIds onto state (determinism across resume)', () => {
+    const state = createRun(content, 'cap', { ...DEFAULT_RUN_CONFIG, allowedUnlockIds: ['arc-warden'] });
+    expect(state.allowedUnlockIds).toEqual(['arc-warden']);
+    // DEFAULT (no allow) → empty list on state → core-only pool.
+    expect(createRun(content, 'cap', DEFAULT_RUN_CONFIG).allowedUnlockIds).toEqual([]);
   });
 });

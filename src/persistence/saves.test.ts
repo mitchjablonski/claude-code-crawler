@@ -62,6 +62,25 @@ describe('run saves', () => {
     expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
   });
 
+  it('quarantines a v7 save (no allowedUnlockIds) rather than half-loading (E2 bump)', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'run.json'),
+      JSON.stringify({ version: 7, savedAt: 1, state: { event: null } }),
+    );
+    expect(store.loadRun()).toBeNull();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+  });
+
+  it('roundtrips a v8 run state carrying allowedUnlockIds', () => {
+    const store = createSaveStore(dir, () => 1_750_000_000_000);
+    const state = { ...sampleRun(), allowedUnlockIds: ['arc-warden', 'crawlers-resolve'] };
+    store.saveRun(state);
+    const loaded = store.loadRun();
+    expect(loaded?.state).toEqual(state);
+    expect(loaded?.state.allowedUnlockIds).toEqual(['arc-warden', 'crawlers-resolve']);
+  });
+
   it('returns null when no save exists, and after clearRun', () => {
     const store = createSaveStore(dir);
     expect(store.loadRun()).toBeNull();
@@ -137,5 +156,70 @@ describe('meta progression', () => {
     store.updateSettings({ difficulty: 'hard' });
     expect(store.loadMeta().settings?.difficulty).toBe('hard');
     expect(store.loadMeta().settings?.snarkLevel).toBe(0);
+  });
+
+  it('roundtrips E2 run records carrying difficulty/mode/character', () => {
+    const store = createSaveStore(dir);
+    store.recordRun({
+      seed: 'win',
+      outcome: 'victory',
+      endedAt: '2026-06-24T00:00:00Z',
+      difficulty: 'hard',
+      mode: 'arc',
+      character: 'knight',
+    });
+    const r = store.loadMeta().runs[0];
+    expect(r?.difficulty).toBe('hard');
+    expect(r?.mode).toBe('arc');
+    expect(r?.character).toBe('knight');
+  });
+
+  // INVARIANT #2: run history MUST survive a save-version bump. Meta is versioned
+  // separately from in-progress runs and migrated (never quarantined) on a delta.
+  it('preserves run history written under an OLD meta version (no quarantine)', () => {
+    const store = createSaveStore(dir);
+    // Simulate a meta file from before this version (e.g. version 1, no extra
+    // fields on records — exactly the pre-E2 shape).
+    fs.writeFileSync(
+      path.join(dir, 'meta.json'),
+      JSON.stringify({
+        version: 1,
+        runs: [
+          { seed: 'old-1', outcome: 'victory', endedAt: '2026-01-01T00:00:00Z' },
+          { seed: 'old-2', outcome: 'defeat', endedAt: '2026-01-02T00:00:00Z' },
+        ],
+        settings: { snarkLevel: 2 },
+      }),
+    );
+    const meta = store.loadMeta();
+    // Run history is intact — NOT wiped or quarantined.
+    expect(meta.runs).toHaveLength(2);
+    expect(meta.runs[0]?.seed).toBe('old-1');
+    expect(meta.runs[1]?.outcome).toBe('defeat');
+    // Settings carry through, version normalizes forward, and the file remains.
+    expect(meta.settings?.snarkLevel).toBe(2);
+    expect(fs.existsSync(path.join(dir, 'meta.json'))).toBe(true);
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('meta.json.corrupt-'))).toBe(false);
+    // And appending a new (E2-shaped) record keeps the old ones.
+    store.recordRun({ seed: 'new', outcome: 'victory', endedAt: '2026-06-24T00:00:00Z', difficulty: 'hard' });
+    expect(store.loadMeta().runs).toHaveLength(3);
+  });
+
+  it('drops only malformed records, keeping the valid ones', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'meta.json'),
+      JSON.stringify({
+        version: 1,
+        runs: [
+          { seed: 'good', outcome: 'victory', endedAt: '2026-01-01T00:00:00Z' },
+          { garbage: true },
+          null,
+          { seed: 'good2', outcome: 'defeat', endedAt: '2026-01-02T00:00:00Z' },
+        ],
+      }),
+    );
+    const runs = store.loadMeta().runs;
+    expect(runs.map((r) => r.seed)).toEqual(['good', 'good2']);
   });
 });

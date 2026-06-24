@@ -80,10 +80,16 @@ export function useGame(deps: GameDeps): Game {
         throw err;
       }
       if (next.phase === 'victory' || next.phase === 'defeat') {
+        // E2: capture difficulty/mode/character so milestone rules (which derive
+        // unlocks from run history) can match hard/arc victories. Omitted when
+        // unknown so old/standalone records stay graceful (treated as not-matching).
         deps.store.recordRun({
           seed: next.seed,
           outcome: next.phase,
           endedAt: new Date(now()).toISOString(),
+          ...(deps.difficulty ? { difficulty: deps.difficulty } : {}),
+          ...(deps.runMode ? { mode: deps.runMode } : {}),
+          ...(deps.character ? { character: deps.character } : {}),
         });
         deps.store.clearRun();
         setHasSave(false);

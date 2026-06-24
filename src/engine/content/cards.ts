@@ -219,6 +219,20 @@ const defs: readonly CardDef[] = [
   // Rare upgrades
   { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 13 damage. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 13, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   { id: 'guillotine-plus', name: 'Guillotine+', description: 'Deal 32 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 32, target: 'enemy' }] },
+  // --- E2: UNLOCKABLE extra cards. Each carries an `unlock` milestone id and is
+  // EXCLUDED from the draft pool until that milestone is earned (UNLOCKABLE_CARD_IDS
+  // is filtered out of rollCardChoices by default). Core cards above stay always
+  // draftable, so a fresh player's pool is byte-identical to pre-E2. Balanced to
+  // sit alongside same-rarity core cards. NOT upgradeable (no upgradeTo).
+  // first-victory grants (one common, one uncommon) — modest, broadly useful.
+  { id: 'heroic-second-wind', name: 'Heroic Second Wind', description: 'Heal 5 HP. Gain 4 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 5 }, { kind: 'block', amount: 4 }], unlock: 'first-victory' },
+  { id: 'crawlers-resolve', name: "Crawler's Resolve", description: 'Deal 7 damage. Gain 5 Block.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'block', amount: 5 }], unlock: 'first-victory' },
+  // arc-victory grant — an arc-flavored payoff card.
+  { id: 'arc-warden', name: 'Arc Warden', description: 'Gain 12 Block and 1 Dexterity.', type: 'skill', rarity: 'uncommon', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 12 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }], unlock: 'arc-victory' },
+  // three-victories grant — a veteran's rare power.
+  { id: 'veterans-edge', name: "Veteran's Edge", description: 'Gain 2 Strength and 1 Dexterity. Draw 1 card.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'draw', count: 1 }], unlock: 'three-victories' },
+  // hard-victory grant — a hard-won aggressive rare (relic-equivalent earned same milestone).
+  { id: 'hard-won-strike', name: 'Hard-Won Strike', description: 'Deal 16 damage. Apply 2 Vulnerable.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 16, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }], unlock: 'hard-victory' },
 ];
 
 /**
@@ -228,6 +242,17 @@ const defs: readonly CardDef[] = [
  */
 export const UPGRADE_TARGET_IDS: ReadonlySet<string> = new Set(
   defs.map((c) => c.upgradeTo).filter((id): id is string => id !== undefined),
+);
+
+/**
+ * E2: cards that are EXTRA unlockable content (carry an `unlock` milestone id).
+ * Derived from the registry so the draft pool can exclude them by default —
+ * mirrors UPGRADE_TARGET_IDS. A fresh player (no unlocks) gets a pool with these
+ * removed, byte-identical to pre-E2. They re-enter the pool only when their
+ * milestone is earned and the id is in the run's allow set.
+ */
+export const UNLOCKABLE_CARD_IDS: ReadonlySet<string> = new Set(
+  defs.filter((c) => c.unlock !== undefined).map((c) => c.id),
 );
 
 export const cards: Readonly<Record<string, CardDef>> = Object.fromEntries(
