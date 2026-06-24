@@ -95,6 +95,17 @@ describe('content integrity', () => {
     expect(statEvents, 'stat-check events').toBeGreaterThanOrEqual(2);
   });
 
+  it('every event has at least one always-available (ungated) option', () => {
+    // Anti-stall safety: if all options were gated and the player met none,
+    // legalActions would return [] in the option phase and the run would hang.
+    for (const event of Object.values(content.events)) {
+      expect(
+        event.options.some((o) => !o.requires),
+        `${event.id} has no ungated option`,
+      ).toBe(true);
+    }
+  });
+
   it('every upgradeTo references a real card (and the base/target differ)', () => {
     for (const card of Object.values(content.cards)) {
       if (card.upgradeTo === undefined) continue;

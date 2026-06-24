@@ -91,9 +91,10 @@ export function EventScreen({
         <Box marginTop={1} flexDirection="column">
           {result.applied.map((outcome, i) => {
             const line = outcomeLine(outcome, content);
+            // The text already carries its own sign / verb; color conveys
+            // gain vs loss — no extra +/- bullet (avoids a doubled sign).
             return (
               <Text key={i} color={line.good ? theme.colors.success : theme.colors.danger}>
-                {line.good ? '+ ' : '- '}
                 {line.text}
               </Text>
             );
@@ -119,9 +120,11 @@ export function EventScreen({
         {options.map((option, i) => {
           const available = eventRequirementMet(state, option.requires);
           if (!available) {
+            // Keep the real number (dimmed) so locked/unlocked rows align in
+            // one column; pressing it is a no-op (guarded in useInput).
             return (
               <Text key={i} color={theme.colors.muted}>
-                [-] {option.label} ({option.requires ? requireReason(option.requires) : 'unavailable'})
+                [{i + 1}] {option.label} ({option.requires ? requireReason(option.requires) : 'unavailable'})
               </Text>
             );
           }
