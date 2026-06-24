@@ -8,7 +8,9 @@ import type {
   RunState,
   Statuses,
 } from '../../engine/types.js';
-import { theme, statusSegments, POTION_KEYS } from '../theme.js';
+import type { Effect } from '../../engine/types.js';
+import type { IntentKind } from '../theme.js';
+import { theme, statusSegments, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
@@ -41,6 +43,29 @@ function intentFor(content: ContentRegistry, enemy: EnemyInstance): string {
     )
     .join('+');
   return damage ? `${move.name} (${damage})` : move.name;
+}
+
+/**
+ * Categorize the enemy's NEXT move into a semantic intent purely from its
+ * effects, so the UI can show a category icon + color (attack/defend/buff/
+ * debuff). Read-only: dealing damage = attack; gaining block = defend;
+ * buffing self (strength/dexterity) = buff; applying a negative status to the
+ * player = debuff. Attack wins ties so a hybrid move still telegraphs danger.
+ */
+function intentKindFor(content: ContentRegistry, enemy: EnemyInstance): IntentKind {
+  const def = content.enemies[enemy.defId];
+  const move = def?.moves[enemy.nextMoveIndex % (def?.moves.length ?? 1)];
+  if (!move) return 'unknown';
+  const fx = move.effects;
+  const isBuff = (e: Effect) =>
+    e.kind === 'applyStatus' && e.target === 'self';
+  const isDebuff = (e: Effect) =>
+    e.kind === 'applyStatus' && e.target !== 'self';
+  if (fx.some((e) => e.kind === 'damage')) return 'attack';
+  if (fx.some((e) => e.kind === 'block')) return 'defend';
+  if (fx.some(isBuff)) return 'buff';
+  if (fx.some(isDebuff)) return 'debuff';
+  return 'unknown';
 }
 
 export function CombatScreen({
@@ -138,21 +163,49 @@ export function CombatScreen({
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box flexDirection="column">
-        {combat.enemies.map((enemy, i) => (
-          <Text key={`${enemy.defId}-${i}`} dimColor={enemy.hp <= 0}>
-            {pending && enemy.hp > 0 ? `[${i + 1}] ` : '    '}
-            <Text bold>{nameFor?.(enemy.defId) ?? enemy.name}</Text>{' '}
-            {enemy.hp <= 0
-              ? 'slain'
-              : `${enemy.hp}/${enemy.maxHp}${enemy.block > 0 ? ` +${enemy.block}blk` : ''}`}
-            {enemy.hp > 0 && (
-              <Text color={theme.colors.enemyIntent}>
-                {'  '}next: {intentFor(content, enemy)}
+        {combat.enemies.map((enemy, i) => {
+          const def = content.enemies[enemy.defId];
+          const sigil = def?.sigil ?? '';
+          const alive = enemy.hp > 0;
+          const bar = hpBarSegments(enemy.hp, enemy.maxHp);
+          const kind = intentKindFor(content, enemy);
+          return (
+            <Box key={`${enemy.defId}-${i}`} flexDirection="column">
+              {/* Header: marker, sigil, name, numeric HP, block, statuses. */}
+              <Text dimColor={!alive}>
+                {pending && alive ? `[${i + 1}] ` : '    '}
+                {sigil ? (
+                  <Text color={theme.colors.accent}>{sigil} </Text>
+                ) : null}
+                <Text bold>{nameFor?.(enemy.defId) ?? enemy.name}</Text>{' '}
+                {!alive ? (
+                  'slain'
+                ) : (
+                  <>
+                    <Text color={theme.colors.hp}>{enemy.hp}</Text>/{enemy.maxHp}
+                    {enemy.block > 0 && (
+                      <Text color={theme.colors.block}> +{enemy.block}blk</Text>
+                    )}
+                  </>
+                )}
+                <StatusTags statuses={enemy.statuses} />
               </Text>
-            )}
-            <StatusTags statuses={enemy.statuses} />
-          </Text>
-        ))}
+              {/* Detail row: HP bar + telegraphed intent (icon + name + dmg). */}
+              {alive && (
+                <Text dimColor={!alive}>
+                  {'      '}
+                  <Text>[</Text>
+                  <Text color={theme.colors.hp}>{bar.filled}</Text>
+                  <Text color={theme.colors.hpEmpty}>{bar.empty}</Text>
+                  <Text>]</Text>
+                  <Text color={theme.colors.intent[kind]}>
+                    {'  '}next: {theme.intentIcons[kind]} {intentFor(content, enemy)}
+                  </Text>
+                </Text>
+              )}
+            </Box>
+          );
+        })}
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text bold>{pending ? 'Choose a target:' : 'Your hand:'}</Text>
