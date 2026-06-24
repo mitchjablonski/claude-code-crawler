@@ -1,0 +1,262 @@
+/**
+ * Headless play harness: drives the real App through ink-testing-library using
+ * the same in-memory seams the unit tests + make-gif use, plus an autoplayer
+ * that walks a whole run by reading the rendered frames and deciding inputs.
+ *
+ * This is how an agent "plays the game" for verification: no real saves, no real
+ * hook files, no AI calls — just the actual UI + engine, driven and observed.
+ * Dev-only tooling, not shipped in the package.
+ */
+import React from 'react';
+import { render } from 'ink-testing-library';
+import { App } from '../../src/ui/App.js';
+import type {
+  MetaSettings,
+  MetaState,
+  RunRecord,
+  SaveStore,
+} from '../../src/persistence/saves.js';
+import type { RunState } from '../../src/engine/types.js';
+import type { HookRecord } from '../../src/events/types.js';
+import type { TailerOptions, Tailer } from '../../src/events/tailer.js';
+import type { DungeonAi } from '../../src/ai/dungeonAi.js';
+import type { GameDeps } from '../../src/ui/useGame.js';
+
+// --- in-memory store (no disk) ---
+export function memoryStore(): SaveStore {
+  let run: RunState | null = null;
+  const runs: RunRecord[] = [];
+  let settings: MetaSettings = {};
+  return {
+    loadRun: () => (run ? { state: run, savedAt: 0 } : null),
+    saveRun: (s) => {
+      run = s;
+    },
+    clearRun: () => {
+      run = null;
+    },
+    loadMeta: (): MetaState => ({ version: 1, runs, settings }),
+    recordRun: (r) => {
+      runs.push(r);
+    },
+    updateSettings: (s) => {
+      settings = { ...settings, ...s };
+    },
+  };
+}
+
+// --- fake hook event source you can push records into ---
+export function makeSource(): {
+  createSource: (opts: TailerOptions) => Tailer;
+  emit: (r: HookRecord) => void;
+} {
+  let sink: (r: HookRecord) => void = () => {};
+  return {
+    createSource: (opts: TailerOptions) => {
+      sink = (r) => opts.onRecord(r);
+      return { start: () => {}, stop: () => {}, poll: () => {} };
+    },
+    emit: (r) => sink(r),
+  };
+}
+
+export const staticAi: DungeonAi = {
+  backend: 'static',
+  narrate: () => {},
+  christen: () => {},
+  spentUsd: () => 0,
+};
+
+export function hook(hookType: string, payload: Record<string, unknown> = {}): HookRecord {
+  return { hookType, receivedAt: 't', payload };
+}
+
+export const tick = (ms = 30): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+const ANSI = /\x1b\[[0-9;]*m/g;
+export function stripAnsi(s: string): string {
+  return s.replace(ANSI, '');
+}
+
+export interface Harness {
+  /** raw frame, ANSI intact (feed to termRender) */
+  raw(): string;
+  /** frame with ANSI stripped (for text assertions) */
+  text(): string;
+  /** send one key and wait a tick for React to settle */
+  press(input: string): Promise<void>;
+  /** push a hook event (tests passing, Claude stopping, etc.) */
+  emit(r: HookRecord): void;
+  store: SaveStore;
+  unmount(): void;
+}
+
+export async function startApp(overrides: Partial<GameDeps> = {}): Promise<Harness> {
+  const store = overrides.store ?? memoryStore();
+  const src = makeSource();
+  const deps: GameDeps = {
+    store,
+    seed: 'verify',
+    createSource: src.createSource,
+    ai: staticAi,
+    now: () => 0,
+    ...overrides,
+  };
+  const inst = render(React.createElement(App, { deps }));
+  await tick();
+  return {
+    raw: () => inst.lastFrame() ?? '',
+    text: () => stripAnsi(inst.lastFrame() ?? ''),
+    press: async (input: string) => {
+      inst.stdin.write(input);
+      await tick();
+    },
+    emit: src.emit,
+    store,
+    unmount: () => inst.unmount(),
+  };
+}
+
+export type Phase =
+  | 'title'
+  | 'map'
+  | 'combat'
+  | 'reward'
+  | 'shop'
+  | 'rest'
+  | 'event'
+  | 'pause'
+  | 'victory'
+  | 'defeat'
+  | 'unknown';
+
+export function detectPhase(text: string): Phase {
+  if (/CLAUDE AWAITS|ATTENTION REQUIRED|PAIR PARTNER AWAITS/.test(text)) return 'pause';
+  if (text.includes('CLAUDE CODE CRAWLER')) return 'title';
+  if (text.includes('THE SCOPE CREEP IS SLAIN')) return 'victory';
+  if (text.includes('YOU DIED')) return 'defeat';
+  if (text.includes('Your hand:') || text.includes('Choose a target:')) return 'combat';
+  if (text.includes('Choose your path')) return 'map';
+  if (text.includes('Victory!')) return 'reward';
+  if (text.includes('cloaked merchant')) return 'shop';
+  if (text.includes('defensible alcove')) return 'rest';
+  // Event screens have no single stable anchor; treat an otherwise-unknown
+  // in-run screen with numbered options as an event.
+  if (/\[1\]/.test(text)) return 'event';
+  return 'unknown';
+}
+
+export interface StepLog {
+  step: number;
+  phase: Phase;
+  input: string;
+}
+
+export interface AutoPlayResult {
+  steps: StepLog[];
+  phasesSeen: Phase[];
+  finalPhase: Phase;
+  reachedGameOver: boolean;
+}
+
+/**
+ * Walk a whole run by reading frames and choosing inputs. Calls onSnapshot the
+ * first time each phase is seen. Returns a log + the set of phases visited.
+ * Deterministic given the seed (input policy is fixed).
+ */
+export async function autoPlay(
+  h: Harness,
+  opts: {
+    maxSteps?: number;
+    onSnapshot?: (phase: Phase, raw: string) => Promise<void> | void;
+  } = {},
+): Promise<AutoPlayResult> {
+  const maxSteps = opts.maxSteps ?? 600;
+  const steps: StepLog[] = [];
+  const seen = new Set<Phase>();
+  let combatCard = 1;
+
+  const snapshotIfNew = async (phase: Phase) => {
+    if (phase !== 'unknown' && !seen.has(phase)) {
+      seen.add(phase);
+      if (opts.onSnapshot) await opts.onSnapshot(phase, h.raw());
+    }
+  };
+
+  for (let step = 0; step < maxSteps; step++) {
+    const before = h.text();
+    const phase = detectPhase(before);
+    await snapshotIfNew(phase);
+
+    if (phase === 'victory' || phase === 'defeat') {
+      return { steps, phasesSeen: [...seen], finalPhase: phase, reachedGameOver: true };
+    }
+
+    let input: string;
+    switch (phase) {
+      case 'title':
+        input = 'n';
+        break;
+      case 'map':
+        input = pickMapOption(before);
+        break;
+      case 'combat':
+        if (before.includes('Choose a target:')) input = '1';
+        else input = String(combatCard);
+        break;
+      case 'reward':
+        input = '1';
+        break;
+      case 'shop':
+        input = 'l';
+        break;
+      case 'rest':
+        input = 'r';
+        break;
+      case 'event':
+        input = '1';
+        break;
+      case 'pause':
+        input = 'p';
+        break;
+      default:
+        input = '1';
+    }
+
+    await h.press(input);
+    steps.push({ step, phase, input });
+    const after = h.text();
+
+    // Combat hand-scan: if a non-target keypress changed nothing, the card was
+    // unaffordable/invalid — advance to the next card; once the hand is
+    // exhausted, end the turn.
+    if (phase === 'combat' && !before.includes('Choose a target:')) {
+      if (after === before) {
+        combatCard++;
+        if (combatCard > 6) {
+          await h.press('e');
+          steps.push({ step, phase, input: 'e' });
+          combatCard = 1;
+        }
+      } else {
+        combatCard = 1;
+      }
+    }
+
+    // Reward/event fallbacks: if "take first" did nothing, skip / try next.
+    if (phase === 'reward' && after === before) await h.press('s');
+    if (phase === 'event' && after === before) await h.press('2');
+  }
+
+  const finalPhase = detectPhase(h.text());
+  return { steps, phasesSeen: [...seen], finalPhase, reachedGameOver: false };
+}
+
+/** Prefer a Combat/elite node so a smoke run actually fights; else first path. */
+function pickMapOption(text: string): string {
+  for (const line of text.split('\n')) {
+    const m = /\[(\d+)\]\s+(Combat|ELITE combat|THE BOSS)/.exec(line);
+    if (m) return m[1]!;
+  }
+  return '1';
+}

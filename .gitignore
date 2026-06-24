@@ -3,5 +3,6 @@ node_modules/
 .claude/
 dist/
 coverage/
+.evolution-artifacts/
 *.log
 .DS_Store

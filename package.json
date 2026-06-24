@@ -40,6 +40,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "gif": "tsx scripts/make-gif.ts",
+    "play-verify": "tsx scripts/play-verify.ts",
+    "visual-snapshot": "tsx scripts/visual-snapshot.ts",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
