@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-const SAVE_VERSION = 6; // v6: state.event gained an optional result sub-phase
+const SAVE_VERSION = 7; // v7: RunState gained actHpRamp (per-act arc HP scaling)
 
 export interface RunRecord {
   readonly seed: string;

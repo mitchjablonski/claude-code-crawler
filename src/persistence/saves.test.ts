@@ -52,6 +52,16 @@ describe('run saves', () => {
     expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
   });
 
+  it('quarantines a v6 save (no actHpRamp) rather than half-loading and crashing in combat', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'run.json'),
+      JSON.stringify({ version: 6, savedAt: 1, state: { event: null } }),
+    );
+    expect(store.loadRun()).toBeNull();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+  });
+
   it('returns null when no save exists, and after clearRun', () => {
     const store = createSaveStore(dir);
     expect(store.loadRun()).toBeNull();

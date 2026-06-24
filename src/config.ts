@@ -61,6 +61,9 @@ const ARC_ENEMY_HP_MULT: Readonly<Record<Difficulty, number>> = {
  */
 const ARC_ACT_HP_RAMP: Readonly<Record<Difficulty, readonly number[]>> = {
   story: [1.0, 1.1, 1.22],
+  // normal/hard/nightmare intentionally share one ramp shape — the per-tier
+  // difficulty is carried by ARC_ENEMY_HP_MULT (the base), not the ramp. Story
+  // ramps gentler so its already-low base doesn't over-soften late acts.
   normal: [1.0, 1.13, 1.27],
   hard: [1.0, 1.13, 1.27],
   nightmare: [1.0, 1.13, 1.27],
