@@ -23,6 +23,11 @@ export interface DifficultyKnobs {
   readonly maxHp: number;
   readonly enemyHpMult: number;
   readonly startingGold: number;
+  /**
+   * Arc-only per-act enemy-HP ramp indexed by act (index 0 is always 1.0 so
+   * single mode stays byte-identical). Undefined for single mode → no ramp.
+   */
+  readonly actHpRamp?: readonly number[];
 }
 
 /** Single-mode per-tier knobs (greedy: story ~84 / normal ~67 / hard ~41 / nightmare ~23). */
@@ -34,21 +39,39 @@ export const DIFFICULTY_KNOBS: Readonly<Record<Difficulty, DifficultyKnobs>> = {
 };
 
 /**
- * Arc runs are easier at equal enemyHpMult (more rewards over 3 acts), so each
- * tier uses a higher multiplier — swept to match single's win-rate bands
- * (greedy: story ~85 / normal ~68 / hard ~42 / nightmare ~24).
+ * Arc base enemy-HP multiplier (act 0). Arc adds two more acts of rewards, and
+ * the old flat bump left later acts too soft (players ended arcs far healthier
+ * than single). Act 0 now sits close to single, and the per-act ramp below does
+ * the difficulty work so the LATER acts — where arc players were over-healthy —
+ * are the parts that bite. Swept to match single's greedy win-rate bands per
+ * tier for both characters (see ARC_ACT_HP_RAMP).
  */
 const ARC_ENEMY_HP_MULT: Readonly<Record<Difficulty, number>> = {
-  story: 0.95,
-  normal: 1.15,
-  hard: 1.4,
-  nightmare: 1.6,
+  story: 0.74,
+  normal: 0.96,
+  hard: 1.15,
+  nightmare: 1.43,
+};
+
+/**
+ * Arc per-act enemy-HP ramp, multiplied onto ARC_ENEMY_HP_MULT for combats in
+ * that act. Index 0 is ALWAYS 1.0 (act 0 == base mult) so single mode (act 0
+ * only) is byte-identical; acts 1 and 2 escalate so deeper acts are meaningfully
+ * harder and arc players stop ending vastly healthier than single players.
+ */
+const ARC_ACT_HP_RAMP: Readonly<Record<Difficulty, readonly number[]>> = {
+  story: [1.0, 1.1, 1.22],
+  normal: [1.0, 1.13, 1.27],
+  hard: [1.0, 1.13, 1.27],
+  nightmare: [1.0, 1.13, 1.27],
 };
 
 /** Difficulty knobs for a (difficulty, mode) pair so a tier means the same challenge in both modes. */
 export function knobsFor(difficulty: Difficulty, mode: RunMode): DifficultyKnobs {
   const base = DIFFICULTY_KNOBS[difficulty];
-  return mode === 'arc' ? { ...base, enemyHpMult: ARC_ENEMY_HP_MULT[difficulty] } : base;
+  return mode === 'arc'
+    ? { ...base, enemyHpMult: ARC_ENEMY_HP_MULT[difficulty], actHpRamp: ARC_ACT_HP_RAMP[difficulty] }
+    : base;
 }
 
 export interface Config {

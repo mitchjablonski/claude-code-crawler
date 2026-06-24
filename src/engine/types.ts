@@ -258,6 +258,11 @@ export interface RunState {
   readonly modifiers: RunModifiers;
   /** Difficulty enemy-HP multiplier baked into this run (1 = neutral). */
   readonly enemyHpMult: number;
+  /**
+   * Per-act enemy-HP scalars indexed by `node.act` (index 0 is always 1.0).
+   * Empty for single/default runs → every act multiplies by 1.0 (a no-op).
+   */
+  readonly actHpRamp: readonly number[];
 }
 
 export type GameAction =
