@@ -351,6 +351,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
           {over && (
             <GameOverScreen
               state={run}
+              relicNames={relicNames}
               onNew={newRun}
               onTitle={quitToTitle}
               {...(dailyRunDate
