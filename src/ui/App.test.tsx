@@ -133,6 +133,8 @@ describe('App deck-view overlay', () => {
     // The knight starter deck lists its cards with grouped counts.
     expect(open).toContain('Rusty Shortsword');
     expect(open).toContain('x4'); // identical ids collapse to one xN row (D20: 4x shortsword)
+    // Each card's effect description shows so the deck view is a planning tool.
+    expect(open).toContain(content.cards['rusty-shortsword']!.description);
 
     // Close with v -> back to the map; deck-view input did not descend a node.
     stdin.write('v');
