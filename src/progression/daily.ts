@@ -94,3 +94,48 @@ export function bestDailyScore(meta: MetaState, date: string): number | undefine
   }
   return best;
 }
+
+/**
+ * General run score (#28): the same pure, monotonic derivation as
+ * {@link dailyScore}, applied to ANY finished run so every run gets a comparable
+ * SCORE for the personal-best chase. It deliberately REUSES the daily formula
+ * (floors*50 + floor(gold*0.5) + endHp + relics*25 + win bonus) so daily and
+ * non-daily scores live on one scale and a single recorded `score` field serves
+ * both. Pure: reads only state, no rng, no clock; monotonic in the player's
+ * favor (deeper / richer / healthier / more relics / a win never scores lower).
+ *
+ * NOTE: not folding #25 `state.stats` in here — those are useful flavor on the
+ * run report, but keeping the score to the four durable end-state quantities
+ * keeps it simple, obviously monotonic, and identical to the shipped daily scale.
+ */
+export function runScore(state: RunState): number {
+  return dailyScore(state);
+}
+
+/**
+ * Personal best (#28): the max recorded {@link runScore} among PRIOR runs that
+ * match a (character, mode) — the chase target shown on GameOver. Returns null
+ * when no matching prior run carries a score (a first run / a record run).
+ *
+ * Matching: a record matches when its `character` and `mode` equal the query.
+ * Pre-E2 records lack these fields (undefined) so they only match an undefined
+ * query — i.e. they never masquerade as a different (character, mode). Records
+ * without a numeric `score` (pre-#28 history) are ignored and so never count as
+ * a best — exactly the "migrates, doesn't wipe, doesn't fake a best" behavior.
+ *
+ * IMPORTANT: pass the meta as it was BEFORE this run was appended, so "NEW BEST"
+ * compares against the PRIOR best and a record run correctly reads as a new best.
+ * Pure over the passed meta.
+ */
+export function bestRun(
+  meta: MetaState,
+  query: { readonly character?: string; readonly mode?: RunMode },
+): number | null {
+  let best: number | null = null;
+  for (const r of meta.runs) {
+    if (r.character !== query.character || r.mode !== query.mode) continue;
+    if (typeof r.score !== 'number') continue;
+    if (best === null || r.score > best) best = r.score;
+  }
+  return best;
+}

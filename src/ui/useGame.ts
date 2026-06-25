@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { applyAction, createRun, type RunConfig } from '../engine/run.js';
-import { dailyScore } from '../progression/daily.js';
+import { runScore } from '../progression/daily.js';
 import { applyModifier, type Modifier } from '../engine/modifiers.js';
 import { DEFAULT_RUN_CONFIG, content as defaultContent } from '../engine/content/index.js';
 import { EngineError, isSafeBoundary } from '../engine/types.js';
@@ -105,9 +105,11 @@ export function useGame(deps: GameDeps): Game {
           ...(deps.difficulty ? { difficulty: deps.difficulty } : {}),
           ...(deps.runMode ? { mode: deps.runMode } : {}),
           ...(deps.character ? { character: deps.character } : {}),
-          // E3: tag the daily date + pure score so the Title can show today's
-          // best and GameOver can show this run's score.
-          ...(daily ? { daily, score: dailyScore(next) } : {}),
+          // #28: record the pure run score for EVERY finished run (not just the
+          // daily) so personal-best tracking has data. The daily date is still
+          // tagged when this run is the daily so the Title's daily-best holds.
+          score: runScore(next),
+          ...(daily ? { daily } : {}),
         });
         deps.store.clearRun();
         dailyRef.current = null;

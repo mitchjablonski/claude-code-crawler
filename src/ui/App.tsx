@@ -20,7 +20,8 @@ import {
   dailySeed,
   dailyDate,
   bestDailyScore,
-  dailyScore,
+  runScore,
+  bestRun,
   DAILY_DIFFICULTY,
   DAILY_MODE,
   DAILY_CHARACTER,
@@ -296,6 +297,19 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     (id) => christenings.nameFor('relic', id) ?? game.content.relics[id]?.name ?? id,
   );
 
+  // #28: personal best for this run's (character, mode) among PRIOR runs. The
+  // finished run is already appended to history (recordRun pushes to the end at
+  // run-end), so we drop the last record to compare "NEW BEST" against the prior
+  // best — a record/first run reads as a new best. Computed at render so GameOver
+  // shows it on first paint (a post-render effect/ref would lag a frame). null
+  // until the run is over.
+  const priorBest = over
+    ? (() => {
+        const meta = deps.store.loadMeta();
+        return bestRun({ ...meta, runs: meta.runs.slice(0, -1) }, { character, mode: runMode });
+      })()
+    : null;
+
   return (
     <Box flexDirection="column">
       {!over && (
@@ -355,9 +369,9 @@ export function App({ deps }: { readonly deps: GameDeps }) {
               relicNames={relicNames}
               onNew={newRun}
               onTitle={quitToTitle}
-              {...(dailyRunDate
-                ? { dailyDate: dailyRunDate, dailyScore: dailyScore(run) }
-                : {})}
+              score={runScore(run)}
+              priorBest={priorBest}
+              {...(dailyRunDate ? { dailyDate: dailyRunDate } : {})}
             />
           )}
         </>

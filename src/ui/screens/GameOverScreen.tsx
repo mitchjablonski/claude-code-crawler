@@ -9,7 +9,8 @@ export function GameOverScreen({
   onNew,
   onTitle,
   dailyDate,
-  dailyScore,
+  score,
+  priorBest,
 }: {
   readonly state: RunState;
   /**
@@ -21,8 +22,13 @@ export function GameOverScreen({
   readonly onTitle: () => void;
   /** E3: set when the finished run was the daily challenge. */
   readonly dailyDate?: string;
-  /** E3: this run's daily score (pure derivation), shown prominently. */
-  readonly dailyScore?: number;
+  /** #28: this run's pure score (also the daily score for a daily run). */
+  readonly score: number;
+  /**
+   * #28: personal best for this run's (character, mode) among PRIOR runs, or
+   * null when this is the first such run (which therefore reads as a NEW BEST).
+   */
+  readonly priorBest: number | null;
 }) {
   const { exit } = useApp();
   const won = state.phase === 'victory';
@@ -39,6 +45,11 @@ export function GameOverScreen({
   const bossRow = state.map.nodes[state.map.bossId]?.row ?? depth;
   const relics = relicNames.length > 0 ? relicNames.join(', ') : 'none';
 
+  // #28: a run beats its personal best when there is no prior best (first such
+  // run) or it strictly exceeds it. NEW BEST celebrates; otherwise show the
+  // run's score next to the standing best.
+  const newBest = priorBest === null || score > priorBest;
+
   return (
     <Screen title={won ? 'Run Complete' : 'Run Ended'} footer="[n] new delve  [t] title  [q] quit">
       <Text bold color={won ? theme.colors.success : theme.colors.danger}>
@@ -49,13 +60,26 @@ export function GameOverScreen({
           ? 'The dungeon grumbles and starts drafting new requirements.'
           : 'The dungeon thanks you for your engagement.'}
       </Text>
-      {dailyDate !== undefined && dailyScore !== undefined && (
-        <Box marginTop={1}>
-          <Text bold color={theme.colors.accent}>
-            Daily {dailyDate} score: {dailyScore}
+      <Box marginTop={1} flexDirection="column">
+        {newBest ? (
+          <Text bold color={theme.colors.success}>
+            NEW BEST!  {score}
+            {priorBest !== null && (
+              <Text color={theme.colors.muted}>  (prev {priorBest})</Text>
+            )}
           </Text>
-        </Box>
-      )}
+        ) : (
+          <Text>
+            <Text bold color={theme.colors.accent}>
+              Score {score}
+            </Text>
+            <Text color={theme.colors.muted}>   ·   Best {priorBest}</Text>
+          </Text>
+        )}
+        {dailyDate !== undefined && (
+          <Text color={theme.colors.muted}>Daily {dailyDate}</Text>
+        )}
+      </Box>
       <Box marginTop={1} flexDirection="column">
         <Text>
           <Text color={theme.colors.muted}>Depth reached </Text>

@@ -219,6 +219,38 @@ describe('meta progression', () => {
     expect(runs[1]?.score).toBeUndefined();
   });
 
+  it('#28: pre-#28 score-less history migrates (loads) and carries no score', () => {
+    const store = createSaveStore(dir);
+    // An old meta whose records predate the per-run score field.
+    fs.writeFileSync(
+      path.join(dir, 'meta.json'),
+      JSON.stringify({
+        version: 2,
+        runs: [
+          { seed: 'old', outcome: 'victory', endedAt: '2026-01-01T00:00:00Z', character: 'knight', mode: 'single' },
+        ],
+      }),
+    );
+    const before = store.loadMeta();
+    // Migrated, not wiped or quarantined; the legacy record has no score.
+    expect(before.runs).toHaveLength(1);
+    expect(before.runs[0]?.score).toBeUndefined();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('meta.json.corrupt-'))).toBe(false);
+    // A new (#28) record carries a score and the old one survives.
+    store.recordRun({
+      seed: 'new',
+      outcome: 'defeat',
+      endedAt: '2026-06-24T00:00:00Z',
+      character: 'knight',
+      mode: 'single',
+      score: 777,
+    });
+    const after = store.loadMeta().runs;
+    expect(after).toHaveLength(2);
+    expect(after[0]?.score).toBeUndefined();
+    expect(after[1]?.score).toBe(777);
+  });
+
   // INVARIANT #2: run history MUST survive a save-version bump. Meta is versioned
   // separately from in-progress runs and migrated (never quarantined) on a delta.
   it('preserves run history written under an OLD meta version (no quarantine)', () => {
