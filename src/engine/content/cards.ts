@@ -58,6 +58,33 @@ const defs: readonly CardDef[] = [
     ],
     upgradeTo: 'vanguard-stance-plus',
   },
+  // --- #26: Apothecary kit-identity starter (arc / multi-enemy lean). starter
+  // rarity => NOT draftable (excluded from reward/shop pools), so it stays
+  // exclusive to the Apothecary's starting deck. Has a `-plus` rest-site upgrade
+  // (below). Spore Burst is a low-cost AoE attack (5 dmg + 1 poison to ALL
+  // enemies) that hits the whole pack in one card and seeds the poison clock
+  // across the room. In ARC's multi-enemy rooms its value scales with pack size
+  // (it can soften or clear several enemies at once), closing the Apothecary's
+  // arc gap the same way #20's kit cards closed the Knight's single gap. In
+  // SINGLE (one boss) it reduces to ~5 dmg + 1 poison — roughly a shortsword,
+  // strictly modest — so it lifts ARC far more than SINGLE and can't balloon the
+  // already-even single matchup. Calibrated between cleave-the-horde (4 dmg all,
+  // common) and whirlwind (6 dmg all, uncommon); justified as a non-draftable
+  // kit exclusive that defines the arc-poison archetype.
+  {
+    id: 'spore-burst',
+    name: 'Spore Burst',
+    description: 'Deal 5 damage to all enemies. Apply 1 Poison to all enemies.',
+    type: 'attack',
+    rarity: 'starter',
+    cost: 1,
+    target: 'allEnemies',
+    effects: [
+      { kind: 'damage', amount: 5, target: 'allEnemies' },
+      { kind: 'applyStatus', status: 'poison', stacks: 1, target: 'allEnemies' },
+    ],
+    upgradeTo: 'spore-burst-plus',
+  },
   {
     id: 'goblin-stomp',
     name: 'Goblin Stomp',
@@ -237,6 +264,7 @@ const defs: readonly CardDef[] = [
   { id: 'battered-buckler-plus', name: 'Battered Buckler+', description: 'Gain 8 Block.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
   { id: 'oath-keeper-plus', name: 'Oath-Keeper+', description: 'Gain 8 Block. Draw 1 card.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }, { kind: 'draw', count: 1 }] },
   { id: 'vanguard-stance-plus', name: 'Vanguard Stance+', description: 'Gain 7 Block and 1 Strength.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 7 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+  { id: 'spore-burst-plus', name: 'Spore Burst+', description: 'Deal 7 damage to all enemies. Apply 2 Poison to all enemies.', type: 'attack', rarity: 'starter', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'allEnemies' }] },
   // Common upgrades
   { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 11 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
   { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 7 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }] },
