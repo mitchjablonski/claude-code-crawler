@@ -88,6 +88,7 @@ export function createRun(
     enemyHpMult: config.enemyHpMult ?? 1,
     actHpRamp: config.actHpRamp ?? [],
     allowedUnlockIds: [...(config.allowedUnlockIds ?? [])],
+    stats: { turns: 0, damageDealt: 0, damageTaken: 0, enemiesSlain: 0 },
   };
 }
 
@@ -343,13 +344,31 @@ function inCombat(
   const [combat, rng] = withStream(state.rng, 'combat', (r) => fn(r, state));
   if (!combat) throw new EngineError('combat handler returned no state');
   const next = { ...state, rng, combat };
+  // Fold this combat's scoped counters into the run's cumulative stats EXACTLY
+  // ONCE, at resolution (win AND loss). In-progress combats keep their counters
+  // on CombatState (serialized) and contribute nothing until they resolve, so
+  // there's no double-count and a fatal fight still tallies its damage/turns.
   if (isCombatLost(combat)) {
-    return { ...next, hp: 0, phase: 'defeat', combat: null };
+    return { ...next, hp: 0, phase: 'defeat', combat: null, stats: foldCombatStats(state.stats, combat) };
   }
   if (isCombatWon(combat)) {
-    return finishCombat(content, { ...next, hp: combat.playerHp });
+    return finishCombat(content, {
+      ...next,
+      hp: combat.playerHp,
+      stats: foldCombatStats(state.stats, combat),
+    });
   }
   return next;
+}
+
+/** Add a resolved combat's scoped counters to the run's cumulative stats (pure). */
+function foldCombatStats(stats: RunState['stats'], combat: NonNullable<RunState['combat']>): RunState['stats'] {
+  return {
+    turns: stats.turns + combat.turn,
+    damageDealt: stats.damageDealt + combat.dealt,
+    damageTaken: stats.damageTaken + combat.taken,
+    enemiesSlain: stats.enemiesSlain + combat.slain,
+  };
 }
 
 function finishCombat(content: ContentRegistry, state: RunState): RunState {

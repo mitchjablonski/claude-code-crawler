@@ -10,7 +10,7 @@ import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
 import { UPGRADE_TARGET_IDS, UNLOCKABLE_CARD_IDS } from './content/cards.js';
 import { EngineError, eventRequirementMet } from './types.js';
 import { Rng, seedFromString } from './rng.js';
-import type { RunState } from './types.js';
+import type { CombatState, EnemyInstance, RunState } from './types.js';
 
 const run = (seed: string) => createRun(content, seed, DEFAULT_RUN_CONFIG);
 
@@ -18,6 +18,15 @@ describe('createRun', () => {
   it('is deterministic per seed', () => {
     expect(run('alpha')).toEqual(run('alpha'));
     expect(run('alpha')).not.toEqual(run('beta'));
+  });
+
+  it('initializes run stats to all-zero', () => {
+    expect(run('alpha').stats).toEqual({
+      turns: 0,
+      damageDealt: 0,
+      damageTaken: 0,
+      enemiesSlain: 0,
+    });
   });
 
   it('defaults enemyHpMult to 1 and scales enemy HP when set', () => {
@@ -612,5 +621,102 @@ describe('E2 unlock gating of the draft pool', () => {
     expect(state.allowedUnlockIds).toEqual(['arc-warden']);
     // DEFAULT (no allow) → empty list on state → core-only pool.
     expect(createRun(content, 'cap', DEFAULT_RUN_CONFIG).allowedUnlockIds).toEqual([]);
+  });
+});
+
+describe('run stats (#25)', () => {
+  // Build a controlled in-combat run: one cave-rat (Bite = 5 dmg at move idx 0),
+  // a hand of rusty-shortsword (6 dmg). enemyHp drives win vs loss; stats fold
+  // ONCE at resolution. No rng in the stat counters — fully deterministic.
+  const enemy = (hp: number): EnemyInstance => ({
+    defId: 'cave-rat',
+    name: 'Cave Rat',
+    hp,
+    maxHp: hp,
+    block: 0,
+    statuses: {},
+    nextMoveIndex: 0, // Bite (5 damage) on the next enemy turn
+  });
+
+  const combatRun = (enemyHp: number, playerHp = 50): RunState => {
+    const base = run('stats-seed');
+    const combat: CombatState = {
+      enemies: [enemy(enemyHp)],
+      hand: ['rusty-shortsword', 'rusty-shortsword'],
+      drawPile: ['rusty-shortsword', 'rusty-shortsword', 'rusty-shortsword'],
+      discardPile: [],
+      energy: 3,
+      maxEnergy: 3,
+      playerHp,
+      playerMaxHp: 50,
+      playerBlock: 0,
+      playerStatuses: {},
+      turn: 1,
+      dealt: 0,
+      taken: 0,
+      slain: 0,
+    };
+    return { ...base, phase: 'combat', combat };
+  };
+
+  it('tracks dealt/taken/slain/turns on a one-card winning kill', () => {
+    // Enemy at 6 HP, one 6-damage strike kills it → combat WON, fold once.
+    const won = applyAction(content, combatRun(6), {
+      type: 'playCard',
+      handIndex: 0,
+      targetIndex: 0,
+    });
+    expect(won.phase).toBe('reward'); // resolved (non-boss win → reward)
+    expect(won.stats.damageDealt).toBe(6);
+    expect(won.stats.enemiesSlain).toBe(1);
+    expect(won.stats.damageTaken).toBe(0); // killed before it could act
+    expect(won.stats.turns).toBe(1); // resolved on turn 1
+  });
+
+  it('counts player damage taken across an endTurn, then folds on the killing turn', () => {
+    // Enemy at 10 HP. Strike once (6 dmg, survives), endTurn → Bite 5 taken,
+    // then strike twice more (12 dmg) to kill on turn 2.
+    let s = combatRun(10);
+    s = applyAction(content, s, { type: 'playCard', handIndex: 0, targetIndex: 0 });
+    expect(s.combat?.dealt).toBe(6);
+    expect(s.combat?.slain).toBe(0);
+    s = applyAction(content, s, { type: 'endTurn' });
+    expect(s.phase).toBe('combat');
+    expect(s.combat?.taken).toBe(5); // Bite landed (no block)
+    expect(s.combat?.turn).toBe(2);
+    // One more strike (6) finishes the 4 HP remaining → kill on turn 2.
+    s = applyAction(content, s, { type: 'playCard', handIndex: 0, targetIndex: 0 });
+    expect(s.phase).toBe('reward');
+    // damageDealt counts HP ACTUALLY removed: 6, then only 4 left → 6 + 4 = 10.
+    expect(s.stats.damageDealt).toBe(10);
+    expect(s.stats.damageTaken).toBe(5);
+    expect(s.stats.enemiesSlain).toBe(1);
+    expect(s.stats.turns).toBe(2);
+  });
+
+  it('folds stats on a LOSS too (fatal combat still tallies damage/turns)', () => {
+    // Player at 5 HP, enemy at 100 (won't die). Strike for 6 (dealt), endTurn →
+    // Bite 5 kills the player → defeat, fold once.
+    let s = combatRun(100, 5);
+    s = applyAction(content, s, { type: 'playCard', handIndex: 0, targetIndex: 0 });
+    s = applyAction(content, s, { type: 'endTurn' });
+    expect(s.phase).toBe('defeat');
+    expect(s.stats.damageDealt).toBe(6);
+    expect(s.stats.damageTaken).toBe(5);
+    expect(s.stats.enemiesSlain).toBe(0);
+    expect(s.stats.turns).toBe(1); // died during turn 1's enemy phase
+  });
+
+  it('does not fold while a combat is still in progress (no double-count)', () => {
+    // Strike a high-HP enemy: combat continues, run-level stats stay zero until
+    // resolution; only the combat-scoped counters move.
+    const s = applyAction(content, combatRun(100), {
+      type: 'playCard',
+      handIndex: 0,
+      targetIndex: 0,
+    });
+    expect(s.phase).toBe('combat');
+    expect(s.combat?.dealt).toBe(6);
+    expect(s.stats).toEqual({ turns: 0, damageDealt: 0, damageTaken: 0, enemiesSlain: 0 });
   });
 });

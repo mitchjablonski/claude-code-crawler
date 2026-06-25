@@ -81,6 +81,33 @@ describe('run saves', () => {
     expect(loaded?.state.allowedUnlockIds).toEqual(['arc-warden', 'crawlers-resolve']);
   });
 
+  it('quarantines a v8 save (no stats) rather than half-loading (#25 bump)', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'run.json'),
+      JSON.stringify({ version: 8, savedAt: 1, state: { event: null } }),
+    );
+    expect(store.loadRun()).toBeNull();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+  });
+
+  it('roundtrips a v9 run state carrying run stats', () => {
+    const store = createSaveStore(dir, () => 1_750_000_000_000);
+    const state = {
+      ...sampleRun(),
+      stats: { turns: 7, damageDealt: 42, damageTaken: 13, enemiesSlain: 3 },
+    };
+    store.saveRun(state);
+    const loaded = store.loadRun();
+    expect(loaded?.state).toEqual(state);
+    expect(loaded?.state.stats).toEqual({
+      turns: 7,
+      damageDealt: 42,
+      damageTaken: 13,
+      enemiesSlain: 3,
+    });
+  });
+
   it('returns null when no save exists, and after clearRun', () => {
     const store = createSaveStore(dir);
     expect(store.loadRun()).toBeNull();

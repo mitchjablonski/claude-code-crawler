@@ -8,7 +8,15 @@ import type { RunState } from '../../engine/types.js';
 /** A finished-run RunState in the given phase, with optional held relics. */
 function finished(phase: 'victory' | 'defeat', relics: readonly string[] = []): RunState {
   const base = createRun(content, 'over-test', DEFAULT_RUN_CONFIG);
-  return { ...base, phase, hp: 24, maxHp: 80, gold: 137, relics };
+  return {
+    ...base,
+    phase,
+    hp: 24,
+    maxHp: 80,
+    gold: 137,
+    relics,
+    stats: { turns: 18, damageDealt: 240, damageTaken: 96, enemiesSlain: 11 },
+  };
 }
 
 const noop = () => undefined;
@@ -48,6 +56,21 @@ describe('GameOverScreen run summary', () => {
     expect(frame).toContain('Pocket Dice');
     expect(frame).toContain('[t] title');
     expect(frame).toContain('[q] quit');
+  });
+
+  it('surfaces the run stats (turns/dealt/taken/slain) in the report', () => {
+    const { lastFrame } = render(
+      <GameOverScreen state={finished('victory')} relicNames={[]} onNew={noop} onTitle={noop} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Turns');
+    expect(frame).toContain('18');
+    expect(frame).toContain('Dealt');
+    expect(frame).toContain('240');
+    expect(frame).toContain('Taken');
+    expect(frame).toContain('96');
+    expect(frame).toContain('Slain');
+    expect(frame).toContain('11');
   });
 
   it('shows "none" when no relics are held', () => {

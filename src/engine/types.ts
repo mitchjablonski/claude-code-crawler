@@ -256,6 +256,17 @@ export interface CombatState {
   readonly playerBlock: number;
   readonly playerStatuses: Statuses;
   readonly turn: number;
+  /**
+   * COMBAT-SCOPED stat counters, folded ONCE into `RunState.stats` when the
+   * combat resolves (win or loss). Passive, deterministic, consume no rng:
+   * `dealt` = HP actually removed from enemies by the player (post-block),
+   * `taken` = HP the player actually lost (post-block), `slain` = enemies the
+   * player transitioned alive→dead. `turn` (above) is the per-combat turn count.
+   * Serialized with the combat so a resumed in-progress fight loses no progress.
+   */
+  readonly dealt: number;
+  readonly taken: number;
+  readonly slain: number;
 }
 
 // ---- Run ----
@@ -332,6 +343,20 @@ export interface RunState {
    * so a resumed save replays with the exact same legal pool.
    */
   readonly allowedUnlockIds: readonly string[];
+  /**
+   * Per-run cumulative stats, folded from each combat's combat-scoped counters
+   * exactly ONCE at combat resolution (win AND loss). Passive/deterministic —
+   * no rng, no behavior change. Powers the GameOver run-report (#23) and a
+   * future best-run/PB. Initialized to all-zero in `createRun`.
+   */
+  readonly stats: RunStats;
+}
+
+export interface RunStats {
+  readonly turns: number;
+  readonly damageDealt: number;
+  readonly damageTaken: number;
+  readonly enemiesSlain: number;
 }
 
 export type GameAction =

@@ -76,6 +76,16 @@ export function GameOverScreen({
           <Text color={theme.colors.gold}>{state.gold}g</Text>
         </Text>
         <Text>
+          <Text color={theme.colors.muted}>Turns </Text>
+          <Text color={theme.colors.accent}>{state.stats.turns}</Text>
+          <Text color={theme.colors.muted}>   Dealt </Text>
+          <Text color={theme.colors.accent}>{state.stats.damageDealt}</Text>
+          <Text color={theme.colors.muted}>   Taken </Text>
+          <Text color={theme.colors.hp}>{state.stats.damageTaken}</Text>
+          <Text color={theme.colors.muted}>   Slain </Text>
+          <Text color={theme.colors.accent}>{state.stats.enemiesSlain}</Text>
+        </Text>
+        <Text>
           <Text color={theme.colors.muted}>Relics </Text>
           <Text color={theme.colors.accent}>{relics}</Text>
         </Text>
