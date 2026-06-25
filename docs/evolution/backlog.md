@@ -131,3 +131,10 @@ Re-validated: #20/#22/#26 held (single parity stable; batch-seven dead cards all
 ### UX (from fresh UX playtest)
 - **Deck-view card descriptions** (V9) — #2 UX ask; deck view shows no effects → can't plan/compare. → batch eleven.
 - Map "Unknown event" risk signal (no stakes hint at the node); relics HUD overflow at high counts (silent truncate → show "+N more"/count); event-result screen sparse (flavor callback); draw/discard pile counts in combat HUD.
+
+## Batch-eleven fresh playtest deltas (2026-06-25)
+- #29 merge-conflict CONFIRMED tamed (arc/nightmare knight 30 vs boss 24, apoth 25 vs boss 30 — no longer 2×). #20/#22/#26 hold.
+- **Dead-card correction**: fresh MCTS shows only viral-load + lucky-dagger were truly dead (berserker-brew 0.50 / torch-jab 0.46 were greedy false-positives). #31 reworked all four harmlessly (no overshoot) but lucky-dagger still weakest (0.13) — needs a stronger lever later. whirlwind/twin-jab/pommel-strike newly surfaced as MCTS-weak.
+- **Arc endHp gap CONFIRMED #1 balance priority** (arc winners 39-46 HP vs single 13-22; muted boss climax). Lever A = per-act HP "exhaustion" cost (5-8 HP/act-end post-heal) → target arc endHp ~28-35; validate arc/normal stays >~60%, arc/nightmare >~25%. → #32.
+- Event lethality flat/too low (0 single deaths all diffs; arc/nightmare ~2.3%) → scale loseHp hard×1.25/nightmare×1.5, cap ~40% current HP. → queued.
+- UX: deck-view descriptions (#2 ask → #33); draw/discard pile counts in combat HUD (#1 ask, data in combat.drawPile/discardPile); relics HUD overflow at 5+ (silent truncate → "+N more"); map "Unknown event" risk tier; event-result flavor/aftermath line.
