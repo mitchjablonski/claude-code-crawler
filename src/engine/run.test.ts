@@ -505,11 +505,15 @@ describe('applyAction', () => {
   });
 
   // #34: difficulty-scaled event lethality. The cursed-idol ifFail branch is a
-  // fixed 9-HP loss; with a healthy player the 40%-of-current-HP cap is well
-  // above the scaled value, so we read pure scaling. Default config (normal) is
-  // mult 1 → byte-identical.
+  // fixed 9-HP loss; with a healthy player the max(base, 50%-of-max-HP) cap is
+  // well above the scaled value, so we read pure scaling. Default config
+  // (normal) is mult 1 → byte-identical.
   describe('#34 event loseHp scaling', () => {
-    const idolFail = (cfg: Parameters<typeof createRun>[2], hp = 60): RunState => {
+    const idolFail = (
+      cfg: Parameters<typeof createRun>[2],
+      hp = 60,
+      maxHp?: number,
+    ): RunState => {
       const base = createRun(content, 'idol-seed', cfg);
       const onIdol: RunState = {
         ...base,
@@ -517,6 +521,7 @@ describe('applyAction', () => {
         event: { eventId: 'cursed-idol' },
         relics: [], // < 3 relics → ifFail (lose HP)
         hp,
+        ...(maxHp !== undefined ? { maxHp } : {}),
       };
       return applyAction(content, onIdol, { type: 'chooseEventOption', index: 0 });
     };
@@ -539,17 +544,36 @@ describe('applyAction', () => {
       expect(r.hp).toBe(47);
     });
 
-    it('caps the SCALED loss at 40% of current HP (no cheap instant-kills)', () => {
-      // At 30 HP, nightmare would scale 9→13, but the cap is max(base 9,
-      // floor(30*0.4)=12) = 12, so the loss is clamped from 13 down to 12.
-      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 }, 30);
-      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 12 });
-      expect(r.hp).toBe(18);
+    it('caps the SCALED loss at max(base, 50% of MAX HP) (no cheap one-shots)', () => {
+      // maxHp 20 → cap = max(base 9, floor(20*0.5)=10) = 10; nightmare scales
+      // 9→13, clamped down to 10. (hp is full at 20 here.)
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 }, 20, 20);
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 10 });
+      expect(r.hp).toBe(10);
+    });
+
+    it('cap uses MAX HP, not current HP — does not shrink when wounded', () => {
+      // Same maxHp 20 (cap 10) but wounded to 14 HP. The cap stays 10 (not
+      // floor(14*…)), so the scaled 13 is clamped to 10, dropping HP to 4 — a
+      // current-HP cap would have softened this. The lethal band is real and
+      // stable; the #24 hint shows the scaled stakes so it's informed consent.
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 }, 14, 20);
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 10 });
+      expect(r.hp).toBe(4);
+    });
+
+    it('a scaled event CAN be the killing blow for a warned, wounded player', () => {
+      // maxHp 20 (cap 10), wounded to 9 HP. Nightmare scaling lands the full
+      // capped 10 → defeat. This is the feature: events occasionally lethal at
+      // hard+ for a wounded player (vs flat/never on normal).
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 }, 9, 20);
+      expect(r.phase).toBe('defeat');
     });
 
     it('cap floor is the base amount: an author-lethal event stays lethal on normal', () => {
-      // shrine "Pry up the offerings" is a flat 5-HP loss; at 3 HP it is lethal
-      // on normal even though 5 > floor(3*0.4)=1 (the base is the cap floor).
+      // shrine "Pry up the offerings" is a flat 5-HP loss; on normal (mult 1)
+      // the loss is the base 5 (the cap never reduces it — base is the floor),
+      // so at 3 HP it is still lethal: byte-identical to pre-#34.
       const base = run('alpha');
       const shrine: RunState = {
         ...base,

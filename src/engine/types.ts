@@ -338,8 +338,8 @@ export interface RunState {
   /**
    * #34: difficulty multiplier on event `loseHp` outcomes, baked in at createRun
    * (1 = neutral; normal/story). Scaling is applied at event resolution and the
-   * loss is capped at 40% of CURRENT HP; the rng stream is untouched so normal
-   * (mult 1) replays byte-identical.
+   * loss is capped at max(base, 50% of MAX HP); the rng stream is untouched so
+   * normal (mult 1) replays byte-identical.
    */
   readonly eventLoseHpMult: number;
   /**
