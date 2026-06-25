@@ -132,7 +132,7 @@ describe('App deck-view overlay', () => {
     expect(open).not.toContain('Choose your path');
     // The knight starter deck lists its cards with grouped counts.
     expect(open).toContain('Rusty Shortsword');
-    expect(open).toContain('x5'); // identical ids collapse to one xN row
+    expect(open).toContain('x4'); // identical ids collapse to one xN row (D20: 4x shortsword)
 
     // Close with v -> back to the map; deck-view input did not descend a node.
     stdin.write('v');
