@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { RunState } from '../engine/types.js';
 
-// In-progress RUN saves. Bumped to 8 in E2: RunState gained `allowedUnlockIds`
-// (the run's earned-unlock allow set). A v7 in-progress save lacks that field, so
-// it quarantines on load — acceptable for a transient run (per-run determinism is
-// preserved by capturing the set on state). META (run history) is versioned and
-// migrated SEPARATELY below so progression data is NEVER wiped by this bump.
-const SAVE_VERSION = 8; // v8: RunState gained allowedUnlockIds (E2 meta-progression)
+// In-progress RUN saves. Bumped to 9 in #25: RunState gained `stats` (per-run
+// cumulative counters) and CombatState gained scoped `dealt`/`taken`/`slain`. A
+// v8 in-progress save lacks these, so it quarantines on load — acceptable for a
+// transient run (per-run determinism is preserved by storing counters on state).
+// META (run history) is versioned and migrated SEPARATELY below so progression
+// data is NEVER wiped by this bump.
+const SAVE_VERSION = 9; // v9: RunState gained stats; CombatState gained dealt/taken/slain (#25)
 
 /**
  * Current meta (progression) schema version. Decoupled from SAVE_VERSION so an

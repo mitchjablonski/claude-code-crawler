@@ -59,6 +59,9 @@ export function startCombat(
     playerBlock: 0,
     playerStatuses: {},
     turn: 1,
+    dealt: 0,
+    taken: 0,
+    slain: 0,
   };
 
   combat = drawCards(combat, HAND_SIZE, rng);

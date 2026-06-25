@@ -31,6 +31,9 @@ function combatWith(defId: string, nextMoveIndex: number): RunState {
     playerBlock: 0,
     playerStatuses: {},
     turn: 1,
+    dealt: 0,
+    taken: 0,
+    slain: 0,
   };
   return { ...base, phase: 'combat', combat };
 }
