@@ -23,6 +23,41 @@ const defs: readonly CardDef[] = [
     effects: [{ kind: 'block', amount: 5 }],
     upgradeTo: 'battered-buckler-plus',
   },
+  // --- D20: Knight kit-identity starters (guardian lean). starter rarity =>
+  // NOT draftable (excluded from reward/shop pools), so these stay exclusive to
+  // the Knight's starting deck. Each has a `-plus` rest-site upgrade (below).
+  // Oath-Keeper is a block+draw tempo card: it pays for itself by replacing the
+  // dead Rusty-Shortsword draws the old 5-sword deck suffered. Vanguard Stance
+  // is a block+self-strength card that gives the Knight a real scaling identity
+  // (every later attack hits harder), the guardian fantasy the class lacked.
+  {
+    id: 'oath-keeper',
+    name: 'Oath-Keeper',
+    description: 'Gain 5 Block. Draw 1 card.',
+    type: 'skill',
+    rarity: 'starter',
+    cost: 1,
+    target: 'self',
+    effects: [
+      { kind: 'block', amount: 5 },
+      { kind: 'draw', count: 1 },
+    ],
+    upgradeTo: 'oath-keeper-plus',
+  },
+  {
+    id: 'vanguard-stance',
+    name: 'Vanguard Stance',
+    description: 'Gain 5 Block and 1 Strength.',
+    type: 'skill',
+    rarity: 'starter',
+    cost: 1,
+    target: 'self',
+    effects: [
+      { kind: 'block', amount: 5 },
+      { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' },
+    ],
+    upgradeTo: 'vanguard-stance-plus',
+  },
   {
     id: 'goblin-stomp',
     name: 'Goblin Stomp',
@@ -200,6 +235,8 @@ const defs: readonly CardDef[] = [
   // Starter upgrades
   { id: 'rusty-shortsword-plus', name: 'Rusty Shortsword+', description: 'Deal 9 damage.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }] },
   { id: 'battered-buckler-plus', name: 'Battered Buckler+', description: 'Gain 8 Block.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
+  { id: 'oath-keeper-plus', name: 'Oath-Keeper+', description: 'Gain 8 Block. Draw 1 card.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }, { kind: 'draw', count: 1 }] },
+  { id: 'vanguard-stance-plus', name: 'Vanguard Stance+', description: 'Gain 7 Block and 1 Strength.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 7 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
   // Common upgrades
   { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 11 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
   { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 7 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }] },

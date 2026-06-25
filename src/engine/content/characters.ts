@@ -7,16 +7,22 @@ export interface Character {
   readonly maxHp: number;
 }
 
+// D20: reworked from 5x shortsword + 4x buckler (9 cards, heavily redundant —
+// the extra shortswords were dead draws and the Knight had no kit identity).
+// Now 4x shortsword + 3x buckler + the two guardian-identity starters: a
+// block+draw tempo card (Oath-Keeper) that cuts dead draws, and a
+// block+self-strength card (Vanguard Stance) that gives the Knight a real
+// scaling lean. Still 9 cards, 1 cost each, coherent block/strength guardian.
 const KNIGHT_DECK: readonly string[] = [
   'rusty-shortsword',
   'rusty-shortsword',
   'rusty-shortsword',
   'rusty-shortsword',
-  'rusty-shortsword',
   'battered-buckler',
   'battered-buckler',
   'battered-buckler',
-  'battered-buckler',
+  'oath-keeper',
+  'vanguard-stance',
 ];
 
 const APOTHECARY_DECK: readonly string[] = [
@@ -35,7 +41,7 @@ export const CHARACTERS: Readonly<Record<string, Character>> = {
   knight: {
     id: 'knight',
     name: 'Knight',
-    description: 'A sturdy all-rounder. Strike and Block, the honest way.',
+    description: 'A stalwart guardian. Stacks Block and Strength, then strikes.',
     starterDeck: KNIGHT_DECK,
     startingRelics: ['pocket-dice'],
     maxHp: 70,
