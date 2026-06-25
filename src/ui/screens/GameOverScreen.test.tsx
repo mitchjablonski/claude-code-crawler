@@ -21,12 +21,24 @@ function finished(phase: 'victory' | 'defeat', relics: readonly string[] = []): 
 
 const noop = () => undefined;
 
+// #28: a comfortable prior best so the summary tests land in the non-NEW-BEST
+// branch (Score + Best) and don't accidentally trip the celebration text.
+const SCORE = 1000;
+const HIGH_PRIOR = 99999;
+
 describe('GameOverScreen run summary', () => {
   it('victory shows depth, relics, deck, gold, hp, and the win anchor', () => {
     const state = finished('victory');
     const bossRow = state.map.nodes[state.map.bossId]?.row ?? 0;
     const { lastFrame } = render(
-      <GameOverScreen state={state} relicNames={['Lucky Pocket Dice']} onNew={noop} onTitle={noop} />,
+      <GameOverScreen
+        state={state}
+        relicNames={['Lucky Pocket Dice']}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('THE SCOPE CREEP IS SLAIN');
@@ -45,7 +57,14 @@ describe('GameOverScreen run summary', () => {
   it('defeat shows the same summary stats and the death anchor', () => {
     const state = finished('defeat', ['pocket-dice']);
     const { lastFrame } = render(
-      <GameOverScreen state={state} relicNames={['Pocket Dice']} onNew={noop} onTitle={noop} />,
+      <GameOverScreen
+        state={state}
+        relicNames={['Pocket Dice']}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('YOU DIED');
@@ -60,7 +79,14 @@ describe('GameOverScreen run summary', () => {
 
   it('surfaces the run stats (turns/dealt/taken/slain) in the report', () => {
     const { lastFrame } = render(
-      <GameOverScreen state={finished('victory')} relicNames={[]} onNew={noop} onTitle={noop} />,
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Turns');
@@ -75,14 +101,21 @@ describe('GameOverScreen run summary', () => {
 
   it('shows "none" when no relics are held', () => {
     const { lastFrame } = render(
-      <GameOverScreen state={finished('defeat')} relicNames={[]} onNew={noop} onTitle={noop} />,
+      <GameOverScreen
+        state={finished('defeat')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Relics');
     expect(frame).toContain('none');
   });
 
-  it('shows the daily-score line for daily runs', () => {
+  it('shows a daily tag for daily runs alongside the score line', () => {
     const { lastFrame } = render(
       <GameOverScreen
         state={finished('victory')}
@@ -90,21 +123,84 @@ describe('GameOverScreen run summary', () => {
         onNew={noop}
         onTitle={noop}
         dailyDate="2026-06-24"
-        dailyScore={4242}
+        score={4242}
+        priorBest={HIGH_PRIOR}
       />,
     );
     const frame = lastFrame() ?? '';
-    expect(frame).toContain('Daily 2026-06-24 score: 4242');
+    expect(frame).toContain('Daily 2026-06-24');
+    expect(frame).toContain('Score 4242');
     // non-daily summary stats still present alongside the daily line
     expect(frame).toContain('Depth reached');
   });
 
-  it('omits the daily line for non-daily runs but keeps the summary', () => {
+  it('omits the daily tag for non-daily runs but keeps the summary', () => {
     const { lastFrame } = render(
-      <GameOverScreen state={finished('victory')} relicNames={[]} onNew={noop} onTitle={noop} />,
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
     );
     const frame = lastFrame() ?? '';
     expect(frame).not.toContain('Daily');
     expect(frame).toContain('Depth reached');
+  });
+});
+
+describe('GameOverScreen personal best', () => {
+  it('celebrates NEW BEST with the prev best when this run beats it', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={1500}
+        priorBest={1200}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('NEW BEST!');
+    expect(frame).toContain('1500');
+    expect(frame).toContain('prev 1200');
+    expect(frame).not.toContain('Score 1500');
+  });
+
+  it('celebrates NEW BEST on a first run (no prior best), without a prev', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={800}
+        priorBest={null}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('NEW BEST!');
+    expect(frame).toContain('800');
+    expect(frame).not.toContain('prev');
+  });
+
+  it('shows Score and Best when this run does not beat the prior best', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('defeat')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={600}
+        priorBest={900}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('NEW BEST');
+    expect(frame).toContain('Score 600');
+    expect(frame).toContain('Best 900');
   });
 });

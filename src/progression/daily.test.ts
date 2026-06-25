@@ -4,6 +4,8 @@ import {
   dailyDate,
   dailyScore,
   bestDailyScore,
+  runScore,
+  bestRun,
   DAILY_DIFFICULTY,
   DAILY_MODE,
   DAILY_CHARACTER,
@@ -151,5 +153,70 @@ describe('bestDailyScore', () => {
   it('ignores daily records that lack a score', () => {
     const m = meta([rec({ daily: '2026-06-24' }), rec({ daily: '2026-06-24', score: 42 })]);
     expect(bestDailyScore(m, '2026-06-24')).toBe(42);
+  });
+});
+
+describe('runScore', () => {
+  it('equals dailyScore (one shared scale) and is deterministic', () => {
+    const s = fakeState({ row: 5, hp: 22, gold: 64, relics: ['a', 'b'], phase: 'victory' });
+    expect(runScore(s)).toBe(dailyScore(s));
+    expect(runScore(s)).toBe(runScore(s));
+  });
+
+  it('is monotonic in depth, gold, hp, relics, and rewards a win', () => {
+    const base = fakeState({ row: 3, hp: 20, gold: 50, relics: ['a'], phase: 'defeat' });
+    const s = runScore(base);
+    expect(runScore(fakeState({ row: 4, hp: 20, gold: 50, relics: ['a'], phase: 'defeat' }))).toBeGreaterThan(s);
+    expect(runScore(fakeState({ row: 3, hp: 20, gold: 60, relics: ['a'], phase: 'defeat' }))).toBeGreaterThan(s);
+    expect(runScore(fakeState({ row: 3, hp: 30, gold: 50, relics: ['a'], phase: 'defeat' }))).toBeGreaterThan(s);
+    expect(runScore(fakeState({ row: 3, hp: 20, gold: 50, relics: ['a', 'b'], phase: 'defeat' }))).toBeGreaterThan(s);
+    expect(runScore(fakeState({ row: 3, hp: 20, gold: 50, relics: ['a'], phase: 'victory' }))).toBeGreaterThan(s);
+  });
+});
+
+describe('bestRun', () => {
+  const meta = (runs: readonly RunRecord[]): MetaState => ({ version: 2, runs });
+  const rec = (r: Partial<RunRecord>): RunRecord => ({
+    seed: 's',
+    outcome: 'defeat',
+    endedAt: '2026-06-24T00:00:00Z',
+    ...r,
+  });
+
+  it('returns null when no matching run carries a score', () => {
+    expect(bestRun(meta([]), { character: 'knight', mode: 'single' })).toBeNull();
+    // matching character/mode but no score => not a best
+    expect(
+      bestRun(meta([rec({ character: 'knight', mode: 'single' })]), {
+        character: 'knight',
+        mode: 'single',
+      }),
+    ).toBeNull();
+  });
+
+  it('returns the max score among prior runs matching (character, mode)', () => {
+    const m = meta([
+      rec({ character: 'knight', mode: 'single', score: 400 }),
+      rec({ character: 'knight', mode: 'single', score: 950 }),
+      rec({ character: 'knight', mode: 'single', score: 700 }),
+    ]);
+    expect(bestRun(m, { character: 'knight', mode: 'single' })).toBe(950);
+  });
+
+  it('ignores records of a different character or mode', () => {
+    const m = meta([
+      rec({ character: 'knight', mode: 'single', score: 500 }),
+      rec({ character: 'apothecary', mode: 'single', score: 9999 }), // other character
+      rec({ character: 'knight', mode: 'arc', score: 8888 }), // other mode
+    ]);
+    expect(bestRun(m, { character: 'knight', mode: 'single' })).toBe(500);
+  });
+
+  it('treats pre-E2 score-less records as no best (migrate, not fake)', () => {
+    // Old history: records without character/mode/score. They must not count.
+    const m = meta([rec({ score: 123 }), rec({ outcome: 'victory' })]);
+    expect(bestRun(m, { character: 'knight', mode: 'single' })).toBeNull();
+    // ...but an undefined query DOES match the score-bearing legacy record.
+    expect(bestRun(m, {})).toBe(123);
   });
 });
