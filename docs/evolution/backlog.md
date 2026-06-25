@@ -69,3 +69,18 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
   engagement increment or two — the game being deeper matters more than prettier.
   Prereq: V1 must expose semantic tokens (it does, by design).
 - **RL self-play** — see `docs/rl-and-search.md`. Out of scope for this loop.
+
+## Playtest findings (2026-06-24, Sonnet balance playtester on current code)
+
+Validated against current code. Driving batch seven + queued:
+- **Knight/Apothecary ~11-14pp gap** (single, normal/hard/nightmare): Knight's 5×Rusty-Shortsword/4×Buckler starter is redundant + lacks a kit identity; Apothecary's Tipped Blade (turn-1 poison) converts energy better. → batch seven (Knight rework).
+- **Dead cards** never picked by MCTS: `battle-trance` (dominated by adrenaline-rush), `avalanche`, `corrosive-mist`, `juggernaut`; `troll-blood` (regen 5) over-dominant rare. → batch seven (card balance pass).
+- **Arc endHp structural gap**: arc winners reach the boss ~22-28 HP healthier than single, softening the 50% boss phase climax. → queued: arc boss-climax scaling (D7 follow-up).
+- **Events rarely lethal at hard/nightmare** (0-1 event deaths / 300): scale risk-branch `loseHp` + stat-gates by difficulty. → queued (E-pillar).
+- Boss is 95%+ of single-mode deaths (route is resource-management, not survival) — inherent, watch.
+
+## Daily-seed follow-ups (from E3)
+- "Already played today" state (daily is currently re-rollable for a better score); streak counter; copy-seed share; persist the daily tag through save/resume (SAVE_VERSION bump); daily-specific GameOver flavor.
+
+## NOTE on the UX playtest
+A second Sonnet "UX" playtester ran against a worktree cut from `main` (737a1c1, pre-evolution baseline), so its findings describe the 19-increments-ago game and are mostly stale (it flagged player-statuses/deck-view/card-frames/rest-upgrade as "missing" — all shipped in batches 1-6). Re-run a UX playtester on the CURRENT branch (without worktree isolation, which based off main) for valid UX feedback.
