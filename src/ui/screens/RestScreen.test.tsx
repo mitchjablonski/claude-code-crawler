@@ -72,16 +72,20 @@ describe('RestScreen upgrade chooser shows base -> upgraded', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'upgradeCard', deckIndex: 1 });
   });
 
-  it('paginates: page 2 shows the 10th upgradeable card and [n]/[p] navigate', async () => {
-    // Ten upgradeable cards -> 9 on page 1, 1 on page 2 (single-digit hotkey cap).
-    const deck = Array.from({ length: 10 }, () => 'rusty-shortsword');
+  it('paginates at PER_PAGE (6): 7 cards -> 6 on page 1, 1 on page 2', async () => {
+    // Seven upgradeable cards -> 6 on page 1, 1 on page 2 (PER_PAGE = 6).
+    const deck = Array.from({ length: 7 }, () => 'rusty-shortsword');
     const { lastFrame, stdin } = render(
       <RestScreen state={onRest(deck)} content={content} dispatch={noop} />,
     );
     await tick();
     stdin.write('u');
     await tick();
-    expect(lastFrame() ?? '').toContain('page 1/2');
+    const page1 = lastFrame() ?? '';
+    expect(page1).toContain('page 1/2');
+    // Page 1 fills to [6] but not a 7th option.
+    expect(page1).toContain('[6]');
+    expect(page1).not.toContain('[7]');
 
     stdin.write('n'); // next page
     await tick();
