@@ -7,12 +7,18 @@ import { Screen } from './Screen.js';
 /**
  * Read-only overlay listing the player's whole deck outside combat.
  *
- * A deck can run 15-25+ cards, so a bordered CardTile per card would overflow
- * the snapshot canvas (30 rows). Instead this is a COMPACT grouped list:
- * identical card ids collapse to one row with an `xN` count, rows sort by type
- * then rarity then name, and rows flow down two columns so a big deck still fits
- * the 76-col / ~28-row viewport. Upgraded (`-plus`) cards keep the `[+]`
- * affordance. If even the two-column grid overflows, rows paginate ([n]/[p]).
+ * A deckbuilder player plans upgrade/shop choices from the map phase, so the
+ * deck view must show what each card DOES, not just its name. Each grouped row
+ * is therefore TWO lines: the compact `(cost) Name [+]  type  xN` header and a
+ * dim, single-line (truncated) effect description under it.
+ *
+ * Row budget (the #30 lesson): a deck can run 15-25+ cards and a two-line entry
+ * DOUBLES the per-card height, so a full deck would overflow the 30-row snapshot
+ * canvas. We therefore render a single column and PAGINATE: `PER_PAGE` entries
+ * per page (see its note) so a FULL page + header/divider/footer stays <=30
+ * rows. Descriptions are truncated to one line so a row never wraps and inflates
+ * the count. Pages flip with [n]/[p]; identical ids still collapse to one `xN`
+ * row, and `[esc]/[v]` close. Upgraded (`-plus`) cards keep the `[+]`.
  *
  * Purely presentational: it holds no game actions and dispatches nothing. It is
  * an App-local UI overlay (like the pause overlay), NOT an engine phase.
@@ -28,13 +34,27 @@ const RARITY_ORDER: Readonly<Record<Rarity, number>> = {
   rare: 3,
 };
 
-/** Rows per column, and columns per page; 2 columns * 11 rows = 22 entries/page. */
-const ROWS_PER_COL = 11;
-const COLS = 2;
-const PER_PAGE = ROWS_PER_COL * COLS;
+/**
+ * Entries per page. Each entry is 2 rows (header + description). The unframed
+ * Screen spends 5 rows on chrome (title + divider + gap + gap + footer), so a
+ * full page must keep `PER_PAGE * 2 + 5 <= 30` => PER_PAGE <= 12. Twelve gives
+ * 24 body rows + 5 chrome = 29 rows, comfortably under the budget even for a
+ * 20+ card deck (which simply spans more pages).
+ */
+const PER_PAGE = 12;
+
+/** Inner text width of the unframed Screen (contentWidth - paddingX*2). */
+const DESC_WIDTH = theme.layout.contentWidth - 2;
 
 interface DeckRow {
-  readonly card: { id: string; name: string; cost: number; type: CardType; rarity: Rarity };
+  readonly card: {
+    id: string;
+    name: string;
+    cost: number;
+    type: CardType;
+    rarity: Rarity;
+    description: string;
+  };
   readonly upgraded: boolean;
   readonly count: number;
 }
@@ -48,7 +68,14 @@ function buildRows(state: RunState, content: ContentRegistry): DeckRow[] {
     const card = content.cards[id];
     if (!card) continue;
     rows.push({
-      card: { id: card.id, name: card.name, cost: card.cost, type: card.type, rarity: card.rarity },
+      card: {
+        id: card.id,
+        name: card.name,
+        cost: card.cost,
+        type: card.type,
+        rarity: card.rarity,
+        description: card.description,
+      },
       // Upgraded variants are leaf nodes (no further upgradeTo) whose id ends -plus.
       upgraded: card.upgradeTo === undefined && card.id.endsWith('-plus'),
       count,
@@ -63,21 +90,33 @@ function buildRows(state: RunState, content: ContentRegistry): DeckRow[] {
   return rows;
 }
 
-/** One compact line: `(cost) Name [+]  type  xN`, rarity-colored name. */
+/**
+ * Two-line entry: the compact `(cost) Name [+]  type  xN` header plus a dim,
+ * single-line effect description so the player can see what the card DOES. The
+ * description is wrap="truncate" so a long effect never spills to a second row
+ * and breaks the page row budget.
+ */
 function DeckRowLine({ row }: { readonly row: DeckRow }) {
   return (
-    <Box width={37} justifyContent="space-between">
-      <Text>
-        {'('}
-        <Text color={theme.colors.cardCost}>{row.card.cost}</Text>
-        {') '}
-        <Text color={theme.colors.rarity[row.card.rarity]}>{row.card.name}</Text>
-        {row.upgraded && <Text color={theme.colors.success}>{' [+]'}</Text>}
-      </Text>
-      <Text>
-        <Text color={theme.colors.cardType[row.card.type]}>{row.card.type}</Text>
-        {row.count > 1 && <Text dimColor>{` x${row.count}`}</Text>}
-      </Text>
+    <Box flexDirection="column">
+      <Box width={DESC_WIDTH} justifyContent="space-between">
+        <Text>
+          {'('}
+          <Text color={theme.colors.cardCost}>{row.card.cost}</Text>
+          {') '}
+          <Text color={theme.colors.rarity[row.card.rarity]}>{row.card.name}</Text>
+          {row.upgraded && <Text color={theme.colors.success}>{' [+]'}</Text>}
+        </Text>
+        <Text>
+          <Text color={theme.colors.cardType[row.card.type]}>{row.card.type}</Text>
+          {row.count > 1 && <Text dimColor>{` x${row.count}`}</Text>}
+        </Text>
+      </Box>
+      <Box width={DESC_WIDTH}>
+        <Text color={theme.colors.muted} dimColor wrap="truncate">
+          {row.card.description}
+        </Text>
+      </Box>
     </Box>
   );
 }
@@ -107,10 +146,6 @@ export function DeckView({
 
   const start = safePage * PER_PAGE;
   const pageRows = rows.slice(start, start + PER_PAGE);
-  const columns: DeckRow[][] = [];
-  for (let c = 0; c < COLS; c++) {
-    columns.push(pageRows.slice(c * ROWS_PER_COL, (c + 1) * ROWS_PER_COL));
-  }
 
   return (
     <Screen
@@ -118,13 +153,9 @@ export function DeckView({
       footer={`${pageCount > 1 ? `page ${safePage + 1}/${pageCount}  [n]ext [p]rev  ` : ''}[esc/v] close`}
       framed={false}
     >
-      <Box flexDirection="row" width={theme.layout.contentWidth}>
-        {columns.map((col, ci) => (
-          <Box key={ci} flexDirection="column" marginRight={ci === 0 ? 1 : 0}>
-            {col.map((row) => (
-              <DeckRowLine key={row.card.id} row={row} />
-            ))}
-          </Box>
+      <Box flexDirection="column">
+        {pageRows.map((row) => (
+          <DeckRowLine key={row.card.id} row={row} />
         ))}
       </Box>
     </Screen>
