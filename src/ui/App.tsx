@@ -16,6 +16,15 @@ import {
 import type { RunConfig } from '../engine/run.js';
 import { CHARACTERS, CHARACTER_IDS, DEFAULT_CHARACTER } from '../engine/content/index.js';
 import { deriveUnlocks, ALL_UNLOCKABLE_IDS } from '../progression/milestones.js';
+import {
+  dailySeed,
+  dailyDate,
+  bestDailyScore,
+  dailyScore,
+  DAILY_DIFFICULTY,
+  DAILY_MODE,
+  DAILY_CHARACTER,
+} from '../progression/daily.js';
 import type { RunSummary } from '../ai/dungeonAi.js';
 import { StatusBar } from './components/StatusBar.js';
 import { PauseOverlay } from './components/PauseOverlay.js';
@@ -205,11 +214,44 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     refreshUnlocks();
   }, [overPhase, unlocked, deps.store, refreshUnlocks]);
 
+  // E3: the date of the daily currently in progress (null for a normal run), so
+  // GameOver can show the daily score. Mirrors useGame's daily tag at the UI
+  // layer; cleared whenever a non-daily run starts or we return to the title.
+  const [dailyRunDate, setDailyRunDate] = useState<string | null>(null);
   const newRun = () => {
     christenings.reset();
     setJustUnlocked([]);
     refreshUnlocks();
+    setDailyRunDate(null);
     game.newRun();
+  };
+  const newDailyRun = () => {
+    christenings.reset();
+    setJustUnlocked([]);
+    refreshUnlocks();
+    const ms = (deps.now ?? Date.now)();
+    const date = dailyDate(ms);
+    setDailyRunDate(date);
+    // Canonical daily config: fixed difficulty/mode/character for fairness, so
+    // everyone with the same date plays the byte-identical seeded run.
+    const k = knobsFor(DAILY_DIFFICULTY, DAILY_MODE);
+    const cls = CHARACTERS[DAILY_CHARACTER] ?? CHARACTERS[DEFAULT_CHARACTER]!;
+    const dailyConfig: RunConfig = {
+      starterDeck: cls.starterDeck,
+      startingRelics: cls.startingRelics,
+      maxHp: cls.maxHp,
+      startingGold: k.startingGold,
+      enemyHpMult: k.enemyHpMult,
+      ...(k.actHpRamp ? { actHpRamp: k.actHpRamp } : {}),
+      acts: actsForMode(DAILY_MODE),
+      // The daily is a FIXED shared run: no per-player unlock pool, so the seed
+      // fully determines it for everyone (unlockables would fork the run).
+    };
+    game.newRun({ seed: dailySeed(ms), runConfig: dailyConfig, daily: date });
+  };
+  const quitToTitle = () => {
+    setDailyRunDate(null);
+    game.quitToTitle();
   };
   const enemyDisplayName = (defId: string) =>
     christenings.nameFor('boss', defId) ?? christenings.nameFor('enemy', defId);
@@ -217,9 +259,14 @@ export function App({ deps }: { readonly deps: GameDeps }) {
   if (!game.state) {
     const nameOf = (id: string): string =>
       game.content.cards[id]?.name ?? game.content.relics[id]?.name ?? id;
+    const todaysDaily = dailyDate((deps.now ?? Date.now)());
+    const dailyBest = bestDailyScore(deps.store.loadMeta(), todaysDaily);
     return (
       <Title
         hasSave={game.hasSave}
+        dailyDate={todaysDaily}
+        dailyBest={dailyBest}
+        onDaily={newDailyRun}
         snark={snark}
         difficulty={difficulty}
         runMode={runMode}
@@ -291,7 +338,14 @@ export function App({ deps }: { readonly deps: GameDeps }) {
             <EventScreen state={run} content={game.content} dispatch={game.dispatch} />
           )}
           {over && (
-            <GameOverScreen state={run} onNew={newRun} onTitle={game.quitToTitle} />
+            <GameOverScreen
+              state={run}
+              onNew={newRun}
+              onTitle={quitToTitle}
+              {...(dailyRunDate
+                ? { dailyDate: dailyRunDate, dailyScore: dailyScore(run) }
+                : {})}
+            />
           )}
         </>
       )}

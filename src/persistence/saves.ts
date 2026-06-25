@@ -27,6 +27,10 @@ export interface RunRecord {
   readonly mode?: 'single' | 'arc';
   /** E2: character class id. Absent on pre-E2 records. */
   readonly character?: string;
+  /** E3: the daily-challenge date (`YYYY-MM-DD`) this run was the daily for. */
+  readonly daily?: string;
+  /** E3: the daily score (pure derivation over the final state). */
+  readonly score?: number;
 }
 
 export interface MetaSettings {
