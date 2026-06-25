@@ -271,6 +271,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
         difficulty={difficulty}
         runMode={runMode}
         characterName={CHARACTERS[character]?.name ?? character}
+        characterDescription={CHARACTERS[character]?.description ?? ''}
         aiBackend={deps.ai?.backend ?? 'static'}
         unlockedCount={unlocked.length}
         unlockableTotal={ALL_UNLOCKABLE_IDS.size}
