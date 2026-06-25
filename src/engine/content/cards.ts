@@ -153,12 +153,12 @@ const defs: readonly CardDef[] = [
   {
     id: 'troll-blood',
     name: 'Troll Blood',
-    description: 'Gain 5 Regen.',
+    description: 'Gain 4 Regen.',
     type: 'power',
     rarity: 'rare',
     cost: 2,
     target: 'self',
-    effects: [{ kind: 'applyStatus', status: 'regen', stacks: 5, target: 'self' }],
+    effects: [{ kind: 'applyStatus', status: 'regen', stacks: 4, target: 'self' }],
   },
   {
     id: 'lucky-dagger',
@@ -195,13 +195,13 @@ const defs: readonly CardDef[] = [
   { id: 'field-rations', name: 'Field Rations', description: 'Heal 3 HP. Gain 3 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 3 }, { kind: 'block', amount: 3 }] },
   // Uncommons
   { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }], upgradeTo: 'whirlwind-plus' },
-  { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 3 cards.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 3 }] },
+  { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 2 cards. Gain 1 Energy.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 2 }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'iron-hide', name: 'Iron Hide', description: 'Gain 3 Regen.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'regen', stacks: 3, target: 'self' }] },
   { id: 'second-wind', name: 'Second Wind', description: 'Heal 6 HP.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 6 }] },
   { id: 'crippling-blow', name: 'Crippling Blow', description: 'Deal 10 damage. Apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }], upgradeTo: 'crippling-blow-plus' },
   { id: 'shield-bash', name: 'Shield Bash', description: 'Deal 6 damage. Gain 4 Block.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'block', amount: 4 }] },
   // Rares
-  { id: 'avalanche', name: 'Avalanche', description: 'Deal 12 damage to all enemies.', type: 'attack', rarity: 'rare', cost: 3, target: 'allEnemies', effects: [{ kind: 'damage', amount: 12, target: 'allEnemies' }] },
+  { id: 'avalanche', name: 'Avalanche', description: 'Deal 12 damage to all enemies. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 12, target: 'allEnemies' }, { kind: 'draw', count: 1 }] },
   { id: 'berserker-brew', name: 'Berserker Brew', description: 'Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
   { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'heal', amount: 12 }] },
   { id: 'perfect-parry', name: 'Perfect Parry', description: 'Gain 10 Block. Draw 1 card.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10 }, { kind: 'draw', count: 1 }] },
@@ -225,8 +225,8 @@ const defs: readonly CardDef[] = [
   // Rares
   { id: 'viral-load', name: 'Viral Load', description: 'Apply 8 Poison.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 8, target: 'enemy' }] },
   { id: 'iron-stance', name: 'Iron Stance', description: 'Gain 3 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }] },
-  { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 4 Poison to all enemies.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 4, target: 'allEnemies' }] },
-  { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 6 Poison to all enemies. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 6, target: 'allEnemies' }, { kind: 'gainEnergy', amount: 1 }] },
+  { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   { id: 'last-bastion', name: 'Last Bastion', description: 'Gain 18 Block and 1 Dexterity.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   // --- D1: upgraded variants ('<base>-plus'). NEVER draftable: each is some
