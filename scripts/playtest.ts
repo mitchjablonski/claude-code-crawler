@@ -53,6 +53,8 @@ const KNOBS = knobsFor(DIFFICULTY, MODE);
 const ENEMY_HP_MULT = Number(arg('enemyhp', String(KNOBS.enemyHpMult)));
 const MAX_HP = Number(arg('maxhp', String(KNOBS.maxHp)));
 const START_GOLD = Number(arg('gold', String(KNOBS.startingGold)));
+// #34: event loseHp scalar (overridable to compare before=1.0 vs the live knob).
+const EVENT_LOSE_HP_MULT = Number(arg('eventhpmult', String(KNOBS.eventLoseHpMult)));
 
 // Tally of card plays across all runs (any policy) — surfaces which cards a
 // strong agent actually leans on (note: dominated by starters via deck share).
@@ -268,6 +270,7 @@ const config: RunConfig = {
   startingGold: START_GOLD,
   enemyHpMult: ENEMY_HP_MULT,
   ...(KNOBS.actHpRamp ? { actHpRamp: KNOBS.actHpRamp } : {}),
+  eventLoseHpMult: EVENT_LOSE_HP_MULT,
   tempoHint: TEMPO,
   acts: ACTS,
 };

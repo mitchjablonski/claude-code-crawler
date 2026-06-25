@@ -504,6 +504,81 @@ describe('applyAction', () => {
     expect(rich.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 2 });
   });
 
+  // #34: difficulty-scaled event lethality. The cursed-idol ifFail branch is a
+  // fixed 9-HP loss; with a healthy player the 40%-of-current-HP cap is well
+  // above the scaled value, so we read pure scaling. Default config (normal) is
+  // mult 1 → byte-identical.
+  describe('#34 event loseHp scaling', () => {
+    const idolFail = (cfg: Parameters<typeof createRun>[2], hp = 60): RunState => {
+      const base = createRun(content, 'idol-seed', cfg);
+      const onIdol: RunState = {
+        ...base,
+        phase: 'event',
+        event: { eventId: 'cursed-idol' },
+        relics: [], // < 3 relics → ifFail (lose HP)
+        hp,
+      };
+      return applyAction(content, onIdol, { type: 'chooseEventOption', index: 0 });
+    };
+
+    it('normal (mult 1, default) is unchanged — loses the base 9 HP', () => {
+      const r = idolFail(DEFAULT_RUN_CONFIG);
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 9 });
+      expect(r.hp).toBe(51);
+    });
+
+    it('hard scales loseHp by 1.25 → floor(9*1.25)=11', () => {
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.25 });
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 11 });
+      expect(r.hp).toBe(49);
+    });
+
+    it('nightmare scales loseHp by 1.5 → floor(9*1.5)=13', () => {
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 });
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 13 });
+      expect(r.hp).toBe(47);
+    });
+
+    it('caps the SCALED loss at 40% of current HP (no cheap instant-kills)', () => {
+      // At 30 HP, nightmare would scale 9→13, but the cap is max(base 9,
+      // floor(30*0.4)=12) = 12, so the loss is clamped from 13 down to 12.
+      const r = idolFail({ ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 }, 30);
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 12 });
+      expect(r.hp).toBe(18);
+    });
+
+    it('cap floor is the base amount: an author-lethal event stays lethal on normal', () => {
+      // shrine "Pry up the offerings" is a flat 5-HP loss; at 3 HP it is lethal
+      // on normal even though 5 > floor(3*0.4)=1 (the base is the cap floor).
+      const base = run('alpha');
+      const shrine: RunState = {
+        ...base,
+        phase: 'event',
+        event: { eventId: 'shrine-of-the-crawl' },
+        hp: 3,
+      };
+      const looted = applyAction(content, shrine, { type: 'chooseEventOption', index: 1 });
+      expect(looted.phase).toBe('defeat');
+    });
+
+    it('does not scale gains (gold/maxHp/relics) — only loseHp', () => {
+      // abandoned-cache "Force it open": +40 gold, -5 HP. Nightmare scales only HP.
+      const base = createRun(content, 'cache-seed', { ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1.5 });
+      const cache: RunState = { ...base, phase: 'event', event: { eventId: 'abandoned-cache' }, hp: 60 };
+      const r = applyAction(content, cache, { type: 'chooseEventOption', index: 0 });
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'gainGold', amount: 40 });
+      expect(r.event?.result?.applied).toContainEqual({ kind: 'loseHp', amount: 7 }); // floor(5*1.5)
+    });
+
+    it('defaults eventLoseHpMult to 1 and does not shift the rng stream', () => {
+      expect(run('alpha').eventLoseHpMult).toBe(1);
+      // The rng/state of a default run equals one built with an explicit mult of
+      // 1 — the scalar never draws rng, so the stream is identical regardless.
+      const explicit = createRun(content, 'alpha', { ...DEFAULT_RUN_CONFIG, eventLoseHpMult: 1 });
+      expect(explicit.rng).toEqual(run('alpha').rng);
+    });
+  });
+
   it('a stat-gated option is excluded from legalActions unless affordable', () => {
     const base = run('alpha');
     const toll = (gold: number): RunState => ({

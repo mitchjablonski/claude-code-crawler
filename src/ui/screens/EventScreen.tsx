@@ -68,7 +68,10 @@ function nameOf(outcome: SimpleEventOutcome, content: ContentRegistry): string {
  * dimension (gold / hp / maxHp). Card/relic grants contribute nothing here —
  * they are summarized separately by name.
  */
-function numericDelta(outcome: SimpleEventOutcome): {
+function numericDelta(
+  outcome: SimpleEventOutcome,
+  loseHpMult: number,
+): {
   readonly gold: number;
   readonly hp: number;
   readonly maxHp: number;
@@ -79,7 +82,11 @@ function numericDelta(outcome: SimpleEventOutcome): {
     case 'loseGold':
       return { gold: -outcome.amount, hp: 0, maxHp: 0 };
     case 'loseHp':
-      return { gold: 0, hp: -outcome.amount, maxHp: 0 };
+      // #34: the engine scales event loseHp by the difficulty knob (then caps at
+      // 40% of current HP). Show the SCALED amount so the stated stakes match
+      // reality; on normal (mult 1) this is byte-identical to the base value.
+      // The cap is HP-dependent so the hint shows the uncapped ceiling.
+      return { gold: 0, hp: -Math.floor(outcome.amount * loseHpMult), maxHp: 0 };
     case 'gainMaxHp':
       return { gold: 0, hp: 0, maxHp: outcome.amount };
     default:
@@ -88,14 +95,17 @@ function numericDelta(outcome: SimpleEventOutcome): {
 }
 
 /** Sum the numeric deltas of a flat list of simple outcomes (one branch/clause). */
-function sumNumeric(outcomes: readonly SimpleEventOutcome[]): {
+function sumNumeric(
+  outcomes: readonly SimpleEventOutcome[],
+  loseHpMult: number,
+): {
   readonly gold: number;
   readonly hp: number;
   readonly maxHp: number;
 } {
   return outcomes.reduce(
     (acc, o) => {
-      const d = numericDelta(o);
+      const d = numericDelta(o, loseHpMult);
       return { gold: acc.gold + d.gold, hp: acc.hp + d.hp, maxHp: acc.maxHp + d.maxHp };
     },
     { gold: 0, hp: 0, maxHp: 0 },
@@ -138,6 +148,7 @@ function rangeNumSegment(min: number, max: number, suffix: string): HintSegment 
 export function optionHintSegments(
   outcomes: readonly EventOutcome[],
   content: ContentRegistry,
+  loseHpMult = 1,
 ): readonly HintSegment[] {
   const segments: HintSegment[] = [];
   const sep: HintSegment = { text: ', ', color: theme.colors.muted };
@@ -152,7 +163,7 @@ export function optionHintSegments(
     (o): o is SimpleEventOutcome =>
       o.kind !== 'rollOutcomes' && o.kind !== 'conditional',
   );
-  const fixed = sumNumeric(simple);
+  const fixed = sumNumeric(simple, loseHpMult);
   push(fixedNumSegment(fixed.gold, 'g'));
   push(fixedNumSegment(fixed.hp, ' HP'));
   push(fixedNumSegment(fixed.maxHp, ' max HP'));
@@ -163,7 +174,7 @@ export function optionHintSegments(
   // 2) Composite parts, in author order.
   for (const o of outcomes) {
     if (o.kind === 'rollOutcomes') {
-      const sums = o.branches.map(sumNumeric);
+      const sums = o.branches.map((b) => sumNumeric(b, loseHpMult));
       const range = (sel: (s: { gold: number; hp: number; maxHp: number }) => number) => ({
         min: Math.min(...sums.map(sel)),
         max: Math.max(...sums.map(sel)),
@@ -191,7 +202,7 @@ export function optionHintSegments(
     } else if (o.kind === 'conditional') {
       // Show the gate and both clauses compactly: `if relics>=3: -2 HP else -9 HP`.
       const clause = (cl: readonly SimpleEventOutcome[]) => {
-        const n = sumNumeric(cl);
+        const n = sumNumeric(cl, loseHpMult);
         const parts: string[] = [];
         if (n.gold !== 0) parts.push(`${signed(n.gold)}g`);
         if (n.hp !== 0) parts.push(`${signed(n.hp)} HP`);
@@ -317,7 +328,7 @@ export function EventScreen({
           // Outcome hint: a read-only summary of the option's STAKES (range for
           // a gamble), shown as a dim sub-line so the player has agency without
           // the resolved roll being spoiled. Empty outcomes ("Walk away") -> none.
-          const hint = optionHintSegments(option.outcomes, content);
+          const hint = optionHintSegments(option.outcomes, content, state.eventLoseHpMult);
           if (!available) {
             // Keep the real number (dimmed) so locked/unlocked rows align in
             // one column; pressing it is a no-op (guarded in useInput).

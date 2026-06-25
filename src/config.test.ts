@@ -147,4 +147,15 @@ describe('knobsFor', () => {
       actHpRamp: [1.0, 1.13, 1.27],
     });
   });
+
+  // #34: event loseHp scalar. story/normal MUST be exactly 1.0 (normal seeded
+  // replay byte-identical); hard/nightmare add teeth. Same in both modes.
+  it('pins eventLoseHpMult per tier (normal/story exactly 1.0)', () => {
+    for (const mode of ['single', 'arc'] as const) {
+      expect(knobsFor('story', mode).eventLoseHpMult).toBe(1.0);
+      expect(knobsFor('normal', mode).eventLoseHpMult).toBe(1.0);
+      expect(knobsFor('hard', mode).eventLoseHpMult).toBe(1.25);
+      expect(knobsFor('nightmare', mode).eventLoseHpMult).toBe(1.5);
+    }
+  });
 });

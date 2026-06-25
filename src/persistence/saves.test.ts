@@ -91,6 +91,16 @@ describe('run saves', () => {
     expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
   });
 
+  it('quarantines a v9 save (no eventLoseHpMult) rather than half-loading (#34 bump)', () => {
+    const store = createSaveStore(dir);
+    fs.writeFileSync(
+      path.join(dir, 'run.json'),
+      JSON.stringify({ version: 9, savedAt: 1, state: { event: null } }),
+    );
+    expect(store.loadRun()).toBeNull();
+    expect(fs.readdirSync(dir).some((f) => f.startsWith('run.json.corrupt-'))).toBe(true);
+  });
+
   it('roundtrips a v9 run state carrying run stats', () => {
     const store = createSaveStore(dir, () => 1_750_000_000_000);
     const state = {

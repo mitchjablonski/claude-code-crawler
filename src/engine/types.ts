@@ -336,6 +336,13 @@ export interface RunState {
    */
   readonly actHpRamp: readonly number[];
   /**
+   * #34: difficulty multiplier on event `loseHp` outcomes, baked in at createRun
+   * (1 = neutral; normal/story). Scaling is applied at event resolution and the
+   * loss is capped at 40% of CURRENT HP; the rng stream is untouched so normal
+   * (mult 1) replays byte-identical.
+   */
+  readonly eventLoseHpMult: number;
+  /**
    * E2: EXTRA unlockable card/relic ids this run may draft (captured at
    * createRun from the run config). Unlockables NOT listed stay excluded from
    * the draft/elite-relic pools. Empty for default/fresh runs and the harness →
