@@ -640,13 +640,15 @@ function chooseEventOption(
       case 'loseHp': {
         // #34: scale the loss by the difficulty knob (normal/story = 1.0 →
         // byte-identical; hard 1.25 / nightmare 1.5), then CAP the *added teeth*
-        // so a SCALED branch can't exceed 40% of CURRENT HP — no cheap
-        // instant-kills from the multiplier. The cap floor is the BASE amount, so
-        // an event the designer authored as lethal stays lethal and normal (mult
-        // 1) is byte-identical (loss == base ≤ cap). Pure integer arithmetic on
-        // existing state — no rng drawn, so the stream never shifts.
+        // so a SCALED branch can't exceed 50% of MAX HP — a full-HP player can
+        // never be cheaply one-shot, but a warned, wounded player CAN die (the
+        // #24 hints show the scaled stakes, so it's informed). Max HP (not
+        // current) gives a stable ceiling that doesn't shrink when wounded. The
+        // cap floor is the BASE amount, so an event the designer authored as
+        // lethal stays lethal and normal (mult 1) is byte-identical (loss ==
+        // base ≤ cap). Pure integer arithmetic — no rng drawn, stream unshifted.
         const scaled = Math.floor(outcome.amount * next.eventLoseHpMult);
-        const cap = Math.max(outcome.amount, Math.floor(next.hp * 0.4));
+        const cap = Math.max(outcome.amount, Math.floor(next.maxHp * 0.5));
         const loss = Math.min(scaled, cap);
         next = { ...next, hp: Math.max(0, next.hp - loss) };
         applied.push(loss === outcome.amount ? outcome : { kind: 'loseHp', amount: loss });
