@@ -7,8 +7,15 @@ import { Screen } from '../components/Screen.js';
 /** Heal fraction must match the `rest` reducer in run.ts (state.maxHp * 0.2). */
 const HEAL_PCT = 20;
 
-/** Upgradeable cards per page; single-digit hotkeys cap a page at 9. */
-const PER_PAGE = 9;
+/**
+ * Upgradeable cards per page. Single-digit hotkeys could cap a page at 9, but
+ * each option spends 2 rows (header + base->upgraded delta, the delta wrapping
+ * to a 3rd row for long cards), and a full page must fit the ~30-row snapshot
+ * budget with the header and `[esc]` footer still on-screen. The starter deck
+ * is 9 cards, ALL upgradeable, so the very first rest hits a full page — six
+ * keeps even an all-wrapping page (6*3=18 body rows + chrome) under 30.
+ */
+const PER_PAGE = 6;
 
 /** Deck cards (with their deck index) that have a valid upgrade target. */
 function upgradeable(
@@ -28,12 +35,14 @@ function upgradeable(
 /**
  * One upgradeable card rendered as a base->upgraded COMPARISON so the upgrade is
  * an informed choice (the chooser used to show only the upgraded card, leaving
- * the player to recall base stats from memory). Two lines per option keeps nine
- * options inside the 30-row snapshot budget and well under 76 cols:
+ * the player to recall base stats from memory). Kept to TWO compact rows so a
+ * full PER_PAGE page fits the ~30-row snapshot budget with chrome (see PER_PAGE):
  *   - header:  [N] (cost) Name
- *   - delta:        was <base effect>  ->  now <upgraded effect>
- * `was` reads muted (current) and `now` reads success (the improvement) so the
- * delta is scannable at a glance. Colors route through theme tokens only.
+ *   - delta:     was <base effect>  ->  now <upgraded effect>   (may wrap once)
+ * No blank-line gap between options — the header line gives enough separation,
+ * and a trailing margin per option blew the row budget at a full page. `was`
+ * reads muted (current) and `now` reads success (the improvement) so the delta
+ * is scannable at a glance. Colors route through theme tokens only.
  */
 function UpgradeOption({
   marker,
@@ -45,7 +54,7 @@ function UpgradeOption({
   readonly upgraded: { readonly description: string };
 }) {
   return (
-    <Box flexDirection="column" marginBottom={1} width={theme.layout.contentWidth - 2}>
+    <Box flexDirection="column" width={theme.layout.contentWidth - 2}>
       <Text>
         <Text bold>{marker}</Text>
         {' ('}
@@ -77,7 +86,8 @@ export function RestScreen({
 }) {
   // The engine has no rest sub-phase; the rest/upgrade choice lives here only.
   const [view, setView] = useState<'menu' | 'upgrade'>('menu');
-  // Pages of 9 keep every upgradeable card reachable via single-digit hotkeys.
+  // Paging keeps every upgradeable card reachable via single-digit hotkeys
+  // while a full page still fits the row budget (see PER_PAGE).
   const [page, setPage] = useState(0);
   const options = upgradeable(state, content);
   const pageCount = Math.max(1, Math.ceil(options.length / PER_PAGE));
