@@ -94,11 +94,11 @@ describe('dailyScore', () => {
   });
 
   it('matches the documented formula', () => {
-    // floors*50 + gold + hp + relics*25 + (won?500:0)
+    // floors*50 + floor(gold*0.5) + hp + relics*25 + (won?500:0)
     const s = fakeState({ row: 4, hp: 30, gold: 80, relics: ['a', 'b'], phase: 'defeat' });
-    expect(dailyScore(s)).toBe(4 * 50 + 80 + 30 + 2 * 25);
+    expect(dailyScore(s)).toBe(4 * 50 + 40 + 30 + 2 * 25);
     const w = fakeState({ row: 4, hp: 30, gold: 80, relics: ['a', 'b'], phase: 'victory' });
-    expect(dailyScore(w)).toBe(4 * 50 + 80 + 30 + 2 * 25 + 500);
+    expect(dailyScore(w)).toBe(4 * 50 + 40 + 30 + 2 * 25 + 500);
   });
 
   it('a victory always outscores an otherwise-equal defeat', () => {

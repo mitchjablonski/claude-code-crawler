@@ -70,7 +70,9 @@ export function dailyScore(state: RunState): number {
   const won = state.phase === 'victory';
   return (
     floorsCleared * 50 +
-    Math.max(0, state.gold) +
+    // Gold is weighted (not 1:1) so a no-shop hoard can't rival a build that
+    // spent its gold and won — still strictly monotonic in gold, just lighter.
+    Math.floor(Math.max(0, state.gold) * 0.5) +
     Math.max(0, state.hp) +
     state.relics.length * 25 +
     (won ? 500 : 0)
