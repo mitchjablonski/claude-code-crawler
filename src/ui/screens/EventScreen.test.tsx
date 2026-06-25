@@ -93,6 +93,35 @@ describe('optionHintSegments (hint model)', () => {
   it('an empty-outcome option yields no hint', () => {
     expect(optionHintSegments([], content)).toHaveLength(0);
   });
+
+  // #34: hints must reflect the SCALED loseHp so the displayed stakes stay honest
+  // at hard/nightmare. Default mult (1) keeps the hint byte-identical to base.
+  it('scales the loseHp hint at hard (×1.25) and nightmare (×1.5)', () => {
+    const mk = (mult: number) =>
+      optionHintSegments([{ kind: 'loseHp', amount: 8 }], content, mult)
+        .map((s) => s.text)
+        .join('');
+    expect(mk(1)).toContain('-8 HP'); // normal: unchanged
+    expect(mk(1.25)).toContain('-10 HP'); // floor(8*1.25)
+    expect(mk(1.5)).toContain('-12 HP'); // floor(8*1.5)
+  });
+
+  it('scales the loseHp side of a roll RANGE but not the gains', () => {
+    const text = optionHintSegments(
+      [
+        {
+          kind: 'rollOutcomes',
+          branches: [[{ kind: 'gainGold', amount: 55 }], [{ kind: 'loseHp', amount: 8 }]],
+        },
+      ],
+      content,
+      1.5,
+    )
+      .map((s) => s.text)
+      .join('');
+    expect(text).toContain('+0..+55g'); // gold unscaled
+    expect(text).toContain('-12..+0 HP'); // HP scaled (floor(8*1.5)=12)
+  });
 });
 
 describe('EventScreen option view renders hints', () => {

@@ -28,14 +28,33 @@ export interface DifficultyKnobs {
    * single mode stays byte-identical). Undefined for single mode → no ramp.
    */
   readonly actHpRamp?: readonly number[];
+  /**
+   * Multiplier applied to event `loseHp` outcome amounts so risk branches bite
+   * at higher difficulty (#34). MUST be exactly 1.0 on normal/story so seeded
+   * normal replay stays byte-identical (the scalar only touches the resolved
+   * amount, never the rng stream). Same per (difficulty) in both modes.
+   */
+  readonly eventLoseHpMult: number;
 }
+
+/**
+ * Event `loseHp` scalar per difficulty (#34). normal/story are exactly 1.0 so
+ * normal seeded replay is byte-identical; hard/nightmare add teeth to the
+ * "risky" event branches that were toothless at hard+ in playtest.
+ */
+const EVENT_LOSE_HP_MULT: Readonly<Record<Difficulty, number>> = {
+  story: 1.0,
+  normal: 1.0,
+  hard: 1.25,
+  nightmare: 1.5,
+};
 
 /** Single-mode per-tier knobs (greedy: story ~84 / normal ~67 / hard ~41 / nightmare ~23). */
 export const DIFFICULTY_KNOBS: Readonly<Record<Difficulty, DifficultyKnobs>> = {
-  story: { maxHp: 70, enemyHpMult: 0.85, startingGold: 50 },
-  normal: { maxHp: 70, enemyHpMult: 1.0, startingGold: 50 },
-  hard: { maxHp: 70, enemyHpMult: 1.18, startingGold: 50 },
-  nightmare: { maxHp: 70, enemyHpMult: 1.33, startingGold: 50 },
+  story: { maxHp: 70, enemyHpMult: 0.85, startingGold: 50, eventLoseHpMult: EVENT_LOSE_HP_MULT.story },
+  normal: { maxHp: 70, enemyHpMult: 1.0, startingGold: 50, eventLoseHpMult: EVENT_LOSE_HP_MULT.normal },
+  hard: { maxHp: 70, enemyHpMult: 1.18, startingGold: 50, eventLoseHpMult: EVENT_LOSE_HP_MULT.hard },
+  nightmare: { maxHp: 70, enemyHpMult: 1.33, startingGold: 50, eventLoseHpMult: EVENT_LOSE_HP_MULT.nightmare },
 };
 
 /**

@@ -82,6 +82,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
       ...(k.actHpRamp ? { actHpRamp: k.actHpRamp } : {}),
+      eventLoseHpMult: k.eventLoseHpMult,
       acts: actsForMode(runMode),
       // E2: only EARNED unlockables enter the pool. Empty for a fresh player →
       // core-only pool, byte-identical to pre-E2 (and the harness uses DEFAULT).
@@ -244,6 +245,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       startingGold: k.startingGold,
       enemyHpMult: k.enemyHpMult,
       ...(k.actHpRamp ? { actHpRamp: k.actHpRamp } : {}),
+      eventLoseHpMult: k.eventLoseHpMult,
       acts: actsForMode(DAILY_MODE),
       // The daily is a FIXED shared run: no per-player unlock pool, so the seed
       // fully determines it for everyone (unlockables would fork the run).

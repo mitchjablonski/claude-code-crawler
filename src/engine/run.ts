@@ -40,6 +40,12 @@ export interface RunConfig {
    * byte-identical. Missing/undefined → every act uses 1.0 (no-op).
    */
   readonly actHpRamp?: readonly number[];
+  /**
+   * #34: multiplier on event `loseHp` outcome amounts (difficulty teeth). Default
+   * 1 = neutral (normal/story), so the DEFAULT config and normal-seeded replay
+   * are byte-identical. Only ever scales the resolved loss; never the rng stream.
+   */
+  readonly eventLoseHpMult?: number;
   /** Number of acts (1 = single session, 3 = multi-act arc). Default 1. */
   readonly acts?: number;
   /** Potion slot limit (default 3). */
@@ -87,6 +93,7 @@ export function createRun(
     modifiers: { nextCombatStatuses: {}, queuedEliteIds: [] },
     enemyHpMult: config.enemyHpMult ?? 1,
     actHpRamp: config.actHpRamp ?? [],
+    eventLoseHpMult: config.eventLoseHpMult ?? 1,
     allowedUnlockIds: [...(config.allowedUnlockIds ?? [])],
     stats: { turns: 0, damageDealt: 0, damageTaken: 0, enemiesSlain: 0 },
   };
@@ -614,31 +621,52 @@ function chooseEventOption(
     flattenOutcomes(option.outcomes, state, r),
   );
 
-  // Apply the simple outcomes immutably (same arithmetic as before).
+  // Apply the simple outcomes immutably (same arithmetic as before). loseHp
+  // outcomes are rewritten in `applied` to the ACTUAL loss (after #34 scaling +
+  // cap) so the result screen / hints / tests reflect what really happened. On
+  // normal (mult 1, cap not reached) loss === base amount → byte-identical.
   let next: RunState = { ...state, rng };
+  const applied: SimpleEventOutcome[] = [];
   for (const outcome of resolved.applied) {
     switch (outcome.kind) {
       case 'gainGold':
         next = { ...next, gold: next.gold + outcome.amount };
+        applied.push(outcome);
         break;
       case 'loseGold':
         next = { ...next, gold: Math.max(0, next.gold - outcome.amount) };
+        applied.push(outcome);
         break;
-      case 'loseHp':
-        next = { ...next, hp: Math.max(0, next.hp - outcome.amount) };
+      case 'loseHp': {
+        // #34: scale the loss by the difficulty knob (normal/story = 1.0 →
+        // byte-identical; hard 1.25 / nightmare 1.5), then CAP the *added teeth*
+        // so a SCALED branch can't exceed 40% of CURRENT HP — no cheap
+        // instant-kills from the multiplier. The cap floor is the BASE amount, so
+        // an event the designer authored as lethal stays lethal and normal (mult
+        // 1) is byte-identical (loss == base ≤ cap). Pure integer arithmetic on
+        // existing state — no rng drawn, so the stream never shifts.
+        const scaled = Math.floor(outcome.amount * next.eventLoseHpMult);
+        const cap = Math.max(outcome.amount, Math.floor(next.hp * 0.4));
+        const loss = Math.min(scaled, cap);
+        next = { ...next, hp: Math.max(0, next.hp - loss) };
+        applied.push(loss === outcome.amount ? outcome : { kind: 'loseHp', amount: loss });
         break;
+      }
       case 'gainMaxHp':
         next = {
           ...next,
           maxHp: next.maxHp + outcome.amount,
           hp: next.hp + outcome.amount,
         };
+        applied.push(outcome);
         break;
       case 'gainCard':
         next = { ...next, deck: [...next.deck, outcome.cardId] };
+        applied.push(outcome);
         break;
       case 'gainRelic':
         next = { ...next, relics: [...next.relics, outcome.relicId] };
+        applied.push(outcome);
         break;
     }
   }
@@ -647,14 +675,14 @@ function chooseEventOption(
   if (next.hp <= 0) return { ...next, event: null, phase: 'defeat' };
 
   // Nothing applied (e.g. "Walk away") → straight back to the map.
-  if (resolved.applied.length === 0) {
+  if (applied.length === 0) {
     return { ...next, event: null, phase: 'map' };
   }
 
   // Otherwise stay in the event phase and show a result screen.
   return {
     ...next,
-    event: { eventId, result: { applied: resolved.applied, rolled: resolved.rolled } },
+    event: { eventId, result: { applied, rolled: resolved.rolled } },
     phase: 'event',
   };
 }
