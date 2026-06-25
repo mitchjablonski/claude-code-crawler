@@ -115,3 +115,19 @@ Re-validated batch 7/8: #20 single-gap CONFIRMED closed (no overshoot); #21/#23/
 - **(top) class taglines on title**: `Character.description` exists but is never shown — cycling to Apothecary tells a new player nothing. ~3 LOC in Title.tsx. → batch nine #27.
 - **`announcer: static` dev-seam** label leaks to players → rename to a player-facing/world label. → batch nine #27.
 - deck-view card descriptions (V9); rest before→after upgrade preview (V9); event-result flavor callback (overlaps E5); map spatial/tree view; "Unknown event" node `?` sigil; weighted-roll odds in event hints.
+
+## Batch-ten fresh playtest findings (2026-06-25, balance + UX on current-code snapshot)
+
+Re-validated: #20/#22/#26 held (single parity stable; batch-seven dead cards all drafted by MCTS); #25 GameOver stats + #27 class taglines/announcer confirmed land. Balance #1 finding = merge-conflict over-lethality (ALREADY FIXED in #29, validated independently). Addressed this batch: #28 best-run, #29 merge-conflict, #30 rest before→after upgrade. Queued for batch eleven+:
+
+### Balance (from fresh balance playtest)
+- **New dead cards (MCTS <15% picked, both classes)**: `viral-load` (poison6-all/2 — worst in pool), `berserker-brew` (2str, lose 4hp /1 — HP loss anti-synergistic), `torch-jab` (5dmg+2burn/1), `lucky-dagger` (conditional ×2 rarely fires). A second dead-card pass (content-only, like #22). → batch eleven.
+- **Arc boss-climax / endHp structural gap** (D7 follow-up): arc winners reach the boss at ~43-46 HP vs single ~13-22, muting the 50% boss climax. Lever: small per-act HP "exhaustion" cost OR per-mode arc boss-HP mult; target arc endHp ~28-35. → queued.
+- **Event lethality at HARD** (not nightmare — nightmare events DO kill ~3.5%): events' `loseHp` is flat across difficulty; scale hard×1.25 (cap ~1.5×). Pairs with E5. → queued.
+- Arc cross-class gap at normal/hard = HARNESS ARTIFACT (MCTS 99-100% both classes); only nightmare may have a small real component. Don't chase with content.
+- **Greedy reward policy is blind (index-0)** → greedy pickRate is noise, uncorrelated with MCTS. Add a heuristic card-scorer so sweeps give real per-card signal cheaply. → queued (tooling; the right lever for the #26 arc/hard residual too).
+- troll-blood mode/class-asymmetric (dead single, top arc/apoth) — by design, watch; lint-goblin 3rd killer in arc/nightmare — monitor if elite HP scaling changes.
+
+### UX (from fresh UX playtest)
+- **Deck-view card descriptions** (V9) — #2 UX ask; deck view shows no effects → can't plan/compare. → batch eleven.
+- Map "Unknown event" risk signal (no stakes hint at the node); relics HUD overflow at high counts (silent truncate → show "+N more"/count); event-result screen sparse (flavor callback); draw/discard pile counts in combat HUD.
