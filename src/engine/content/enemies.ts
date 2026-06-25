@@ -203,17 +203,29 @@ const defs: readonly EnemyDef[] = [
     moves: [
       { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
       { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
-      { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
+      // Rebase rallies +1 strength (was +2): the compounding strength gain made
+      // phase-1 attacks escalate fast (Force Push 12 -> 14 -> 16 ...), which was
+      // the bulk of merge-conflict's over-lethality across its two arc encounters.
+      { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
     ],
-    // Showcase phase: once cornered (<=40% HP) it stops rebasing for block and
-    // just keeps force-pushing — a simple two-move all-offense pool.
+    // Showcase phase: once cornered (<=30% HP) it goes aggressive — but, like the
+    // boss's enraged phase, it punctuates the offense with a defensive block beat
+    // ("Resolve Conflict") instead of force-pushing every single turn. This keeps
+    // the closing window readable and stops phase 2 from being an unbroken ~12
+    // dmg/turn wall that out-killed the boss in arc/nightmare. The later (0.3 vs
+    // 0.4) trigger also shortens the time spent in the aggressive pool.
     phases: [
       {
-        hpThreshold: 0.4,
+        hpThreshold: 0.3,
         name: 'Unresolvable',
         moves: [
-          { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
+          // Phase-2 Force Push trimmed 12 -> 10 (base pool stays 12): the
+          // cornered spam was the lethal spike that out-killed the boss.
+          { name: 'Force Push', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }] },
           { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
+          // Pure block breather (no strength) — a defensive beat that gives the
+          // player a window, without ramping the follow-up Force Pushes.
+          { name: 'Resolve Conflict', effects: [{ kind: 'block', amount: 6 }] },
         ],
       },
     ],
