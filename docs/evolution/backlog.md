@@ -53,7 +53,7 @@ first** so later features are built to-spec. Status: `todo` / `doing` / `done` /
 | E1  | **Meaningful events**: expand events with real risk/reward branches and stat checks (not just pick-an-option). | P1 | — | **done** (PR #6) |
 | E2  | **Meta-progression**: cross-run unlocks (cards/relics/classes) persisted via the save store. | P2 | — | **done** (PR #16) — milestone-derived unlocks of 8 extra cards/relics; classes left always-available |
 | E7  | **Meta-progression follow-ups** (from E2): smooth the front-loadable milestone curve (a single Hard-arc win crosses 3 milestones at once — add a variety milestone, e.g. win with both classes); richer Title UX showing WHICH milestone unlocks WHAT + a locked-teaser list; (framework already supports class-gating if a new unlockable class is ever authored). | P3 | E2 | todo |
-| E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | todo |
+| E3  | **Daily seed**: a shared deterministic seed-of-the-day run with a score summary. | P3 | — | **done** (PR #19) |
 | E4  | **Deeper Claude-Code moments**: more event→modifier vocabulary (long thinking, big diffs, lint failures) surfaced as flavor + bounded effects. | P2 | — | **done** (PR #11) — lint pass/fail + git commit |
 | E6  | **More Claude-Code signals** (E4 follow-ups): ~~`git push` = "ship it"~~ **done (PR #18)**; a distinct elite for test/build failures so the Lint Goblin is lint's exclusive payoff; `long_thinking`/`big_diff` once a hook/payload exposes thinking-duration / diff-size; give `pushed` a mechanically-distinct effect from `agent_spawned` (both are `blessNextCombat strength 1` today — narration differs but mechanics coincide). | P3 | E4 | partial (push done) |
 | E5  | **Richer event mechanics** (E1 follow-ups): lean harder on `conditional` build-checks (deck/maxHp/relics) over plain gold-gates; add a `gainPotion` event outcome (compose with D2); per-event result flavor text; consider smarter playtest policies (EV-aware for event gambles; rarity-seeking for D3 reward draws) so the harness stress-tests choices the rarity-blind greedy bot ignores. Also track apothecary-arc-normal as the weakest balance seam (~−13pt, pre-existing kit asymmetry). | P2 | E1 | todo |
@@ -84,3 +84,18 @@ Validated against current code. Driving batch seven + queued:
 
 ## NOTE on the UX playtest
 A second Sonnet "UX" playtester ran against a worktree cut from `main` (737a1c1, pre-evolution baseline), so its findings describe the 19-increments-ago game and are mostly stale (it flagged player-statuses/deck-view/card-frames/rest-upgrade as "missing" — all shipped in batches 1-6). Re-run a UX playtester on the CURRENT branch (without worktree isolation, which based off main) for valid UX feedback.
+
+## UX playtest findings (2026-06-24, Sonnet UX playtester on CURRENT code — valid)
+
+Ranked by player impact. #1/#2 → batch seven #21 (HUD); rest queued:
+- **(near-blocker) StatusBar right-edge clip**: the `dungeon: linked / dormant (ccc init)` row — the GAME'S CORE PREMISE (it reacts to your coding) — overflows the 76-col frame and is invisible (shows only `dunge`). Row 2 isn't pinned to contentWidth like row 1. → #21.
+- **No persistent relic display during a run**: relics show once on the reward screen then vanish from the UI everywhere. The primary power-build mechanic is invisible between rewards. → #21.
+- **Thin post-run stats**: GameOver shows only seed/deck-size/gold; wants depth, relics, turns, damage. (GameOverScreen already gets full RunState.) → queued.
+- **Events don't preview outcome ranges**: options say "(risky)" with no HP/gold range → no agency. → queued (E-pillar; pairs with E5).
+- **Map is a flat list, not a tree**: no spatial structure / route planning; `RunMap` has row/lane/next to render spatially. → queued (V-pillar).
+- DeckView shows no card descriptions (→ V9); rest upgrade shows no before→after (→ V9); no class description on title; `announcer: static` dev-seam label leaks to players.
+- Confirmed delight: combat juice, multi-effect telegraphs, status icons, enemy sigils/names, snark, unlock counter, daily, pause overlay, card-tile consistency.
+
+## Batch-seven balance debt (queued)
+- **Arc Knight-lead widened** by #20 (Knight kit buff): arc knight now ~+9-11pp over apoth (was +4-7). Needs a per-mode/per-class knob or arc tuning; do NOT re-nerf the Knight kit (reopens single gap).
+- **Dead-card balance pass** (from the balance playtest, deferred from batch seven): rework `battle-trance` (dominated by adrenaline-rush), `avalanche`, `corrosive-mist`, `juggernaut` (MCTS never picks); temper `troll-blood` (regen 5) rare dominance.
