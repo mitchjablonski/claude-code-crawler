@@ -138,3 +138,12 @@ Re-validated: #20/#22/#26 held (single parity stable; batch-seven dead cards all
 - **Arc endHp gap CONFIRMED #1 balance priority** (arc winners 39-46 HP vs single 13-22; muted boss climax). Lever A = per-act HP "exhaustion" cost (5-8 HP/act-end post-heal) → target arc endHp ~28-35; validate arc/normal stays >~60%, arc/nightmare >~25%. → #32.
 - Event lethality flat/too low (0 single deaths all diffs; arc/nightmare ~2.3%) → scale loseHp hard×1.25/nightmare×1.5, cap ~40% current HP. → queued.
 - UX: deck-view descriptions (#2 ask → #33); draw/discard pile counts in combat HUD (#1 ask, data in combat.drawPile/discardPile); relics HUD overflow at 5+ (silent truncate → "+N more"); map "Unknown event" risk tier; event-result flavor/aftermath line.
+
+## Batch-twelve fresh playtest deltas (2026-06-25)
+- #32 arc exhaustion CONFIRMED (arc endHp 30-35, single byte-identical); #29 merge-conflict stable; #31 cards held EXCEPT lucky-dagger still dead (MCTS 0.14 knight / 0.00 apoth — #31's 9→12 dmg insufficient).
+- Addressed this batch: #34 event lethality, #35 draw/discard counts, #36 TBD.
+- **lucky-dagger still dead** → needs a different lever: a conditional payoff ("×2 if poisoned") needs an engine conditional-effect kind (none exists), OR a non-conditional creative rework. → batch thirteen.
+- whirlwind MCTS-dead in single (0.04) but fine in arc (mode-conditional); twin-jab/pommel-strike bottom-third commons; battle-trance still 0.00 knight (draw/energy archetype underbuilt). → batch thirteen card pass.
+- single/normal/apothecary ease (0.803, MCTS 1.0) = pre-existing poison-vs-boss seam, NOT an exhaustion artifact; 3.6pp cross-class gap within tolerance — monitor, don't chase.
+- **greedy reward policy blind (index-0)** → all greedy pickRate is noise; a heuristic card-scorer (~50 lines in playtest.ts) would make sweeps real signal + likely expose event lethality. → high-leverage tooling, batch thirteen.
+- UX: draw/discard pile counts (#1 → #35); relics-HUD silent truncation at 6+/long names → "+N more" (→ #36 candidate); surface event NAME on the map instead of "Unknown event" (deterministic, expressive — design-intent change); deck-view page-2 sparse (cosmetic); event-result "what you chose" recall.
