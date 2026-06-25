@@ -28,11 +28,14 @@ export function Title({
   runMode,
   characterName,
   aiBackend,
+  dailyDate,
+  dailyBest,
   unlockedCount,
   unlockableTotal,
   unlockedNames,
   justUnlockedNames,
   onNew,
+  onDaily,
   onContinue,
   onCycleSnark,
   onCycleDifficulty,
@@ -45,6 +48,10 @@ export function Title({
   readonly runMode: RunMode;
   readonly characterName: string;
   readonly aiBackend: string;
+  /** E3: today's daily-challenge date (`YYYY-MM-DD`, UTC). */
+  readonly dailyDate: string;
+  /** E3: best recorded score for today's daily, if already played. */
+  readonly dailyBest?: number;
   /** E2: count of EXTRA content ids unlocked so far. */
   readonly unlockedCount: number;
   /** E2: total unlockable extras across all milestones. */
@@ -54,6 +61,7 @@ export function Title({
   /** E2: extras whose milestone was crossed in the just-finished run. */
   readonly justUnlockedNames: readonly string[];
   readonly onNew: () => void;
+  readonly onDaily: () => void;
   readonly onContinue: () => void;
   readonly onCycleSnark: () => void;
   readonly onCycleDifficulty: () => void;
@@ -63,6 +71,7 @@ export function Title({
   const { exit } = useApp();
   useInput((input) => {
     if (input === 'n') onNew();
+    else if (input === 't') onDaily();
     else if (input === 'c' && hasSave) onContinue();
     else if (input === 's') onCycleSnark();
     else if (input === 'd') onCycleDifficulty();
@@ -77,6 +86,10 @@ export function Title({
       <Box marginTop={1} flexDirection="column">
         {hasSave && <Text>[c] Continue your delve</Text>}
         <Text>[n] New delve</Text>
+        <Text>
+          [t] Daily {dailyDate}
+          {dailyBest !== undefined ? ` (best: ${dailyBest})` : ''}
+        </Text>
         <Text>[k] Class: {characterName}</Text>
         <Text>[m] Mode: {RUN_MODE_LABEL[runMode]}</Text>
         <Text>[d] Difficulty: {DIFFICULTY_LABEL[difficulty]}</Text>

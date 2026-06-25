@@ -174,6 +174,24 @@ describe('meta progression', () => {
     expect(r?.character).toBe('knight');
   });
 
+  it('roundtrips E3 daily run records (daily date + score) without a save bump', () => {
+    const store = createSaveStore(dir);
+    store.recordRun({
+      seed: 'daily-2026-06-24',
+      outcome: 'victory',
+      endedAt: '2026-06-24T00:00:00Z',
+      daily: '2026-06-24',
+      score: 1234,
+    });
+    // An old-shape record without daily/score still loads alongside it.
+    store.recordRun({ seed: 'old', outcome: 'defeat', endedAt: '2026-06-23T00:00:00Z' });
+    const runs = store.loadMeta().runs;
+    expect(runs[0]?.daily).toBe('2026-06-24');
+    expect(runs[0]?.score).toBe(1234);
+    expect(runs[1]?.daily).toBeUndefined();
+    expect(runs[1]?.score).toBeUndefined();
+  });
+
   // INVARIANT #2: run history MUST survive a save-version bump. Meta is versioned
   // separately from in-progress runs and migrated (never quarantined) on a delta.
   it('preserves run history written under an OLD meta version (no quarantine)', () => {
