@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'ink-testing-library';
 import { App } from './App.js';
 import { createRun } from '../engine/run.js';
-import { DEFAULT_RUN_CONFIG, content } from '../engine/content/index.js';
+import { CHARACTERS, DEFAULT_RUN_CONFIG, content } from '../engine/content/index.js';
 import type { MetaSettings, MetaState, RunRecord, SaveStore } from '../persistence/saves.js';
 import type { RunState } from '../engine/types.js';
 import type { HookRecord } from '../events/types.js';
@@ -228,7 +228,10 @@ describe('App with hook events', () => {
     const { lastFrame, stdin } = await renderApp(
       <App deps={{ ...deps(mem), ai: fakeAi }} />,
     );
-    expect(lastFrame()).toContain('announcer: fake-ai');
+    // A live backend reads as a player-facing "live (...)" label, never the
+    // bare dev backend id, and never the meaningless "static".
+    expect(lastFrame()).toContain('announcer: live (fake-ai)');
+    expect(lastFrame()).not.toContain('announcer: fake-ai\n');
     expect(lastFrame()).toContain('Snark: wry');
 
     stdin.write('s');
@@ -281,10 +284,16 @@ describe('App with hook events', () => {
     };
     const { lastFrame, stdin } = await renderApp(<App deps={{ ...deps(mem), ai: fakeAi }} />);
     expect(lastFrame()).toContain('Class: Knight');
+    // The selected class' tagline renders so a new player sees what it does,
+    // and it changes when the class is cycled.
+    expect(lastFrame()).toContain(CHARACTERS.knight!.description);
+    expect(lastFrame()).not.toContain(CHARACTERS.apothecary!.description);
 
     stdin.write('k');
     await tick();
     expect(lastFrame()).toContain('Class: Apothecary');
+    expect(lastFrame()).toContain(CHARACTERS.apothecary!.description);
+    expect(lastFrame()).not.toContain(CHARACTERS.knight!.description);
     expect(mem.store.loadMeta().settings?.character).toBe('apothecary');
   });
 

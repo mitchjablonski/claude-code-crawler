@@ -21,12 +21,24 @@ const RUN_MODE_LABEL: Readonly<Record<RunMode, string>> = {
   arc: 'Multi-act arc',
 };
 
+/**
+ * Player-facing label for the AI backend that flavors the run's narration. The
+ * raw backend ids are a dev seam ('static' = no live model, the rest = a live
+ * provider); a new player only cares whether the announcer is live or canned.
+ * `static` reads as "hand-written"; any live provider reads as "live (<id>)".
+ */
+function announcerLabel(backend: string): string {
+  if (backend === 'static') return 'hand-written';
+  return `live (${backend})`;
+}
+
 export function Title({
   hasSave,
   snark,
   difficulty,
   runMode,
   characterName,
+  characterDescription,
   aiBackend,
   dailyDate,
   dailyBest,
@@ -47,6 +59,8 @@ export function Title({
   readonly difficulty: Difficulty;
   readonly runMode: RunMode;
   readonly characterName: string;
+  /** Selected class' one-line tagline (shown dim under the class option). */
+  readonly characterDescription: string;
   readonly aiBackend: string;
   /** E3: today's daily-challenge date (`YYYY-MM-DD`, UTC). */
   readonly dailyDate: string;
@@ -81,7 +95,7 @@ export function Title({
   });
 
   return (
-    <Screen title="CLAUDE CODE CRAWLER" footer={`announcer: ${aiBackend}`}>
+    <Screen title="CLAUDE CODE CRAWLER" footer={`announcer: ${announcerLabel(aiBackend)}`}>
       <Text dimColor>A dungeon beneath your terminal.</Text>
       <Box marginTop={1} flexDirection="column">
         {hasSave && <Text>[c] Continue your delve</Text>}
@@ -91,6 +105,10 @@ export function Title({
           {dailyBest !== undefined ? ` (best: ${dailyBest})` : ''}
         </Text>
         <Text>[k] Class: {characterName}</Text>
+        <Text color={theme.colors.muted} dimColor wrap="truncate">
+          {'    '}
+          {characterDescription}
+        </Text>
         <Text>[m] Mode: {RUN_MODE_LABEL[runMode]}</Text>
         <Text>[d] Difficulty: {DIFFICULTY_LABEL[difficulty]}</Text>
         <Text>[s] Snark: {SNARK_LABEL[snark]}</Text>
