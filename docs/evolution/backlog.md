@@ -99,3 +99,19 @@ Ranked by player impact. #1/#2 → batch seven #21 (HUD); rest queued:
 ## Batch-seven balance debt (queued)
 - **Arc Knight-lead widened** by #20 (Knight kit buff): arc knight now ~+9-11pp over apoth (was +4-7). Needs a per-mode/per-class knob or arc tuning; do NOT re-nerf the Knight kit (reopens single gap).
 - **Dead-card balance pass** (from the balance playtest, deferred from batch seven): rework `battle-trance` (dominated by adrenaline-rush), `avalanche`, `corrosive-mist`, `juggernaut` (MCTS never picks); temper `troll-blood` (regen 5) rare dominance.
+
+## Fresh playtest findings (2026-06-25, Sonnet balance + UX on the current-code snapshot — valid)
+
+Re-validated batch 7/8: #20 single-gap CONFIRMED closed (no overshoot); #21/#23/#24 UX fixes CONFIRMED land; #22 mostly landed (corrosive-mist/juggernaut/battle-trance now drafted; avalanche mode-conditional; troll-blood tempered, mode-specific). Driving batch nine + queued:
+
+### Balance
+- **(top) Arc Apothecary gap**: arc/hard Knight 0.587 vs Apothecary 0.453 (+13.4pp, WIDER than #20's accepted ~9.6); arc/normal +8.7, arc/nightmare +10.3. Apothecary's tipped-blade poison is single-strong but slow in multi-enemy arc rooms; Knight's block/strength scales. Lever: content-only Apothecary arc-relevant starter card (preferred) OR a per-class arc knob. → batch nine #26.
+- **merge-conflict elite over-lethal in arc/nightmare**: kills 47 vs the boss's 24 (its ≤40% phase = pure 12-dmg Force Push spam, brutal in acts 2-3 w/ actHpRamp). Lever: raise phase threshold 40%→30% or re-add a Rebase at low frequency. → queued.
+- **events non-lethal at hard/nightmare**: scale risk-branch loseHp by difficulty (hard×1.25, nightmare×1.5). → queued (overlaps E5).
+- **harness greedy reward policy = always index 0** → greedy pickRate is NOISE (measures offer order, not desirability). Add a heuristic card-scorer to the greedy draft policy so sweeps give real signal without full MCTS. → queued (tooling; overlaps E5).
+- regen creep (iron-hide/troll-blood/second-wind) is mode-asymmetric (weak single, strong arc) — by design, watch. Character-gating a card subset would raise expressed build variety (note).
+
+### UX
+- **(top) class taglines on title**: `Character.description` exists but is never shown — cycling to Apothecary tells a new player nothing. ~3 LOC in Title.tsx. → batch nine #27.
+- **`announcer: static` dev-seam** label leaks to players → rename to a player-facing/world label. → batch nine #27.
+- deck-view card descriptions (V9); rest before→after upgrade preview (V9); event-result flavor callback (overlaps E5); map spatial/tree view; "Unknown event" node `?` sigil; weighted-roll odds in event hints.
