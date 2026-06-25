@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { ContentRegistry, GameAction, RunState } from '../../engine/types.js';
 import { theme } from '../theme.js';
-import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
 
 /** Heal fraction must match the `rest` reducer in run.ts (state.maxHp * 0.2). */
@@ -24,6 +23,47 @@ function upgradeable(
     }
   });
   return out;
+}
+
+/**
+ * One upgradeable card rendered as a base->upgraded COMPARISON so the upgrade is
+ * an informed choice (the chooser used to show only the upgraded card, leaving
+ * the player to recall base stats from memory). Two lines per option keeps nine
+ * options inside the 30-row snapshot budget and well under 76 cols:
+ *   - header:  [N] (cost) Name
+ *   - delta:        was <base effect>  ->  now <upgraded effect>
+ * `was` reads muted (current) and `now` reads success (the improvement) so the
+ * delta is scannable at a glance. Colors route through theme tokens only.
+ */
+function UpgradeOption({
+  marker,
+  base,
+  upgraded,
+}: {
+  readonly marker: string;
+  readonly base: { readonly name: string; readonly cost: number; readonly description: string };
+  readonly upgraded: { readonly description: string };
+}) {
+  return (
+    <Box flexDirection="column" marginBottom={1} width={theme.layout.contentWidth - 2}>
+      <Text>
+        <Text bold>{marker}</Text>
+        {' ('}
+        <Text color={theme.colors.cardCost}>{base.cost}</Text>
+        {') '}
+        <Text bold>{base.name}</Text>
+      </Text>
+      <Box paddingLeft={2}>
+        <Text wrap="wrap">
+          <Text color={theme.colors.muted}>was </Text>
+          <Text color={theme.colors.muted}>{base.description}</Text>
+          <Text color={theme.colors.accent}>{'  ->  '}</Text>
+          <Text color={theme.colors.success}>now </Text>
+          <Text color={theme.colors.success}>{upgraded.description}</Text>
+        </Text>
+      </Box>
+    </Box>
+  );
 }
 
 export function RestScreen({
@@ -82,12 +122,18 @@ export function RestScreen({
         framed={false}
       >
         <Text bold>A defensible alcove, warm and quiet.</Text>
-        <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
-          {pageOptions.map(({ upgradeId, deckIndex }, i) => {
+        <Box flexDirection="column" marginTop={1} width={theme.layout.contentWidth}>
+          {pageOptions.map(({ cardId, upgradeId, deckIndex }, i) => {
+            const base = content.cards[cardId];
             const upgraded = content.cards[upgradeId];
-            if (!upgraded) return null;
+            if (!base || !upgraded) return null;
             return (
-              <CardTile key={`${upgradeId}-${deckIndex}`} marker={`[${i + 1}]`} card={upgraded} />
+              <UpgradeOption
+                key={`${upgradeId}-${deckIndex}`}
+                marker={`[${i + 1}]`}
+                base={base}
+                upgraded={upgraded}
+              />
             );
           })}
         </Box>
