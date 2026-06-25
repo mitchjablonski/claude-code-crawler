@@ -200,6 +200,41 @@ export function applyAction(
 
 // ---- node entry ----
 
+/**
+ * Per-act-transition "exhaustion" cost (#32). The dungeon wears you down between
+ * acts: when you ADVANCE from one act into the next (in arc/multi-act mode), your
+ * MAX HP is permanently lowered by a fixed amount for the rest of the run (and
+ * current HP is clamped down with it). This is the #1 balance lever from the
+ * playtest: arc winners were arriving at the final boss with ~2x the buffer of
+ * single-mode winners (~46 vs ~23 end HP on win), so the boss's 50%-HP phase
+ * climax never landed. The toll brings arc end-HP-on-win into the single band.
+ *
+ * Why MAX HP, not just current HP: a one-time current-HP hit is fully out-rested
+ * before the boss (rest sites heal 20% of max, and the agent rests when low), so
+ * a pure-HP toll washes out and never moves boss-arrival HP (measured: 28 HP of
+ * pure-HP toll moved greedy boss arrival by only ~3 HP). Capping MAX HP makes the
+ * wear STICK — rest heals only toward the lowered ceiling — so the climax bites.
+ * This needs NO RunState shape change (maxHp already exists) → NO SAVE_VERSION bump.
+ *
+ * Why this is single-mode safe: single mode is one act (act 0) with NO act
+ * transitions, so `toAct > fromAct` is NEVER true there — the toll cannot fire,
+ * and single-mode seeded replay stays byte-identical. The cost is a FIXED
+ * constant (no rng, no clock), so arc replay is deterministic too. Both hp and
+ * maxHp are clamped to >= 1: exhaustion can never kill you between acts.
+ */
+export const ACT_TRANSITION_EXHAUSTION_HP = 10;
+
+function applyActTransitionExhaustion(
+  state: RunState,
+  fromAct: number,
+  toAct: number,
+): RunState {
+  if (toAct <= fromAct) return state; // same act, or no advance → never in single mode
+  const maxHp = Math.max(1, state.maxHp - ACT_TRANSITION_EXHAUSTION_HP);
+  const hp = Math.max(1, Math.min(state.hp, maxHp));
+  return maxHp === state.maxHp && hp === state.hp ? state : { ...state, hp, maxHp };
+}
+
 function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): RunState {
   requirePhase(state, 'map');
   const current = state.map.nodes[state.currentNodeId];
@@ -207,7 +242,11 @@ function chooseNode(content: ContentRegistry, state: RunState, nodeId: string): 
     throw new EngineError(`no path from ${state.currentNodeId} to ${nodeId}`);
   }
   const node = state.map.nodes[nodeId] as MapNode;
-  const moved = { ...state, currentNodeId: nodeId };
+  const moved = applyActTransitionExhaustion(
+    { ...state, currentNodeId: nodeId },
+    current.act,
+    node.act,
+  );
 
   switch (node.kind) {
     case 'combat': {

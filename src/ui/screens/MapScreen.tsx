@@ -1,5 +1,6 @@
 import { Text, useInput } from 'ink';
 import type { GameAction, MapNode, NodeKind, RunState } from '../../engine/types.js';
+import { ACT_TRANSITION_EXHAUSTION_HP } from '../../engine/run.js';
 import { theme } from '../theme.js';
 import { Screen } from '../components/Screen.js';
 
@@ -28,6 +29,12 @@ export function MapScreen({
     .map((id) => state.map.nodes[id])
     .filter((n): n is MapNode => n !== undefined);
   const bossRow = state.map.nodes[state.map.bossId]?.row ?? 0;
+  // #32: warn before an act transition. Every option from an act-cap node leads
+  // into the next act (the act boss links into act N+1's first row), so crossing
+  // here triggers the deterministic exhaustion toll (-N max HP). Pure UI: read
+  // act numbers off the map; the engine applies the cost on chooseNode.
+  const crossesIntoNextAct =
+    node !== undefined && options.some((o) => o.act > node.act);
 
   useInput((input) => {
     if (input === 'v') {
@@ -47,6 +54,12 @@ export function MapScreen({
       footer="press a number to descend  [v] view deck"
     >
       <Text bold>The passage forks. Choose your path:</Text>
+      {crossesIntoNextAct && (
+        <Text color={theme.colors.danger}>
+          The descent into the next act will take its toll: -
+          {ACT_TRANSITION_EXHAUSTION_HP} max HP.
+        </Text>
+      )}
       {options.map((option, i) => (
         <Text key={option.id}>
           [{i + 1}]{' '}
