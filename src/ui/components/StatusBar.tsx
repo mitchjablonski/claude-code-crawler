@@ -7,10 +7,12 @@ export function StatusBar({
   state,
   linked,
   narration,
+  relics,
 }: {
   readonly state: RunState;
   readonly linked: boolean;
   readonly narration: string | null;
+  readonly relics: readonly string[];
 }) {
   const combat = state.combat;
   const hp = combat ? combat.playerHp : state.hp;
@@ -98,10 +100,24 @@ export function StatusBar({
           </Text>
         </Text>
       </Box>
-      <Box paddingX={1} justifyContent="space-between">
+      {relics.length > 0 && (
+        <Box width={theme.layout.contentWidth} paddingX={1}>
+          <Text color={theme.colors.accent} wrap="truncate">
+            relics: {relics.join(', ')}
+          </Text>
+        </Box>
+      )}
+      {/* Narration and the dungeon-link each get their OWN full-width row so
+          neither clips the other. The dungeon-link is the game's core premise
+          (the dungeon reacts to your real session) and must always be fully
+          visible; narration gets the FULL contentWidth (no side padding) so a
+          long beat still reads end-to-end instead of being clipped by a peer. */}
+      <Box width={theme.layout.contentWidth}>
         <Text dimColor wrap="truncate">
           {narration ?? ''}
         </Text>
+      </Box>
+      <Box width={theme.layout.contentWidth} paddingX={1}>
         <Text dimColor>{linked ? 'dungeon: linked' : 'dungeon: dormant (ccc init)'}</Text>
       </Box>
     </Box>

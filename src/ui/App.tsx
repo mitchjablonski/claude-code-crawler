@@ -288,11 +288,22 @@ export function App({ deps }: { readonly deps: GameDeps }) {
 
   const run = game.state;
   const over = run.phase === 'victory' || run.phase === 'defeat';
+  // Persistent relic display: relics are the primary power-build mechanic but
+  // were only shown once on the reward screen. Surface held relics in the HUD,
+  // preferring the christened epithet over the base relic name.
+  const relicNames = run.relics.map(
+    (id) => christenings.nameFor('relic', id) ?? game.content.relics[id]?.name ?? id,
+  );
 
   return (
     <Box flexDirection="column">
       {!over && (
-        <StatusBar state={run} linked={events.linked} narration={events.narration} />
+        <StatusBar
+          state={run}
+          linked={events.linked}
+          narration={events.narration}
+          relics={relicNames}
+        />
       )}
       {events.pause && !over ? (
         <PauseOverlay pause={events.pause} snark={snark} onDismiss={events.dismissPause} />
