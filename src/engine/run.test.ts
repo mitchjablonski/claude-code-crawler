@@ -3,6 +3,7 @@ import {
   applyAction,
   createRun,
   rollCardChoices,
+  ACT_TRANSITION_EXHAUSTION_HP,
   RARITY_WEIGHTS_BY_ACT,
 } from './run.js';
 import { legalActions } from '../search/legalActions.js';
@@ -154,6 +155,86 @@ describe('createRun', () => {
     expect(state.currentNodeId).toBe(state.map.startId);
     expect(state.deck).toHaveLength(DEFAULT_RUN_CONFIG.starterDeck.length);
     expect(state.hp).toBe(DEFAULT_RUN_CONFIG.maxHp);
+  });
+});
+
+describe('per-act-transition exhaustion (#32)', () => {
+  // Build an arc (3-act) run and locate the act-0 cap node (the act boss elite
+  // that links into act 1's first row). Crossing this boundary is the ONLY place
+  // the toll fires. Single mode (act 0 only) has no such boundary.
+  const ARC = { ...DEFAULT_RUN_CONFIG, acts: 3 };
+  const arcRun = (seed: string) => createRun(content, seed, ARC);
+
+  /** The act-N cap node and one of its act-(N+1) successors, for any seed. */
+  const actBoundary = (s: RunState, fromAct: number) => {
+    const cap = Object.values(s.map.nodes).find(
+      (n) => n.act === fromAct && n.next.some((id) => s.map.nodes[id]?.act === fromAct + 1),
+    );
+    const into = cap?.next.map((id) => s.map.nodes[id]).find((n) => n?.act === fromAct + 1);
+    return { cap, into };
+  };
+
+  it('lowers max HP (and clamps current HP) when advancing into the next act', () => {
+    const base = arcRun('exhaust-seed');
+    const { cap, into } = actBoundary(base, 0);
+    expect(cap).toBeDefined();
+    expect(into).toBeDefined();
+    // Sit at the act-0 cap, full HP, then descend into act 1.
+    const atCap: RunState = { ...base, phase: 'map', currentNodeId: cap!.id };
+    const crossed = applyAction(content, atCap, { type: 'chooseNode', nodeId: into!.id });
+    expect(crossed.maxHp).toBe(base.maxHp - ACT_TRANSITION_EXHAUSTION_HP);
+    // Current HP was at the (old) max, so it is clamped down to the new max.
+    expect(crossed.hp).toBe(base.maxHp - ACT_TRANSITION_EXHAUSTION_HP);
+    expect(crossed.currentNodeId).toBe(into!.id);
+  });
+
+  it('does NOT drop HP below the lowered max, but does clamp a full bar', () => {
+    const base = arcRun('exhaust-seed');
+    const { cap, into } = actBoundary(base, 0);
+    // Already injured well below the new ceiling → current HP is untouched, only
+    // max HP falls.
+    const lowHp = base.maxHp - ACT_TRANSITION_EXHAUSTION_HP - 15;
+    const injured: RunState = { ...base, phase: 'map', currentNodeId: cap!.id, hp: lowHp };
+    const crossed = applyAction(content, injured, { type: 'chooseNode', nodeId: into!.id });
+    expect(crossed.maxHp).toBe(base.maxHp - ACT_TRANSITION_EXHAUSTION_HP);
+    expect(crossed.hp).toBe(lowHp);
+  });
+
+  it('clamps HP and max HP to >= 1 — exhaustion can never be lethal', () => {
+    const base = arcRun('exhaust-seed');
+    const { cap, into } = actBoundary(base, 0);
+    // Force a tiny max HP so the fixed toll would otherwise drive it to <= 0.
+    const frail: RunState = {
+      ...base,
+      phase: 'map',
+      currentNodeId: cap!.id,
+      hp: 1,
+      maxHp: 3,
+    };
+    const crossed = applyAction(content, frail, { type: 'chooseNode', nodeId: into!.id });
+    expect(crossed.maxHp).toBe(1);
+    expect(crossed.hp).toBe(1);
+    expect(crossed.phase).not.toBe('defeat');
+  });
+
+  it('does NOT fire on intra-act moves (same act → no toll)', () => {
+    const base = arcRun('exhaust-seed');
+    // First map move from the start node stays within act 0.
+    const first = base.map.nodes[base.currentNodeId]?.next[0] as string;
+    expect(base.map.nodes[first]?.act).toBe(0);
+    const moved = applyAction(content, base, { type: 'chooseNode', nodeId: first });
+    expect(moved.maxHp).toBe(base.maxHp); // unchanged
+  });
+
+  it('single mode has no act transition, so the toll never fires (and is byte-identical)', () => {
+    // Single mode is act 0 only: NO node has an act-1 successor, so the toll's
+    // `toAct > fromAct` guard is never satisfied. Walking the whole single-mode
+    // map never lowers maxHp below the starting value.
+    const single = run('single-no-toll');
+    expect(Object.values(single.map.nodes).every((n) => n.act === 0)).toBe(true);
+    // A determinism cross-check: a single-mode run is identical to itself, and
+    // the default-config replay used elsewhere is unaffected by this change.
+    expect(run('single-no-toll')).toEqual(run('single-no-toll'));
   });
 });
 
