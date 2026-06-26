@@ -191,6 +191,20 @@ export interface EventRequirement {
   readonly atLeast: number;
 }
 
+/**
+ * Optional per-event aftermath flavor (display only). A short, tone-appropriate
+ * line closing the narrative loop on the result screen, keyed off the resolved
+ * outcome's VALENCE (did the player come out ahead or behind). Static content —
+ * no rng, no state shape impact. Events without it fall back to a generic
+ * valence-keyed bank, so every result reads well and authored ones shine.
+ */
+export interface EventAftermath {
+  /** Shown when the net resolved outcome was favorable (a gain). */
+  readonly win: string;
+  /** Shown when the net resolved outcome was unfavorable (a loss). */
+  readonly loss: string;
+}
+
 export interface NarrativeEventDef {
   readonly id: string;
   readonly name: string;
@@ -201,6 +215,11 @@ export interface NarrativeEventDef {
     /** If present, the option is selectable only when the requirement holds. */
     readonly requires?: EventRequirement;
   }[];
+  /**
+   * Optional aftermath flavor, rendered on the result screen keyed off outcome
+   * valence. Purely display; events may omit it (valence-bank fallback applies).
+   */
+  readonly aftermath?: EventAftermath;
 }
 
 export interface ContentRegistry {

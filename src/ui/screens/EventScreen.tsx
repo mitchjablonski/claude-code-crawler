@@ -5,6 +5,7 @@ import type {
   EventOutcome,
   EventRequirement,
   GameAction,
+  NarrativeEventDef,
   RunState,
   SimpleEventOutcome,
 } from '../../engine/types.js';
@@ -265,6 +266,82 @@ function outcomeLine(outcome: SimpleEventOutcome, content: ContentRegistry): {
   }
 }
 
+/**
+ * The VALENCE of a resolved outcome list: did the player come out ahead (`win`)
+ * or behind (`loss`)? Pure, deterministic — derived only from the applied
+ * outcomes, never rng/clock. Card and relic grants count as wins (acquiring
+ * content is good even when paired with a small cost); numeric dimensions net
+ * out (gold + maxHp gains positive, gold/HP losses negative). Ties read as a
+ * `win` (you walked away with something), which matches how the result reads
+ * when, e.g., a tithe trades gold for max HP. Card/relic acquisition dominates
+ * a pure-cost net so "took the relic, bled a little" still reads as a win.
+ */
+function outcomeValence(applied: readonly SimpleEventOutcome[]): 'win' | 'loss' {
+  let score = 0;
+  for (const o of applied) {
+    switch (o.kind) {
+      case 'gainGold':
+        score += o.amount;
+        break;
+      case 'loseGold':
+        score -= o.amount;
+        break;
+      case 'loseHp':
+        score -= o.amount;
+        break;
+      case 'gainMaxHp':
+        // Max HP is durable, permanent value — far above raw gold per point. Weight
+        // it heavily so the authored "pay gold / lose a little blood for vigor"
+        // trades (tithe at the shrine, the healer's cure) read as the wins they are.
+        score += o.amount * 5;
+        break;
+      case 'gainCard':
+      case 'gainRelic':
+        // Acquiring content is decisively good; outweigh any paired toll.
+        score += 100;
+        break;
+    }
+  }
+  return score >= 0 ? 'win' : 'loss';
+}
+
+/**
+ * Generic aftermath lines, keyed by valence, used when an event authors no
+ * `aftermath` of its own. Deterministic selection: the line is chosen by valence
+ * AND a stable index derived from the outcome count, so the same resolution
+ * always reads the same way (no rng, no clock) while a run sees some variety.
+ * Tone: DCC-style dry snark closing the loop.
+ */
+const AFTERMATH_BANK: Readonly<Record<'win' | 'loss', readonly string[]>> = {
+  win: [
+    'The dungeon, for once, blinks first. You move on.',
+    'You pocket your luck before it changes its mind.',
+    'Somewhere, a balance sheet weeps. You walk on richer.',
+  ],
+  loss: [
+    'The dungeon collects, as the dungeon always does. You limp onward.',
+    'A lesson, paid in full. You note it and keep moving.',
+    'You leave a little of yourself behind. The corridor does not care.',
+  ],
+};
+
+/**
+ * The aftermath flavor line for a resolved result: the per-event authored line
+ * when present, else a deterministic pick from the valence bank. Pure — keyed
+ * only off the applied outcomes (never rng/clock), so replay/snapshots are
+ * stable.
+ */
+function aftermathLine(
+  def: NarrativeEventDef,
+  applied: readonly SimpleEventOutcome[],
+): string {
+  const valence = outcomeValence(applied);
+  if (def.aftermath) return def.aftermath[valence];
+  const bank = AFTERMATH_BANK[valence];
+  // Deterministic, content-derived index (outcome count) — variety without rng.
+  return bank[applied.length % bank.length]!;
+}
+
 export function EventScreen({
   state,
   content,
@@ -297,6 +374,9 @@ export function EventScreen({
   // ---- Result view ----
   if (result) {
     const header = result.rolled ? 'The dice come up...' : 'It is done.';
+    // Aftermath flavor closes the narrative loop: a per-event authored line when
+    // present, else a deterministic valence-keyed bank line. Pure display.
+    const aftermath = aftermathLine(def, result.applied);
     return (
       <Screen title={def.name} footer="[1] Continue" framed={false}>
         <Text color={theme.colors.accent}>{header}</Text>
@@ -311,6 +391,11 @@ export function EventScreen({
               </Text>
             );
           })}
+        </Box>
+        <Box marginTop={1} width={theme.layout.contentWidth - 2}>
+          <Text wrap="wrap" italic dimColor>
+            {aftermath}
+          </Text>
         </Box>
       </Screen>
     );

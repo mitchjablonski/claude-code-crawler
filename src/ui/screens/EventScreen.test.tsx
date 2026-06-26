@@ -3,7 +3,7 @@ import { render } from 'ink-testing-library';
 import { EventScreen, optionHintSegments } from './EventScreen.js';
 import { createRun } from '../../engine/run.js';
 import { DEFAULT_RUN_CONFIG, content } from '../../engine/content/index.js';
-import type { EventOutcome, RunState } from '../../engine/types.js';
+import type { EventOutcome, RunState, SimpleEventOutcome } from '../../engine/types.js';
 
 /** Flatten hint segments to plain text for assertions. */
 function hintText(outcomes: readonly EventOutcome[]): string {
@@ -16,6 +16,22 @@ function hintText(outcomes: readonly EventOutcome[]): string {
 function onEvent(eventId: string, overrides: Partial<RunState> = {}): RunState {
   const base = createRun(content, 'event-test', DEFAULT_RUN_CONFIG);
   return { ...base, phase: 'event', event: { eventId }, ...overrides };
+}
+
+/** A RunState parked on an event's RESULT (post-resolution) view. */
+function onResult(
+  eventId: string,
+  applied: readonly SimpleEventOutcome[],
+  rolled = false,
+  overrides: Partial<RunState> = {},
+): RunState {
+  const base = createRun(content, 'event-result-test', DEFAULT_RUN_CONFIG);
+  return {
+    ...base,
+    phase: 'event',
+    event: { eventId, result: { applied, rolled } },
+    ...overrides,
+  };
 }
 
 const noop = () => undefined;
@@ -152,5 +168,94 @@ describe('EventScreen option view renders hints', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain('Pay the toll');
     expect(frame).toContain('need 30 gold');
+  });
+});
+
+describe('EventScreen result view shows aftermath flavor', () => {
+  it('renders the per-event WIN aftermath when the net outcome is favorable', () => {
+    // Shrine "tithe and pray": lose gold but gain max HP → net win.
+    const { lastFrame } = render(
+      <EventScreen
+        state={onResult('shrine-of-the-crawl', [
+          { kind: 'loseGold', amount: 20 },
+          { kind: 'gainMaxHp', amount: 6 },
+        ])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    const aftermath = content.events['shrine-of-the-crawl']?.aftermath;
+    expect(aftermath).toBeTruthy();
+    expect(frame).toContain(aftermath!.win);
+    // The outcomes themselves are still shown above the flavor.
+    expect(frame).toContain('+6 max HP');
+    // The continue action is preserved.
+    expect(frame).toContain('[1] Continue');
+  });
+
+  it('renders the per-event LOSS aftermath when the net outcome is unfavorable', () => {
+    // A pure-cost resolution (only an HP loss) → net loss.
+    const { lastFrame } = render(
+      <EventScreen
+        state={onResult('shrine-of-the-crawl', [{ kind: 'loseHp', amount: 9 }])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    const aftermath = content.events['shrine-of-the-crawl']?.aftermath;
+    expect(frame).toContain(aftermath!.loss);
+  });
+
+  it('a card/relic grant reads as a WIN even when paired with an HP toll', () => {
+    // Armory "take everything": gains content but bleeds → still a win.
+    const { lastFrame } = render(
+      <EventScreen
+        state={onResult('abandoned-armory', [
+          { kind: 'gainRelic', relicId: 'whetstone' },
+          { kind: 'loseHp', amount: 18 },
+        ])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(content.events['abandoned-armory']!.aftermath!.win);
+  });
+
+  it('falls back to a deterministic valence-bank line when the event authors none', () => {
+    // Build a synthetic event with NO aftermath field; the screen should still
+    // close the loop with a generic valence line (and pick it deterministically).
+    const synthetic = {
+      ...content,
+      events: {
+        'no-aftermath': {
+          id: 'no-aftermath',
+          name: 'A Plain Room',
+          prompt: 'Nothing of note.',
+          options: [{ label: 'Leave', outcomes: [] }],
+        },
+      },
+    };
+    const render1 = render(
+      <EventScreen
+        state={onResult('no-aftermath', [{ kind: 'gainGold', amount: 30 }])}
+        content={synthetic}
+        dispatch={noop}
+      />,
+    );
+    const frame1 = render1.lastFrame() ?? '';
+    // A non-empty flavor line is present (a generic win line), and it's stable
+    // across renders of the same resolution.
+    const render2 = render(
+      <EventScreen
+        state={onResult('no-aftermath', [{ kind: 'gainGold', amount: 30 }])}
+        content={synthetic}
+        dispatch={noop}
+      />,
+    );
+    expect(frame1).toContain('You pocket your luck before it changes its mind.');
+    expect(render2.lastFrame()).toBe(frame1);
   });
 });
