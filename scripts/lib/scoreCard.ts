@@ -68,6 +68,15 @@ function effectValue(e: Effect): number {
       const raw = e.stacks * STATUS_VALUE[e.status];
       return e.target === 'allEnemies' ? raw * AOE_MULT : raw;
     }
+    case 'conditional': {
+      // #42: score the `then` branch at a discount — the bonus only fires when
+      // the condition holds (set-up / single-target), so it's worth less than an
+      // unconditional effect but still a real draft signal (else is the floor).
+      const CONDITIONAL_WEIGHT = 0.6;
+      const thenVal = e.then.reduce((s, inner) => s + effectValue(inner), 0);
+      const elseVal = (e.else ?? []).reduce((s, inner) => s + effectValue(inner), 0);
+      return elseVal + (thenVal - elseVal) * CONDITIONAL_WEIGHT;
+    }
     default:
       return 0;
   }

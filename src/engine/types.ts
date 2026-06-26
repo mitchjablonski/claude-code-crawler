@@ -11,7 +11,32 @@ export type Effect =
   | { kind: 'draw'; count: number }
   | { kind: 'gainEnergy'; amount: number }
   | { kind: 'heal'; amount: number }
-  | { kind: 'applyStatus'; status: StatusId; stacks: number; target: TargetKind };
+  | { kind: 'applyStatus'; status: StatusId; stacks: number; target: TargetKind }
+  /**
+   * A general, deterministic branch over the CURRENT combat state (#42). Evaluate
+   * {@link condition} against the state/selected target (pure, no rng, no clock);
+   * if it holds apply `then`, otherwise apply `else` (or nothing). `then`/`else`
+   * are themselves Effect[] applied through the SAME application path, so they
+   * compose and nest (target resolution + stat tracking flow through unchanged).
+   *
+   * Effects live in STATIC content (cards/potions/relics) — never in serialized
+   * RunState (decks are card ids) — so a nested Effect adds no save-shape change.
+   * Existing content never uses this kind, so it is inert for them: byte-identical.
+   */
+  | { kind: 'conditional'; condition: EffectCondition; then: readonly Effect[]; else?: readonly Effect[] };
+
+/**
+ * The closed set of deterministic predicates a `conditional` Effect may test.
+ * Each reads only the current combat state / selected target — pure, no rng.
+ * - targetHasStatus: the SELECTED target carries >= `atLeast` (default 1) stacks
+ *   of `status` (e.g. "is the target poisoned?"). For 'self'/'allEnemies' effects
+ *   it reads the player / the first living enemy respectively.
+ * - enemyCount: the number of LIVING enemies compares (`op`) against `value`
+ *   (e.g. exactly one enemy → a single-target floor for an AoE card).
+ */
+export type EffectCondition =
+  | { type: 'targetHasStatus'; status: StatusId; atLeast?: number }
+  | { type: 'enemyCount'; op: 'eq' | 'lte' | 'gte'; value: number };
 
 export type Statuses = Partial<Readonly<Record<StatusId, number>>>;
 

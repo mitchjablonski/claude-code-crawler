@@ -1,9 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 import { UPGRADE_TARGET_IDS } from './cards.js';
-import type { EventOutcome, SimpleEventOutcome } from '../types.js';
+import type { Effect, EventOutcome, SimpleEventOutcome } from '../types.js';
 
 const COMPOSITE_KINDS = new Set(['rollOutcomes', 'conditional']);
+
+const EFFECT_KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus', 'conditional'];
+const EFFECT_TARGETS = ['enemy', 'allEnemies', 'self'];
+const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+const CONDITION_TYPES = ['targetHasStatus', 'enemyCount'];
+
+/**
+ * Recursively validate a single card/effect: kind + target/status are in their
+ * closed sets, and a `conditional` (#42) is well-formed — its branches recurse
+ * through the SAME validator so nested effects (any depth) are checked too.
+ */
+function checkEffect(effect: Effect, where: string): void {
+  expect(EFFECT_KINDS, `${where}:${effect.kind}`).toContain(effect.kind);
+  if ('target' in effect) expect(EFFECT_TARGETS, `${where}:target`).toContain(effect.target);
+  if (effect.kind === 'applyStatus') {
+    expect(EFFECT_STATUSES, `${where}:${effect.status}`).toContain(effect.status);
+  }
+  if (effect.kind === 'conditional') {
+    expect(CONDITION_TYPES, `${where}:${effect.condition.type}`).toContain(effect.condition.type);
+    if (effect.condition.type === 'targetHasStatus') {
+      expect(EFFECT_STATUSES, `${where}:cond`).toContain(effect.condition.status);
+    }
+    // then must be non-empty (a branch that does nothing is a content bug);
+    // else may be omitted. Recurse into BOTH so nested kinds are validated.
+    expect(effect.then.length, `${where}: empty conditional then`).toBeGreaterThan(0);
+    for (const inner of [...effect.then, ...(effect.else ?? [])]) {
+      checkEffect(inner, `${where}>cond`);
+    }
+  }
+}
 
 /** Assert a simple outcome's gainCard/gainRelic id resolves. */
 function checkSimple(outcome: SimpleEventOutcome, where: string): void {
@@ -163,11 +193,36 @@ describe('content integrity', () => {
       expect(card.cost, card.id).toBeLessThanOrEqual(3);
       expect(card.effects.length, card.id).toBeGreaterThan(0);
       expect(card.id).toMatch(/^[a-z0-9-]+$/);
+      // #42: validate every effect kind/target/status, RECURSING into nested
+      // conditional branches so a malformed nested effect can't slip through.
+      for (const fx of card.effects) checkEffect(fx, card.id);
     }
     for (const enemy of Object.values(content.enemies)) {
       expect(enemy.hp[0], enemy.id).toBeLessThanOrEqual(enemy.hp[1]);
       expect(enemy.hp[0], enemy.id).toBeGreaterThan(0);
       expect(enemy.moves.length, enemy.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('conditional cards (#42) are well-formed and used by the intended cards', () => {
+    // lucky-dagger gates bonus damage on the target being poisoned.
+    const dagger = content.cards['lucky-dagger'];
+    expect(dagger).toBeDefined();
+    const cond = dagger!.effects.find((e) => e.kind === 'conditional');
+    expect(cond, 'lucky-dagger has a conditional').toBeDefined();
+    if (cond?.kind === 'conditional') {
+      expect(cond.condition.type).toBe('targetHasStatus');
+      if (cond.condition.type === 'targetHasStatus') expect(cond.condition.status).toBe('poison');
+      // The bonus branch is a damage effect (recursive validation also covers this).
+      expect(cond.then.some((e) => e.kind === 'damage')).toBe(true);
+    }
+    // whirlwind gates a single-target floor on exactly one living enemy.
+    const ww = content.cards['whirlwind'];
+    const wwCond = ww!.effects.find((e) => e.kind === 'conditional');
+    expect(wwCond, 'whirlwind has a conditional').toBeDefined();
+    if (wwCond?.kind === 'conditional' && wwCond.condition.type === 'enemyCount') {
+      expect(wwCond.condition.op).toBe('eq');
+      expect(wwCond.condition.value).toBe(1);
     }
   });
 
