@@ -13,6 +13,7 @@
  *
  *   npx tsx scripts/play-verify.ts [--out=DIR] [--runs=50] [--skip-balance] [--seed=verify]
  */
+import './lib/forceColor.js'; // must be first: set FORCE_COLOR before ink/chalk load
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';

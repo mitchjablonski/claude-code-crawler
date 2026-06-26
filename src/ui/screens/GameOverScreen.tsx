@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import type { RunState } from '../../engine/types.js';
+import { theme } from '../theme.js';
 
 export function GameOverScreen({
   state,
@@ -21,7 +22,7 @@ export function GameOverScreen({
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
-      <Text bold color={won ? 'green' : 'red'}>
+      <Text bold color={won ? theme.colors.success : theme.colors.danger}>
         {won ? 'THE SCOPE CREEP IS SLAIN' : 'YOU DIED'}
       </Text>
       <Text dimColor>
