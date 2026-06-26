@@ -97,6 +97,72 @@ describe('StatusBar', () => {
     expect(frame).toContain('EN 3/3');
   });
 
+  it('shows the draw + discard pile counts in combat (the reshuffle clock)', () => {
+    const base = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const combat: CombatState = {
+      enemies: [],
+      hand: ['a', 'b', 'c'],
+      drawPile: ['d', 'e', 'f', 'g'],
+      discardPile: ['h', 'i'],
+      energy: 3,
+      maxEnergy: 3,
+      playerHp: base.hp,
+      playerMaxHp: base.maxHp,
+      playerBlock: 0,
+      playerStatuses: {},
+      turn: 1,
+      dealt: 0,
+      taken: 0,
+      slain: 0,
+    };
+    const state: RunState = { ...base, phase: 'combat', combat };
+    const { lastFrame } = render(
+      <StatusBar state={state} linked narration={null} relics={[]} />,
+    );
+    const frame = lastFrame() ?? '';
+    // Counts match the live pile lengths.
+    expect(frame).toContain(`draw ${combat.drawPile.length}`); // draw 4
+    expect(frame).toContain(`disc ${combat.discardPile.length}`); // disc 2
+    expect(frame).toContain(`hand ${combat.hand.length}`); // hand 3
+    // In combat the redundant whole-deck count is dropped in favor of the piles.
+    expect(frame).not.toContain('deck ');
+  });
+
+  it('omits the pile counts (and shows deck N) outside combat', () => {
+    const base = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const { lastFrame } = render(
+      <StatusBar state={base} linked narration={null} relics={[]} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('draw ');
+    expect(frame).not.toContain('disc ');
+    expect(frame).toContain(`deck ${base.deck.length}`);
+  });
+
+  it('keeps the worst-case combat row 1 within contentWidth with 6 statuses', () => {
+    // Row 1 carries HP/BLK/EN + every player status chip + gold/pots. The pile
+    // counts live on their OWN row, so even a full slate of statuses cannot push
+    // row 1 past contentWidth (76).
+    const state = combatState({
+      strength: 9,
+      dexterity: 9,
+      vulnerable: 9,
+      weak: 9,
+      regen: 9,
+      poison: 9,
+    });
+    const { lastFrame } = render(
+      <StatusBar state={state} linked narration={null} relics={[]} />,
+    );
+    const frame = lastFrame() ?? '';
+    for (const line of frame.split('\n')) {
+      expect(line.length).toBeLessThanOrEqual(76);
+    }
+    // Pile clock still present on its own line.
+    expect(frame).toContain('draw ');
+    expect(frame).toContain('disc ');
+  });
+
   it('shows no status brackets in combat when the player has none', () => {
     const { lastFrame } = render(
       <StatusBar state={combatState({})} linked narration={null} relics={[]} />,
