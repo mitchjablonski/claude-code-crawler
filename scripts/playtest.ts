@@ -23,6 +23,7 @@ import type {
 } from '../src/engine/types.js';
 import { EngineError, eventRequirementMet } from '../src/engine/types.js';
 import { mctsAction } from '../src/search/mcts.js';
+import { scoreCard } from './lib/scoreCard.js';
 
 type PolicyName = 'greedy' | 'cautious' | 'naive' | 'mcts';
 type Policy = (state: RunState, content: ContentRegistry, rand: () => number) => GameAction;
@@ -136,13 +137,34 @@ function navAction(state: RunState, hpFrac: number, rand: () => number): GameAct
   return { type: 'chooseNode', nodeId: (scored[0] as { id: string }).id };
 }
 
+// #39: pick the HIGHEST draft-scored offered reward card (deterministic; pure
+// from card/deck data). Replaces the old blind `index: 0`, which measured offer
+// ORDER not card value. Tie-break = lowest index (stable). This makes greedy
+// `pickRate` a real (cheap) card-value signal instead of offer-order noise.
+function bestRewardIndex(state: RunState, content: ContentRegistry): number {
+  const cards = state.reward?.cards ?? [];
+  const ctx = { deck: state.deck, cards: content.cards };
+  let bestIdx = 0;
+  let bestScore = -Infinity;
+  for (let i = 0; i < cards.length; i++) {
+    const def = content.cards[cards[i] as string];
+    if (!def) continue;
+    const s = scoreCard(def, ctx);
+    if (s > bestScore) {
+      bestScore = s;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
 function nonCombat(state: RunState, content: ContentRegistry, rand: () => number): GameAction {
   switch (state.phase) {
     case 'map':
       return navAction(state, state.hp / state.maxHp, rand);
     case 'reward':
       return state.reward?.cards.length
-        ? { type: 'pickRewardCard', index: 0 }
+        ? { type: 'pickRewardCard', index: bestRewardIndex(state, content) }
         : { type: 'skipReward' };
     case 'shop': {
       const stock = state.shop?.stock ?? [];
