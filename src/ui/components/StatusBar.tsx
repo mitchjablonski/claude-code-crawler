@@ -3,6 +3,61 @@ import type { RunState } from '../../engine/types.js';
 import { theme, statusSegments } from '../theme.js';
 import { usePrevOnChange } from '../juice.js';
 
+/** The literal prefix the relics line renders before the names. */
+const RELICS_PREFIX = 'relics: ';
+
+/**
+ * Greedily fit relic display names onto the SINGLE relics line within `width`
+ * columns (the box content width, i.e. contentWidth minus its horizontal
+ * padding). Returns the prefix subset of names that fit (joined by `, `) plus
+ * the EXACT count that were hidden, so the line can render `relics: A, B (+N
+ * more)` without ever overflowing.
+ *
+ * Pure (string-length only, no rendering) so it is directly testable. The fit
+ * accounts for the `relics: ` prefix and — crucially — RESERVES room for the
+ * `(+N more)` suffix whenever a remainder will exist: a name is only kept if the
+ * names-so-far PLUS the suffix that its inclusion would still leave still fit.
+ * The width budget passed in is the text area, prefix included.
+ *
+ * Edge case: if even the first name alone (with no suffix) exceeds the budget we
+ * still return it (hidden=rest) so a single very long relic is shown and left to
+ * the existing `wrap="truncate"` as a last resort — but the common multi-relic
+ * case degrades to `(+N more)`.
+ */
+export function fitRelics(
+  relics: readonly string[],
+  width: number,
+): { readonly shown: readonly string[]; readonly hidden: number } {
+  const budget = width - RELICS_PREFIX.length;
+  const suffixWidth = (n: number) => ` (+${n} more)`.length;
+  const shown: string[] = [];
+  let namesWidth = 0; // width of the joined names (no prefix)
+  for (let i = 0; i < relics.length; i++) {
+    const name = relics[i] as string;
+    const sep = shown.length > 0 ? 2 : 0; // ', '
+    const nextNamesWidth = namesWidth + sep + name.length;
+    // If this name is NOT the last, including it leaves a remainder, so we must
+    // reserve the suffix for at least the relics still after it. Reserve the
+    // largest plausible suffix (all remaining hidden) to stay conservative.
+    const remainderAfter = relics.length - (i + 1);
+    const needsSuffix = remainderAfter > 0;
+    const required = nextNamesWidth + (needsSuffix ? suffixWidth(remainderAfter) : 0);
+    if (required <= budget) {
+      shown.push(name);
+      namesWidth = nextNamesWidth;
+      continue;
+    }
+    // This name does not fit. If nothing fit yet, force-show the first name
+    // (last-resort truncation handles overflow) so a lone long relic still shows.
+    if (shown.length === 0) {
+      shown.push(name);
+      return { shown, hidden: relics.length - 1 };
+    }
+    return { shown, hidden: relics.length - shown.length };
+  }
+  return { shown, hidden: 0 };
+}
+
 export function StatusBar({
   state,
   linked,
@@ -123,13 +178,30 @@ export function StatusBar({
           </Text>
         </Box>
       )}
-      {relics.length > 0 && (
-        <Box width={theme.layout.contentWidth} paddingX={1}>
-          <Text color={theme.colors.accent} wrap="truncate">
-            relics: {relics.join(', ')}
-          </Text>
-        </Box>
-      )}
+      {relics.length > 0 &&
+        (() => {
+          // Graceful overflow: fit as many relic names as the single line holds
+          // (reserving room for the `(+N more)` suffix), then surface the EXACT
+          // hidden count instead of silently clipping. Width budget is the box
+          // content area: contentWidth minus its horizontal padding (paddingX on
+          // both sides) so the whole rendered line — including the suffix — stays
+          // within contentWidth.
+          const { shown, hidden } = fitRelics(
+            relics,
+            theme.layout.contentWidth - 2 * theme.chrome.paddingX,
+          );
+          return (
+            <Box width={theme.layout.contentWidth} paddingX={1}>
+              <Text color={theme.colors.accent} wrap="truncate">
+                {RELICS_PREFIX}
+                {shown.join(', ')}
+                {hidden > 0 && (
+                  <Text color={theme.colors.muted}> (+{hidden} more)</Text>
+                )}
+              </Text>
+            </Box>
+          );
+        })()}
       {/* Narration and the dungeon-link each get their OWN full-width row so
           neither clips the other. The dungeon-link is the game's core premise
           (the dungeon reacts to your real session) and must always be fully

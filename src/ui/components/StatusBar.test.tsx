@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'ink-testing-library';
-import { StatusBar } from './StatusBar.js';
+import { StatusBar, fitRelics } from './StatusBar.js';
 import { createRun } from '../../engine/run.js';
 import { DEFAULT_RUN_CONFIG, content } from '../../engine/content/index.js';
+import { theme } from '../theme.js';
 import type { CombatState, RunState } from '../../engine/types.js';
+
+/** Width budget the relics line fits into: box content width minus padding. */
+const RELIC_BUDGET = theme.layout.contentWidth - 2 * theme.chrome.paddingX;
 
 /** A RunState in the combat phase with the given player statuses. */
 function combatState(playerStatuses: CombatState['playerStatuses']): RunState {
@@ -68,6 +72,71 @@ describe('StatusBar', () => {
     expect(frame).toContain('relics:');
     expect(frame).toContain('Rusty Blade');
     expect(frame).toContain('Lucky Coin');
+  });
+
+  it('shows every relic with NO "(+N more)" suffix when they all fit', () => {
+    const relics = ['Rusty Blade', 'Lucky Coin', 'Bag of Marbles'];
+    const { shown, hidden } = fitRelics(relics, RELIC_BUDGET);
+    expect(shown).toEqual(relics);
+    expect(hidden).toBe(0);
+
+    const base = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const { lastFrame } = render(
+      <StatusBar state={base} linked narration={null} relics={relics} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('relics:');
+    for (const r of relics) expect(frame).toContain(r);
+    expect(frame).not.toContain('more)');
+  });
+
+  it('overflows to "(+N more)" with an EXACT hidden count when too many relics', () => {
+    const relics = [
+      'Burning Blood',
+      'Akabeko',
+      'Anchor',
+      'Bag of Preparation',
+      'Blood Vial',
+      'Bronze Scales',
+      'Centennial Puzzle',
+      'Pen Nib',
+    ];
+    const { shown, hidden } = fitRelics(relics, RELIC_BUDGET);
+    // A prefix subset is shown, the rest counted exactly.
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.length).toBeLessThan(relics.length);
+    expect(shown).toEqual(relics.slice(0, shown.length));
+    expect(hidden).toBe(relics.length - shown.length);
+    // The full rendered line (prefix + names + suffix) must fit the budget.
+    const line = `relics: ${shown.join(', ')} (+${hidden} more)`;
+    expect(line.length).toBeLessThanOrEqual(RELIC_BUDGET);
+
+    const base = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
+    const { lastFrame } = render(
+      <StatusBar state={base} linked narration={null} relics={relics} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(`(+${hidden} more)`);
+    // The first relic shows; at least one hidden relic does NOT appear.
+    expect(frame).toContain(relics[0] as string);
+    expect(frame).toContain(relics[shown.length - 1] as string);
+    // No rendered line exceeds contentWidth.
+    for (const l of frame.split('\n')) expect(l.length).toBeLessThanOrEqual(76);
+  });
+
+  it('shows a lone over-long relic (truncation fallback) rather than nothing', () => {
+    const relics = ['A Ridiculously Overlong Christened Relic Name That Alone Exceeds The Whole Content Width Budget'];
+    const { shown, hidden } = fitRelics(relics, RELIC_BUDGET);
+    expect(shown).toEqual(relics);
+    expect(hidden).toBe(0);
+  });
+
+  it('the chosen subset never overflows even at large hidden counts (two-digit N)', () => {
+    const relics = Array.from({ length: 30 }, (_, i) => `Relic Number ${i + 1}`);
+    const { shown, hidden } = fitRelics(relics, RELIC_BUDGET);
+    expect(hidden).toBe(relics.length - shown.length);
+    const line = `relics: ${shown.join(', ')} (+${hidden} more)`;
+    expect(line.length).toBeLessThanOrEqual(RELIC_BUDGET);
   });
 
   it('omits the relics line entirely when the player holds none', () => {
