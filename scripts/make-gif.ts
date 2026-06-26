@@ -32,9 +32,14 @@ async function main(): Promise<void> {
   stdin.write('n');
   await tick(40);
   snap(1700); // map: choose your path
+  stdin.write('v');
+  await tick(40);
+  snap(2000); // deck view: per-card effect descriptions
+  stdin.write('\x1b');
+  await tick(40);
   stdin.write('1');
   await tick(40);
-  snap(1900); // combat: hand + enemy intent
+  snap(1900); // combat: framed hand + relics/pile HUD + enemy intent
   stdin.write('1');
   await tick(40);
   snap(1500); // after playing a card (energy/enemy change)
