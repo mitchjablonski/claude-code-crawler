@@ -92,14 +92,37 @@ export function StatusBar({
               +{goldGain}g
             </Text>
           )}
-          <Text dimColor>
-            {'  '}deck {state.deck.length}
-          </Text>
+          {/* `deck N` (the WHOLE deck) is redundant in combat — the deck is
+              split across draw/disc/hand, surfaced on the combat-only pile line
+              below. So show `deck N` only OUT of combat; in combat the pile line
+              is the meaningful breakdown. */}
+          {!combat && (
+            <Text dimColor>
+              {'  '}deck {state.deck.length}
+            </Text>
+          )}
           <Text color={theme.colors.accent}>
             {'  '}pots {state.potions.length}/{state.maxPotions}
           </Text>
         </Text>
       </Box>
+      {/* Combat-only pile clock: how many cards remain to draw vs already spent,
+          plus the live hand size — the tempo signal a deckbuilder reads to know
+          when a reshuffle is coming. On its OWN compact row (never the crowded
+          row 1), so it CANNOT overflow contentWidth no matter how many player
+          status chips are present. Only rendered while in combat. */}
+      {combat && (
+        <Box width={theme.layout.contentWidth} paddingX={1}>
+          <Text>
+            <Text color={theme.colors.accent}>draw </Text>
+            <Text>{combat.drawPile.length}</Text>
+            <Text color={theme.colors.muted}>{'  '}disc </Text>
+            <Text>{combat.discardPile.length}</Text>
+            <Text color={theme.colors.muted}>{'  '}hand </Text>
+            <Text>{combat.hand.length}</Text>
+          </Text>
+        </Box>
+      )}
       {relics.length > 0 && (
         <Box width={theme.layout.contentWidth} paddingX={1}>
           <Text color={theme.colors.accent} wrap="truncate">
