@@ -31,6 +31,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Walk away', outcomes: [] },
     ],
+    aftermath: {
+      win: 'The machine shudders, satisfied, and goes dark. You leave with the goods.',
+      loss: 'It clangs once in protest. You clutch the bruise and call it a draw.',
+    },
   },
   {
     id: 'shrine-of-the-crawl',
@@ -53,6 +57,10 @@ const defs: readonly NarrativeEventDef[] = [
         ],
       },
     ],
+    aftermath: {
+      win: 'The shrine warms beneath your hand. Something is watching, and approves.',
+      loss: 'The bowl is colder now, and so are you. THE DUNGEON IS WATCHING.',
+    },
   },
   {
     id: 'goblin-toll-booth',
@@ -75,6 +83,10 @@ const defs: readonly NarrativeEventDef[] = [
         ],
       },
     ],
+    aftermath: {
+      win: 'The goblin stamps your hand and waves you through. Bureaucracy: defeated.',
+      loss: 'The goblin files your suffering in triplicate. The corridor opens, grudgingly.',
+    },
   },
   {
     id: 'abandoned-armory',
@@ -97,6 +109,10 @@ const defs: readonly NarrativeEventDef[] = [
         ],
       },
     ],
+    aftermath: {
+      win: 'You sling your spoils over a shoulder. The sign was, technically, obeyed.',
+      loss: 'The trap was, of course, the obvious one. You take "one" — and a wound.',
+    },
   },
   {
     id: 'complaints-department',
@@ -120,6 +136,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Leave quietly', outcomes: [] },
     ],
+    aftermath: {
+      win: 'A bell dings somewhere in the rock. Your complaint has been escalated. Nice.',
+      loss: 'THE DUNGEON LISTENS, the plaque insists. It does not. You move on.',
+    },
   },
   {
     id: 'suspicious-healer',
@@ -145,6 +165,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Decline politely', outcomes: [] },
     ],
+    aftermath: {
+      win: 'The healer counts your coins twice and grins with too many teeth. A bargain.',
+      loss: 'The "sample" sits wrong. The rings clink as the healer waves you off.',
+    },
   },
   {
     id: 'traveling-alchemist',
@@ -173,6 +197,10 @@ const defs: readonly NarrativeEventDef[] = [
       { label: 'Buy the antidote', outcomes: [{ kind: 'loseGold', amount: 25 }, { kind: 'gainMaxHp', amount: 5 }] },
       { label: 'Keep walking', outcomes: [] },
     ],
+    aftermath: {
+      win: 'The vial fizzes, then settles. The alchemist nods, eyebrowless and pleased.',
+      loss: 'It was the green one. It is always the green one. You stagger on.',
+    },
   },
   {
     id: 'cursed-idol',
@@ -196,6 +224,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Leave it well alone', outcomes: [] },
     ],
+    aftermath: {
+      win: 'The idol\'s grin doesn\'t change, but its grip does. You take the prize clean.',
+      loss: 'The idol keeps grinning while it bleeds you. You should have read the sign.',
+    },
   },
   {
     id: 'abandoned-cache',
@@ -211,6 +243,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Pick it carefully', outcomes: [{ kind: 'gainGold', amount: 20 }] },
     ],
+    aftermath: {
+      win: 'The box gives up its hoard with a tired creak. You pocket the lot.',
+      loss: 'The hinges, it turns out, were the dangerous part. You count the cost.',
+    },
   },
   {
     id: 'whispering-well',
@@ -246,6 +282,10 @@ const defs: readonly NarrativeEventDef[] = [
       },
       { label: 'Walk on', outcomes: [] },
     ],
+    aftermath: {
+      win: 'The well sighs your voice back to you, content. You drink your fill and rise.',
+      loss: 'The well bargains, but not fairly. It keeps more than you offered.',
+    },
   },
 ];
 
