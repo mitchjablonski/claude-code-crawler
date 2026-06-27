@@ -106,17 +106,17 @@ export interface DeckContext {
  * value than a 1-cost card, not merely "cheap". #48: the old `max(0.7, cost)`
  * treated 0-cost as ~0.7 energy and UNDER-valued these "cantrip" cards — greedy
  * never drafted known-strong 0-cost cards (throwing-knife, venom-dart) that MCTS
- * (the arbiter) loves. We now divide 0-cost by 0.5 (a free-play premium), while
+ * (the arbiter) loves. We now divide 0-cost by 0.45 (a free-play premium), while
  * 1+ cost is unchanged at `max(0.7, cost)` so the fix is strictly gated to
- * cost===0 and cheaper-still-beats-pricier ordering stays sane. 0.5 lifts the
- * 0-cost band to ~2x a 1-cost card of equal raw value — a real draft premium
+ * cost===0 and cheaper-still-beats-pricier ordering stays sane. 0.45 lifts the
+ * 0-cost band to ~2.2x a 1-cost card of equal raw value — a real draft premium
  * without making free cards absurdly dominant over efficient 1-cost staples.
  */
 export function scoreCard(card: CardDef, ctx: DeckContext = {}): number {
   const rawValue = card.effects.reduce((sum, e) => sum + effectValue(e), 0);
 
   // Cost efficiency: value per energy. A 0-cost card is a free play (premium —
-  // no opportunity cost), so it gets a SMALLER divisor (0.5) than a 1-cost card;
+  // no opportunity cost), so it gets a SMALLER divisor (0.45) than a 1-cost card;
   // 1+ cost is unchanged. Gated to cost===0 so non-zero cards aren't boosted.
   const costDivisor = card.cost === 0 ? 0.45 : Math.max(0.7, card.cost);
   const efficiency = rawValue / costDivisor;
