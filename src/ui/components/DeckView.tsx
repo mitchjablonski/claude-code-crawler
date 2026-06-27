@@ -18,7 +18,10 @@ import { Screen } from './Screen.js';
  * per page (see its note) so a FULL page + header/divider/footer stays <=30
  * rows. Descriptions are truncated to one line so a row never wraps and inflates
  * the count. Pages flip with [n]/[p]; identical ids still collapse to one `xN`
- * row, and `[esc]/[v]` close. Upgraded (`-plus`) cards keep the `[+]`.
+ * row, and `[esc]/[v]` close. Upgraded (`-plus`) cards keep the `[+]`; cards
+ * that still have a reachable upgrade get an accent `^` marker (#44) so the deck
+ * view shows WHICH cards the rest site's "(N upgradeable)" count refers to. The
+ * marker is inline (adds no rows) so the page row budget is untouched.
  *
  * Purely presentational: it holds no game actions and dispatches nothing. It is
  * an App-local UI overlay (like the pause overlay), NOT an engine phase.
@@ -56,6 +59,15 @@ interface DeckRow {
     description: string;
   };
   readonly upgraded: boolean;
+  /**
+   * Whether this card has a reachable upgrade path. Computed with the SAME rule
+   * the rest site uses to count "(N upgradeable)" (RestScreen.upgradeable):
+   * `card.upgradeTo` is set AND that target id resolves in the registry. Keeping
+   * the two in lockstep means the deck-view marker count matches the rest-site
+   * count exactly — already-upgraded `-plus` leaves have no `upgradeTo` and so
+   * are (correctly) not marked.
+   */
+  readonly canUpgrade: boolean;
   readonly count: number;
 }
 
@@ -78,6 +90,8 @@ function buildRows(state: RunState, content: ContentRegistry): DeckRow[] {
       },
       // Upgraded variants are leaf nodes (no further upgradeTo) whose id ends -plus.
       upgraded: card.upgradeTo === undefined && card.id.endsWith('-plus'),
+      // Mirror RestScreen.upgradeable: a valid upgrade target that resolves.
+      canUpgrade: card.upgradeTo !== undefined && content.cards[card.upgradeTo] !== undefined,
       count,
     });
   }
@@ -106,6 +120,9 @@ function DeckRowLine({ row }: { readonly row: DeckRow }) {
           {') '}
           <Text color={theme.colors.rarity[row.card.rarity]}>{row.card.name}</Text>
           {row.upgraded && <Text color={theme.colors.success}>{' [+]'}</Text>}
+          {/* Upgrade-path marker (#44): same rule as the rest site, so a player
+              scanning the deck sees WHICH cards the rest "(N upgradeable)" means. */}
+          {row.canUpgrade && <Text color={theme.colors.accent}>{' ^'}</Text>}
         </Text>
         <Text>
           <Text color={theme.colors.cardType[row.card.type]}>{row.card.type}</Text>

@@ -4,6 +4,22 @@ import { theme, POTION_KEYS } from '../theme.js';
 import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
 
+/**
+ * Whether a stock item is BUYABLE given the player's gold (and, for potions, a
+ * free satchel slot). Pure + exported so the dimming decision (#44) — an
+ * unaffordable item, `price > gold`, renders dimmed — is unit-testable without
+ * depending on ANSI styling in the rendered frame (ink-testing-library strips
+ * color). The screen passes `dim={!buyable}` so this is the single source of
+ * truth for "is this row actionable". Display only: it gates no engine action.
+ */
+export function isBuyable(
+  item: { readonly sold: boolean; readonly price: number },
+  gold: number,
+  slotFree = true,
+): boolean {
+  return !item.sold && slotFree && gold >= item.price;
+}
+
 export function ShopScreen({
   state,
   content,
@@ -48,7 +64,7 @@ export function ShopScreen({
         {stock.map((item, i) => {
           const card = content.cards[item.cardId];
           if (!card) return null;
-          const buyable = !item.sold && state.gold >= item.price;
+          const buyable = isBuyable(item, state.gold);
           return (
             <CardTile
               key={`${item.cardId}-${i}`}
@@ -76,14 +92,19 @@ export function ShopScreen({
           {potionStock.map((item, i) => {
             const potion = content.potions[item.potionId];
             if (!potion) return null;
-            const buyable = !item.sold && slotFree && state.gold >= item.price;
+            const buyable = isBuyable(item, state.gold, slotFree);
             return (
               <Text key={`${item.potionId}-${i}`} dimColor={!buyable}>
                 ({potionKeys[i] ?? '?'}) {potion.name} - {potion.description}{' '}
                 {item.sold ? (
                   '(sold)'
                 ) : (
-                  <Text color={theme.colors.gold}>{item.price}g</Text>
+                  // Keep the price readable even when the row is dimmed for
+                  // unaffordability (mirrors the card tile's price) — the dim
+                  // signals "can't buy", but the player still needs the number.
+                  <Text color={theme.colors.gold} dimColor={false}>
+                    {item.price}g
+                  </Text>
                 )}
               </Text>
             );
