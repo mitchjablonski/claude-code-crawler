@@ -235,7 +235,7 @@ describe('content integrity', () => {
       ).toBe(true);
     }
     // #54: poison-finisher (Detonation Vial) is a LATE FINISHER — its conditional
-    // gates a BIG fixed bonus on a HIGH poison threshold (>= 6, distinct from #45's
+    // gates a BIG fixed bonus on a HIGH poison threshold (>= 5, distinct from #45's
     // atLeast-1 ramp card), and it adds NO poison (pure burst, never consumes ->
     // no loop). It carries an upgrade.
     const finisher = content.cards['poison-finisher'];
