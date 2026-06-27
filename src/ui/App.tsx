@@ -299,6 +299,10 @@ export function App({ deps }: { readonly deps: GameDeps }) {
     (id) => christenings.nameFor('relic', id) ?? game.content.relics[id]?.name ?? id,
   );
 
+  // #52: the active class display name, surfaced in the HUD + GameOver report so
+  // the player's class identity is visible throughout the run (not just Title).
+  const activeCharacterName = CHARACTERS[character]?.name ?? character;
+
   // #28: personal best for this run's (character, mode) among PRIOR runs. The
   // finished run is already appended to history (recordRun pushes to the end at
   // run-end), so we drop the last record to compare "NEW BEST" against the prior
@@ -327,6 +331,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
           linked={events.linked}
           narration={events.narration}
           relics={relicNames}
+          characterName={activeCharacterName}
         />
       )}
       {events.pause && !over ? (
@@ -376,6 +381,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
             <GameOverScreen
               state={run}
               relicNames={relicNames}
+              characterName={activeCharacterName}
               onNew={newRun}
               onTitle={quitToTitle}
               score={runScore(run)}
