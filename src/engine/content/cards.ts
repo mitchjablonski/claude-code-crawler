@@ -87,27 +87,40 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'goblin-stomp',
+    // #55: dead 2-cost (8 dmg + 2 vuln) — strictly worse per energy than
+    // torch-jab (1-cost 8 dmg + 1 vuln). Bump the damage/vuln ratio for its cost
+    // so it's a real cost-2 vulnerable-setter: 11 dmg + 2 vuln (still under
+    // crippling-blow's 10+2weak tempo when you factor the +damage, modest).
     name: 'Goblin Stomp',
-    description: 'Deal 8 damage. Apply 2 Vulnerable.',
+    description: 'Deal 11 damage. Apply 2 Vulnerable.',
     type: 'attack',
     rarity: 'common',
     cost: 2,
     target: 'enemy',
     effects: [
-      { kind: 'damage', amount: 8, target: 'enemy' },
+      { kind: 'damage', amount: 11, target: 'enemy' },
       { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' },
     ],
     upgradeTo: 'goblin-stomp-plus',
   },
   {
     id: 'cleave-the-horde',
+    // #55: dead AoE common — at 5 dmg all it was a worse spore-burst (starter,
+    // 5 dmg + 1 poison all) with no poison rider and no upside. Differentiate via
+    // a small AoE vulnerable RIDER (knight has no poison archetype): 6 dmg + 1
+    // Vulnerable to all enemies at cost 1. Still under whirlwind (2-cost AoE with
+    // a single-target floor) and under torch-jab's single-target tempo, so it
+    // lifts the pack-clear common without overshoot.
     name: 'Cleave the Horde',
-    description: 'Deal 5 damage to all enemies.',
+    description: 'Deal 6 damage to all enemies. Apply 1 Vulnerable to all enemies.',
     type: 'attack',
     rarity: 'common',
     cost: 1,
     target: 'allEnemies',
-    effects: [{ kind: 'damage', amount: 5, target: 'allEnemies' }],
+    effects: [
+      { kind: 'damage', amount: 6, target: 'allEnemies' },
+      { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'allEnemies' },
+    ],
     upgradeTo: 'cleave-the-horde-plus',
   },
   {
@@ -126,24 +139,32 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'second-breakfast',
+    // #55: dead heal-cantrip — 3 HP + draw 1 was too little sustain to draft over
+    // a pure draw/tempo skill. Bump heal 3→5 (still a modest cost-1 sustain
+    // cantrip, under second-wind's 6 raw heal which has no draw).
     name: 'Second Breakfast',
-    description: 'Heal 3 HP. Draw 1 card.',
+    description: 'Heal 5 HP. Draw 1 card.',
     type: 'skill',
     rarity: 'common',
     cost: 1,
     target: 'self',
-    effects: [{ kind: 'heal', amount: 3 }, { kind: 'draw', count: 1 }],
+    effects: [{ kind: 'heal', amount: 5 }, { kind: 'draw', count: 1 }],
     upgradeTo: 'second-breakfast-plus',
   },
   {
     id: 'shield-wall',
+    // #55: dead 2-cost wall — 14 block/2 was strictly worse per energy than
+    // warding-stone (8/1) and not enough of a lump to justify the 2-cost slot.
+    // Drop cost 2→1 at 10 block: a modest efficiency bump over warding-stone (8/1)
+    // that makes it the dedicated 1-cost "wall" common, still under bulwark
+    // (uncommon, 16/2) per energy.
     name: 'Shield Wall',
-    description: 'Gain 14 Block.',
+    description: 'Gain 10 Block.',
     type: 'skill',
     rarity: 'common',
-    cost: 2,
+    cost: 1,
     target: 'self',
-    effects: [{ kind: 'block', amount: 14 }],
+    effects: [{ kind: 'block', amount: 10 }],
     upgradeTo: 'shield-wall-plus',
   },
   {
@@ -228,7 +249,11 @@ const defs: readonly CardDef[] = [
   { id: 'brace', name: 'Brace', description: 'Gain 5 Block.', type: 'skill', rarity: 'common', cost: 0, target: 'self', effects: [{ kind: 'block', amount: 5 }] },
   { id: 'pommel-strike', name: 'Pommel Strike', description: 'Deal 6 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'draw', count: 1 }], upgradeTo: 'pommel-strike-plus' },
   { id: 'torch-jab', name: 'Torch Jab', description: 'Deal 8 damage. Apply 1 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'enemy' }], upgradeTo: 'torch-jab-plus' },
-  { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }], upgradeTo: 'heavy-swing-plus' },
+  // #55: dead vanilla 2-cost attack (14 dmg, no rider) — flat damage with no
+  // scaling lost to riders like crippling-blow (10+2weak). Add a +1 Strength
+  // self-rider so it scales the rest of the turn/combat: 14 dmg + 1 Strength at
+  // cost 2. Modest (under guillotine 24/3) and gives it a build identity.
+  { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage. Gain 1 Strength.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }], upgradeTo: 'heavy-swing-plus' },
   { id: 'spiked-shield', name: 'Spiked Shield', description: 'Gain 6 Block. Deal 3 damage.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 6 }, { kind: 'damage', amount: 3, target: 'enemy' }] },
   { id: 'field-rations', name: 'Field Rations', description: 'Heal 4 HP. Gain 5 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 4 }, { kind: 'block', amount: 5 }] },
   // Uncommons
@@ -255,12 +280,23 @@ const defs: readonly CardDef[] = [
   { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }], upgradeTo: 'venom-dart-plus' },
   { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }], upgradeTo: 'tipped-blade-plus' },
   { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity. Gain 4 Block.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 4 }] },
-  { id: 'sidestep', name: 'Sidestep', description: 'Gain 4 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 4 }, { kind: 'draw', count: 1 }] },
+  // #55: still dead at 4 block + draw 1 — a touch light next to the draw/tempo
+  // skills. Bump block 4→5 (closer to adrenaline-rush tempo) without adding a
+  // second draw, so it stays a modest block-cantrip.
+  { id: 'sidestep', name: 'Sidestep', description: 'Gain 5 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 5 }, { kind: 'draw', count: 1 }] },
   { id: 'throwing-knife', name: 'Throwing Knife', description: 'Deal 4 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }] },
-  { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 8 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
+  // #55: dead pure-block common (8 block/1) — flat block with no scaling lost to
+  // riders. Add a +1 Dexterity scaling rider (every future block card gets +1),
+  // trimming the flat block 8→6 to pay for it: 6 block + 1 Dexterity at cost 1.
+  // Sits right by limber (4 block + 1 dex, common) — a hair more block — and the
+  // dex makes it a dexterity-archetype enabler rather than linear block.
+  { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 6 Block. Gain 1 Dexterity.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 4 damage twice.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 2 }] },
   // Uncommons
-  { id: 'toxic-cloud', name: 'Toxic Cloud', description: 'Apply 2 Poison to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 2, target: 'allEnemies' }] },
+  // #55: dead AoE-poison uncommon — 2 poison all/1 was too thin a clock to draft.
+  // Bump 2→4 poison all at cost 1. Still well under corrosive-mist (rare, 6 poison
+  // all + 1 energy /2) per energy, and it seeds a real pack-wide poison clock.
+  { id: 'toxic-cloud', name: 'Toxic Cloud', description: 'Apply 4 Poison to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 4, target: 'allEnemies' }] },
   { id: 'caltrops', name: 'Caltrops', description: 'Gain 2 Dexterity.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 2, target: 'self' }] },
   { id: 'rupture', name: 'Rupture', description: 'Deal 6 damage. Apply 3 Poison.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
   { id: 'bulwark', name: 'Bulwark', description: 'Gain 16 Block.', type: 'skill', rarity: 'uncommon', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 16 }] },
@@ -277,7 +313,12 @@ const defs: readonly CardDef[] = [
   { id: 'stone-skin', name: 'Stone Skin', description: 'Gain 1 Dexterity and 5 Block.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 5 }] },
   // Rares
   { id: 'viral-load', name: 'Viral Load', description: 'Apply 10 Poison. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 10, target: 'enemy' }, { kind: 'gainEnergy', amount: 1 }] },
-  { id: 'iron-stance', name: 'Iron Stance', description: 'Gain 3 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }] },
+  // #55: dead rare (MCTS 0.00) — pure 3 dex/2 had no immediate value, so it lost
+  // to caltrops (2 dex/1 uncommon) which ramps cheaper. Add an IMMEDIATE 6 Block
+  // so the turn it lands it already pays off (and the 6 block itself is boosted
+  // +3 by the dex it grants this same turn). 3 Dexterity + 6 Block at cost 2 — a
+  // dex-lean rare next to last-bastion (18 block + 1 dex /2), no longer dead.
+  { id: 'iron-stance', name: 'Iron Stance', description: 'Gain 3 Dexterity. Gain 6 Block.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }, { kind: 'block', amount: 6 }] },
   { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 6 Poison to all enemies. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 6, target: 'allEnemies' }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
@@ -292,15 +333,15 @@ const defs: readonly CardDef[] = [
   { id: 'vanguard-stance-plus', name: 'Vanguard Stance+', description: 'Gain 7 Block and 1 Strength.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 7 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
   { id: 'spore-burst-plus', name: 'Spore Burst+', description: 'Deal 7 damage to all enemies. Apply 2 Poison to all enemies.', type: 'attack', rarity: 'starter', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'allEnemies' }] },
   // Common upgrades
-  { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 11 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
-  { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 8 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 8, target: 'allEnemies' }] },
+  { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 14 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
+  { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 9 damage to all enemies. Apply 2 Vulnerable to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'allEnemies' }] },
   { id: 'weakening-jab-plus', name: 'Weakening Jab+', description: 'Deal 7 damage. Apply 3 Weak.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
-  { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 5 HP. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 5 }, { kind: 'draw', count: 1 }] },
-  { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 18 Block.', type: 'skill', rarity: 'common', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }] },
+  { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 8 HP. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 8 }, { kind: 'draw', count: 1 }] },
+  { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 14 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 14 }] },
   { id: 'rat-bite-plus', name: 'Rat Bite+', description: 'Deal 8 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }] },
   { id: 'pommel-strike-plus', name: 'Pommel Strike+', description: 'Deal 9 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   { id: 'torch-jab-plus', name: 'Torch Jab+', description: 'Deal 11 damage. Apply 2 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }] },
-  { id: 'heavy-swing-plus', name: 'Heavy Swing+', description: 'Deal 19 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 19, target: 'enemy' }] },
+  { id: 'heavy-swing-plus', name: 'Heavy Swing+', description: 'Deal 19 damage. Gain 2 Strength.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 19, target: 'enemy' }, { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
   { id: 'venom-dart-plus', name: 'Venom Dart+', description: 'Apply 5 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }] },
   { id: 'tipped-blade-plus', name: 'Tipped Blade+', description: 'Deal 6 damage. Apply 4 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 4, target: 'enemy' }] },
   // Uncommon upgrades
