@@ -63,11 +63,19 @@ export function StatusBar({
   linked,
   narration,
   relics,
+  characterName,
 }: {
   readonly state: RunState;
   readonly linked: boolean;
   readonly narration: string | null;
   readonly relics: readonly string[];
+  /**
+   * #52: the selected class display name (e.g. "Knight"). Surfaced as a compact
+   * dim `[Knight]` tag on row 1 so the player's class identity is visible on
+   * EVERY in-run screen (the class otherwise only showed on the Title). Inline
+   * on the existing HP row — adds no new HUD row and stays within contentWidth.
+   */
+  readonly characterName: string;
 }) {
   const combat = state.combat;
   const hp = combat ? combat.playerHp : state.hp;
@@ -175,6 +183,11 @@ export function StatusBar({
             <Text>{combat.discardPile.length}</Text>
             <Text color={theme.colors.muted}>{'  '}hand </Text>
             <Text>{combat.hand.length}</Text>
+            {/* #52: combat tempo — which turn the fight is on (escalation/ramps
+                key off this). Inline on the existing pile line, combat-only, so
+                no new HUD row. */}
+            <Text color={theme.colors.muted}>{'  '}turn </Text>
+            <Text>{combat.turn}</Text>
           </Text>
         </Box>
       )}
@@ -212,8 +225,17 @@ export function StatusBar({
           {narration ?? ''}
         </Text>
       </Box>
+      {/* #52: class identity. The dungeon-link line is a single full-width Text
+          (no space-between flex), so appending a compact `[Knight]` tag here can
+          never clip the resource row, adds no new HUD row, and keeps the class
+          visible on EVERY in-run screen. */}
       <Box width={theme.layout.contentWidth} paddingX={1}>
-        <Text dimColor>{linked ? 'dungeon: linked' : 'dungeon: dormant (ccc init)'}</Text>
+        <Text dimColor wrap="truncate">
+          {linked ? 'dungeon: linked' : 'dungeon: dormant (ccc init)'}
+          {'   ['}
+          {characterName}
+          {']'}
+        </Text>
       </Box>
     </Box>
   );

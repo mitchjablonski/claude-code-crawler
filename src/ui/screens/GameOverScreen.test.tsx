@@ -34,6 +34,7 @@ describe('GameOverScreen run summary', () => {
       <GameOverScreen
         state={state}
         relicNames={['Lucky Pocket Dice']}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -60,6 +61,7 @@ describe('GameOverScreen run summary', () => {
       <GameOverScreen
         state={state}
         relicNames={['Pocket Dice']}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -82,6 +84,7 @@ describe('GameOverScreen run summary', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -99,11 +102,29 @@ describe('GameOverScreen run summary', () => {
     expect(frame).toContain('11');
   });
 
+  it('shows the class played in the run report', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        characterName="Apothecary"
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Class');
+    expect(frame).toContain('Apothecary');
+  });
+
   it('shows "none" when no relics are held', () => {
     const { lastFrame } = render(
       <GameOverScreen
         state={finished('defeat')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -120,6 +141,7 @@ describe('GameOverScreen run summary', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         dailyDate="2026-06-24"
@@ -139,6 +161,7 @@ describe('GameOverScreen run summary', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -157,6 +180,7 @@ describe('GameOverScreen new-unlock fanfare (#46)', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -175,6 +199,7 @@ describe('GameOverScreen new-unlock fanfare (#46)', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -190,6 +215,7 @@ describe('GameOverScreen new-unlock fanfare (#46)', () => {
       <GameOverScreen
         state={finished('defeat')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={SCORE}
@@ -206,6 +232,7 @@ describe('GameOverScreen personal best', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={1500}
@@ -224,6 +251,7 @@ describe('GameOverScreen personal best', () => {
       <GameOverScreen
         state={finished('victory')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={800}
@@ -241,6 +269,7 @@ describe('GameOverScreen personal best', () => {
       <GameOverScreen
         state={finished('defeat')}
         relicNames={[]}
+        characterName="Knight"
         onNew={noop}
         onTitle={noop}
         score={600}

@@ -6,6 +6,7 @@ import { Screen } from '../components/Screen.js';
 export function GameOverScreen({
   state,
   relicNames,
+  characterName,
   onNew,
   onTitle,
   dailyDate,
@@ -14,6 +15,12 @@ export function GameOverScreen({
   unlockedNames = [],
 }: {
   readonly state: RunState;
+  /**
+   * #52: the class played this run (e.g. "Knight"). Shown in the run-report so
+   * the report records WHO the run was played as — the class otherwise vanished
+   * after the Title. Rendered alongside the run stats.
+   */
+  readonly characterName: string;
   /**
    * Held relics by display name (christened epithet preferred over base name),
    * computed in App to mirror the StatusBar relic pattern (#21). Empty => "none".
@@ -96,7 +103,9 @@ export function GameOverScreen({
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text>
-          <Text color={theme.colors.muted}>Depth reached </Text>
+          <Text color={theme.colors.muted}>Class </Text>
+          <Text color={theme.colors.accent}>{characterName}</Text>
+          <Text color={theme.colors.muted}>   Depth reached </Text>
           <Text color={theme.colors.accent}>
             {depth}/{bossRow}
           </Text>
