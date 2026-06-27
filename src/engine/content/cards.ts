@@ -68,7 +68,7 @@ const defs: readonly CardDef[] = [
   // arc gap the same way #20's kit cards closed the Knight's single gap. In
   // SINGLE (one boss) it reduces to ~5 dmg + 1 poison — roughly a shortsword,
   // strictly modest — so it lifts ARC far more than SINGLE and can't balloon the
-  // already-even single matchup. Calibrated between cleave-the-horde (4 dmg all,
+  // already-even single matchup. Calibrated between cleave-the-horde (5 dmg all,
   // common) and whirlwind (6 dmg all, uncommon); justified as a non-draftable
   // kit exclusive that defines the arc-poison archetype.
   {
@@ -102,12 +102,12 @@ const defs: readonly CardDef[] = [
   {
     id: 'cleave-the-horde',
     name: 'Cleave the Horde',
-    description: 'Deal 4 damage to all enemies.',
+    description: 'Deal 5 damage to all enemies.',
     type: 'attack',
     rarity: 'common',
     cost: 1,
     target: 'allEnemies',
-    effects: [{ kind: 'damage', amount: 4, target: 'allEnemies' }],
+    effects: [{ kind: 'damage', amount: 5, target: 'allEnemies' }],
     upgradeTo: 'cleave-the-horde-plus',
   },
   {
@@ -127,23 +127,23 @@ const defs: readonly CardDef[] = [
   {
     id: 'second-breakfast',
     name: 'Second Breakfast',
-    description: 'Heal 4 HP.',
+    description: 'Heal 3 HP. Draw 1 card.',
     type: 'skill',
     rarity: 'common',
     cost: 1,
     target: 'self',
-    effects: [{ kind: 'heal', amount: 4 }],
+    effects: [{ kind: 'heal', amount: 3 }, { kind: 'draw', count: 1 }],
     upgradeTo: 'second-breakfast-plus',
   },
   {
     id: 'shield-wall',
     name: 'Shield Wall',
-    description: 'Gain 12 Block.',
+    description: 'Gain 14 Block.',
     type: 'skill',
     rarity: 'common',
     cost: 2,
     target: 'self',
-    effects: [{ kind: 'block', amount: 12 }],
+    effects: [{ kind: 'block', amount: 14 }],
     upgradeTo: 'shield-wall-plus',
   },
   {
@@ -230,7 +230,7 @@ const defs: readonly CardDef[] = [
   { id: 'torch-jab', name: 'Torch Jab', description: 'Deal 8 damage. Apply 1 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'enemy' }], upgradeTo: 'torch-jab-plus' },
   { id: 'heavy-swing', name: 'Heavy Swing', description: 'Deal 14 damage.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }], upgradeTo: 'heavy-swing-plus' },
   { id: 'spiked-shield', name: 'Spiked Shield', description: 'Gain 6 Block. Deal 3 damage.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 6 }, { kind: 'damage', amount: 3, target: 'enemy' }] },
-  { id: 'field-rations', name: 'Field Rations', description: 'Heal 3 HP. Gain 3 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 3 }, { kind: 'block', amount: 3 }] },
+  { id: 'field-rations', name: 'Field Rations', description: 'Heal 4 HP. Gain 5 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 4 }, { kind: 'block', amount: 5 }] },
   // Uncommons
   // #42: whirlwind keeps its AoE identity but gains a single-target FLOOR via a
   // conditional — vs exactly one enemy (a lone boss/elite) it deals +5, so it is
@@ -254,7 +254,7 @@ const defs: readonly CardDef[] = [
   // Commons
   { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }], upgradeTo: 'venom-dart-plus' },
   { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }], upgradeTo: 'tipped-blade-plus' },
-  { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity. Gain 4 Block.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 4 }] },
   { id: 'sidestep', name: 'Sidestep', description: 'Gain 4 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 4 }, { kind: 'draw', count: 1 }] },
   { id: 'throwing-knife', name: 'Throwing Knife', description: 'Deal 4 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }] },
   { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 8 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8 }] },
@@ -284,10 +284,10 @@ const defs: readonly CardDef[] = [
   { id: 'spore-burst-plus', name: 'Spore Burst+', description: 'Deal 7 damage to all enemies. Apply 2 Poison to all enemies.', type: 'attack', rarity: 'starter', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'allEnemies' }] },
   // Common upgrades
   { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 11 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
-  { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 7 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }] },
+  { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 8 damage to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 8, target: 'allEnemies' }] },
   { id: 'weakening-jab-plus', name: 'Weakening Jab+', description: 'Deal 7 damage. Apply 3 Weak.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
-  { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 7 HP.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 7 }] },
-  { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 16 Block.', type: 'skill', rarity: 'common', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 16 }] },
+  { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 5 HP. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 5 }, { kind: 'draw', count: 1 }] },
+  { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 18 Block.', type: 'skill', rarity: 'common', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }] },
   { id: 'rat-bite-plus', name: 'Rat Bite+', description: 'Deal 8 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }] },
   { id: 'pommel-strike-plus', name: 'Pommel Strike+', description: 'Deal 9 damage. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   { id: 'torch-jab-plus', name: 'Torch Jab+', description: 'Deal 11 damage. Apply 2 Vulnerable.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }] },
