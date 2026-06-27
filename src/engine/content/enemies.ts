@@ -203,10 +203,11 @@ const defs: readonly EnemyDef[] = [
     moves: [
       { name: 'Both Changes', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
       { name: 'Force Push', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
-      // Rebase rallies +1 strength (was +2): the compounding strength gain made
-      // phase-1 attacks escalate fast (Force Push 12 -> 14 -> 16 ...), which was
-      // the bulk of merge-conflict's over-lethality across its two arc encounters.
-      { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+      // Rebase is now a pure block breather (no strength) — Force Push stays flat
+      // to stop cross-act escalation. The compounding strength gain (Force Push
+      // 12 -> 13 -> 14 ...) was the bulk of merge-conflict's over-lethality across
+      // its two arc encounters, where it out-killed all but the boss in nightmare.
+      { name: 'Rebase', effects: [{ kind: 'block', amount: 6 }] },
     ],
     // Showcase phase: once cornered (<=30% HP) it goes aggressive — but, like the
     // boss's enraged phase, it punctuates the offense with a defensive block beat
