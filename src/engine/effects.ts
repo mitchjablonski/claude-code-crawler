@@ -2,6 +2,7 @@ import type { Rng } from './rng.js';
 import type {
   CombatState,
   Effect,
+  EffectCondition,
   EnemyInstance,
   Statuses,
   StatusId,
@@ -124,6 +125,50 @@ export function applyPlayerEffect(
       );
       return { ...combat, enemies };
     }
+    case 'conditional': {
+      // Pure, deterministic branch over current state (no rng draws). The chosen
+      // branch's effects flow through the SAME path (recurse) with the same
+      // targetIndex, so target resolution + stat tracking (#25) are unchanged.
+      const branch = evalCondition(combat, effect.condition, targetIndex)
+        ? effect.then
+        : (effect.else ?? []);
+      let next = combat;
+      for (const inner of branch) {
+        next = applyPlayerEffect(next, inner, targetIndex, rng);
+      }
+      return next;
+    }
+  }
+}
+
+/**
+ * Evaluate a conditional Effect's predicate against the CURRENT combat state.
+ * Pure & deterministic: reads only state + the selected target, draws no rng.
+ */
+function evalCondition(
+  combat: CombatState,
+  condition: EffectCondition,
+  targetIndex: number | undefined,
+): boolean {
+  switch (condition.type) {
+    case 'targetHasStatus': {
+      const need = condition.atLeast ?? 1;
+      // Read the status off the SELECTED enemy when one is targeted; otherwise
+      // (e.g. a self/aoe context) fall back to the first living enemy so an
+      // allEnemies card can still gate on "the pack is poisoned".
+      const enemy =
+        targetIndex !== undefined
+          ? combat.enemies[targetIndex]
+          : combat.enemies.find((e) => e.hp > 0);
+      if (!enemy) return false;
+      return getStatus(enemy.statuses, condition.status) >= need;
+    }
+    case 'enemyCount': {
+      const living = combat.enemies.filter((e) => e.hp > 0).length;
+      if (condition.op === 'eq') return living === condition.value;
+      if (condition.op === 'lte') return living <= condition.value;
+      return living >= condition.value;
+    }
   }
 }
 
@@ -178,9 +223,12 @@ export function applyEnemyEffect(
         playerStatuses: addStatus(combat.playerStatuses, effect.status, effect.stacks),
       };
     }
-    // Enemies have no hand or energy; these are player-only primitives.
+    // Enemies have no hand or energy; these are player-only primitives. The
+    // `conditional` kind is authored only on player-facing content (#42), so it
+    // is an inert no-op here — enemy moves never carry it.
     case 'draw':
     case 'gainEnergy':
+    case 'conditional':
       return combat;
   }
 }

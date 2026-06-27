@@ -189,14 +189,25 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'lucky-dagger',
+    // #42: conditional-effect identity ("×2 if poisoned"). Base 7 dmg + a
+    // conditional 7 bonus when the target is poisoned (>=1), so it hits 14 when
+    // a poison build is online and 7 when cold. Tuning: the old flat 11 became a
+    // 7/14 swing — STRICTLY WORSE unset up (7 vs 11) and BETTER set up (14 vs 11)
+    // without ballooning (14 is still a rare 2-cost, below Guillotine's 24). Keeps
+    // the draw-2 so it stays a tempo-positive finisher in the poison archetype.
     name: 'Lucky Dagger',
-    description: 'Deal 11 damage. Draw 2 cards.',
+    description: 'Deal 7 damage. If the target is Poisoned, deal 7 more. Draw 2 cards.',
     type: 'attack',
     rarity: 'rare',
     cost: 2,
     target: 'enemy',
     effects: [
-      { kind: 'damage', amount: 11, target: 'enemy' },
+      { kind: 'damage', amount: 7, target: 'enemy' },
+      {
+        kind: 'conditional',
+        condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 },
+        then: [{ kind: 'damage', amount: 7, target: 'enemy' }],
+      },
       { kind: 'draw', count: 2 },
     ],
     upgradeTo: 'lucky-dagger-plus',
@@ -221,7 +232,13 @@ const defs: readonly CardDef[] = [
   { id: 'spiked-shield', name: 'Spiked Shield', description: 'Gain 6 Block. Deal 3 damage.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 6 }, { kind: 'damage', amount: 3, target: 'enemy' }] },
   { id: 'field-rations', name: 'Field Rations', description: 'Heal 3 HP. Gain 3 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 3 }, { kind: 'block', amount: 3 }] },
   // Uncommons
-  { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }], upgradeTo: 'whirlwind-plus' },
+  // #42: whirlwind keeps its AoE identity but gains a single-target FLOOR via a
+  // conditional — vs exactly one enemy (a lone boss/elite) it deals +5, so it is
+  // no longer near-dead in single-target rooms (6→11 vs a boss, ~a Heavy-Swing).
+  // Inert in multi-enemy rooms (count != 1 → no bonus), so its arc value is
+  // unchanged. Tuned modestly (11 single < 14 Heavy-Swing at cost 2) so the floor
+  // rescues it without making the AoE card a premier single-target attack.
+  { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies. If there is only one enemy, deal 5 more.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'eq', value: 1 }, then: [{ kind: 'damage', amount: 5, target: 'allEnemies' }] }], upgradeTo: 'whirlwind-plus' },
   { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 2 cards. Gain 1 Energy.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 2 }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'iron-hide', name: 'Iron Hide', description: 'Gain 3 Regen.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'regen', stacks: 3, target: 'self' }] },
   { id: 'second-wind', name: 'Second Wind', description: 'Heal 6 HP.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 6 }] },
@@ -279,10 +296,10 @@ const defs: readonly CardDef[] = [
   { id: 'tipped-blade-plus', name: 'Tipped Blade+', description: 'Deal 6 damage. Apply 4 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 4, target: 'enemy' }] },
   // Uncommon upgrades
   { id: 'flurry-of-knives-plus', name: 'Flurry of Knives+', description: 'Deal 4 damage three times.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 3 }] },
-  { id: 'whirlwind-plus', name: 'Whirlwind+', description: 'Deal 9 damage to all enemies.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }] },
+  { id: 'whirlwind-plus', name: 'Whirlwind+', description: 'Deal 9 damage to all enemies. If there is only one enemy, deal 6 more.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'eq', value: 1 }, then: [{ kind: 'damage', amount: 6, target: 'allEnemies' }] }] },
   { id: 'crippling-blow-plus', name: 'Crippling Blow+', description: 'Deal 14 damage. Apply 3 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
   // Rare upgrades
-  { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 14 damage. Draw 2 cards.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'draw', count: 2 }] },
+  { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 9 damage. If the target is Poisoned, deal 9 more. Draw 2 cards.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 }, then: [{ kind: 'damage', amount: 9, target: 'enemy' }] }, { kind: 'draw', count: 2 }] },
   { id: 'guillotine-plus', name: 'Guillotine+', description: 'Deal 32 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 32, target: 'enemy' }] },
   // --- E2: UNLOCKABLE extra cards. Each carries an `unlock` milestone id and is
   // EXCLUDED from the draft pool until that milestone is earned (UNLOCKABLE_CARD_IDS
