@@ -312,6 +312,13 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       })()
     : null;
 
+  // #46: names of the unlocks this run just earned (same `justUnlocked` diff the
+  // Title flashes), resolved id->name exactly as the Title path does, so GameOver
+  // can celebrate them at the run's peak moment. Empty unless a milestone crossed.
+  const unlockedNames = justUnlocked
+    .map((id) => game.content.cards[id]?.name ?? game.content.relics[id]?.name ?? id)
+    .sort();
+
   return (
     <Box flexDirection="column">
       {!over && (
@@ -373,6 +380,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
               onTitle={quitToTitle}
               score={runScore(run)}
               priorBest={priorBest}
+              unlockedNames={unlockedNames}
               {...(dailyRunDate ? { dailyDate: dailyRunDate } : {})}
             />
           )}
