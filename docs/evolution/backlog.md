@@ -160,8 +160,20 @@ Re-validated: #20/#22/#26 held (single parity stable; batch-seven dead cards all
 ## Batch-15 fresh UX playtest (2026-06-26, on main+batch14)
 Batch 14 UX CONFIRMED: shop affordability dimming (unaffordable dimmed, prices stay gold) + deck `^` upgrade markers both land. Top UX queue:
 - **#1 event-result "you chose X" recall** — result screen shows outcomes but not the chosen option label (acute "what happened?" moment, esp. roll outcomes). Needs the chosen index in EventState → RunState field + SAVE_VERSION bump.
-- **#2 unlock notifications on the VICTORY screen** — currently fire on the NEXT title (missed if you start a new run). Thread `justUnlockedNames` into GameOverScreen. Pure UI, low effort. → #46.
+- **#2 unlock notifications on the VICTORY screen** — DONE in #46 (threaded `justUnlockedNames` into GameOverScreen).
 - **#3 map "Unknown event" risk/name signal** — no node identity/risk; quickest = a caution color tier; better = surface event name (needs map to carry eventId).
 - **#4 shop card-removal** (deck-thinning meta absent) — engine `removeCard` action + shop slot + chooser UI (RestScreen pattern). Bigger.
 - **#5 turn counter in combat** — `CombatState.turn` exists, unsurfaced; add to the pile line. Low effort.
 - Also: class-blind first-time framing (no "what is this game"/starter preview on title).
+
+## Batch-15 fresh balance playtest (2026-06-26, on main+batch14; pre-#45 snapshot)
+- Re-baseline (post-#39 greedy): single normal 0.86/0.87 (parity), hard 0.61/0.59, nightmare 0.45/0.38; arc normal 0.69/0.68, hard 0.52/0.50, nightmare 0.32/0.24. Two surviving seams, both nightmare/Knight-favored: single +7.3pp, arc +7.7pp.
+- Playtest's #1 = a poison-payoff card — ALREADY SHIPPED as #45 (Venom Reprisal); it ran on the pre-#45 snapshot so independently re-derived the same fix (validation). #45 closed the single gap to ~+0.047.
+- #47 addressed its #2 (merge-conflict Rebase strength → now ≤ boss arc/nightmare).
+- Batch 14 RE-VALIDATED: lucky-dagger ×2-if-poisoned working (apoth 0.38 / knight 0.00, not dominant); whirlwind single-floor mode-conditional; 5 revived cards in 0.06-0.34 band; no new dominant conditional card (greedy over-rates plague/viral-load/avalanche — MCTS arbiter).
+- Queued batch 16+:
+  - **greedy scoreCard 0-cost blind spot** (tooling): throwing-knife 0.51 MCTS vs 0.00 greedy; venom-dart 0.61 vs 0.07 — costDivisor floor 0.7 too high for 0-cost; use 0.5 (or free-play bonus) for cost===0. 1-line fix, makes sweeps reliable.
+  - arc exhaustion 10→12/transition (arc/nightmare avgEndHp still ~33; engine knob; validate arc/normal stays >63%).
+  - battle-trance-for-knight still weak (0.27) — re-measure post-#45; if <0.20 add a knight draw-engine enabler.
+  - residual apothecary nightmare gap ~4pp after #45 (acceptable; only chase if it persists).
+  - UX (from batch-15 UX playtest): event-result "you chose X" recall (#1; needs RunState field + SAVE_VERSION bump); map "Unknown event" risk/name signal; shop card-removal (deck-thinning meta; engine removeCard + chooser); turn counter in combat HUD (CombatState.turn unsurfaced); class-blind title framing.
