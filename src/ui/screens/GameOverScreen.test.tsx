@@ -151,6 +151,55 @@ describe('GameOverScreen run summary', () => {
   });
 });
 
+describe('GameOverScreen new-unlock fanfare (#46)', () => {
+  it('celebrates unlocks earned by this run with a NEW UNLOCKED line', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+        unlockedNames={['Overclock', 'Rubber Duck']}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('NEW UNLOCKED:');
+    expect(frame).toContain('Overclock');
+    expect(frame).toContain('Rubber Duck');
+  });
+
+  it('omits the NEW UNLOCKED line when no unlocks were earned', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('victory')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+        unlockedNames={[]}
+      />,
+    );
+    expect(lastFrame() ?? '').not.toContain('NEW UNLOCKED');
+  });
+
+  it('omits the NEW UNLOCKED line when the prop is not provided', () => {
+    const { lastFrame } = render(
+      <GameOverScreen
+        state={finished('defeat')}
+        relicNames={[]}
+        onNew={noop}
+        onTitle={noop}
+        score={SCORE}
+        priorBest={HIGH_PRIOR}
+      />,
+    );
+    expect(lastFrame() ?? '').not.toContain('NEW UNLOCKED');
+  });
+});
+
 describe('GameOverScreen personal best', () => {
   it('celebrates NEW BEST with the prev best when this run beats it', () => {
     const { lastFrame } = render(
