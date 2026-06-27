@@ -156,3 +156,12 @@ Re-validated: #20/#22/#26 held (single parity stable; batch-seven dead cards all
 - battle-trance still weak for KNIGHT specifically (0.09 arc) — draw/energy archetype underbuilt for knight (apothecary fine). Queued.
 - Queued balance: merge-conflict still #2 arc/nightmare killer (19/300) → phase threshold 30%→20% or late-act relief; apothecary arc/nightmare floor (0.25) → kit card or carryover-poison; single/nightmare gap → a poison-payoff conditional card (now possible via #42); arc endHp 31-33 at nightmare → nudge exhaustion $5→$6/act.
 - Queued UX: event-result "you chose X" recall (#1 UX — needs RunState field + SAVE_VERSION bump); shop affordability dimming (#2 → #44); deck-view upgradeable markers (#3 → #44); map "Unknown event" risk/name signal; unlock notifications on the VICTORY screen (not just next title); turn counter in combat HUD; event risk-magnitude previews + deck/status conditional event branches (E5, now enabled by #42 conditions).
+
+## Batch-15 fresh UX playtest (2026-06-26, on main+batch14)
+Batch 14 UX CONFIRMED: shop affordability dimming (unaffordable dimmed, prices stay gold) + deck `^` upgrade markers both land. Top UX queue:
+- **#1 event-result "you chose X" recall** — result screen shows outcomes but not the chosen option label (acute "what happened?" moment, esp. roll outcomes). Needs the chosen index in EventState → RunState field + SAVE_VERSION bump.
+- **#2 unlock notifications on the VICTORY screen** — currently fire on the NEXT title (missed if you start a new run). Thread `justUnlockedNames` into GameOverScreen. Pure UI, low effort. → #46.
+- **#3 map "Unknown event" risk/name signal** — no node identity/risk; quickest = a caution color tier; better = surface event name (needs map to carry eventId).
+- **#4 shop card-removal** (deck-thinning meta absent) — engine `removeCard` action + shop slot + chooser UI (RestScreen pattern). Bigger.
+- **#5 turn counter in combat** — `CombatState.turn` exists, unsurfaced; add to the pile line. Low effort.
+- Also: class-blind first-time framing (no "what is this game"/starter preview on title).
