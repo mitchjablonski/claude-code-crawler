@@ -357,6 +357,14 @@ export interface RunState {
   readonly shop: {
     readonly stock: readonly { readonly cardId: string; readonly price: number; readonly sold: boolean }[];
     readonly potionStock: readonly { readonly potionId: string; readonly price: number; readonly sold: boolean }[];
+    /**
+     * Whether the one-per-visit card-removal service has been used this shop
+     * (#49). Reset to false each time a shop node is entered; set true after a
+     * `removeCard` so the deck-thinning service can be bought at most ONCE per
+     * shop. Player-chosen + deterministic (no rng), so seeded replay of runs
+     * that never remove is byte-identical — the flag is simply always false.
+     */
+    readonly removeUsed: boolean;
   } | null;
   readonly event: {
     readonly eventId: string;
@@ -419,6 +427,7 @@ export type GameAction =
   | { type: 'skipReward' }
   | { type: 'buyCard'; index: number }
   | { type: 'buyPotion'; index: number }
+  | { type: 'removeCard'; deckIndex: number }
   | { type: 'leaveShop' }
   | { type: 'rest' }
   | { type: 'upgradeCard'; deckIndex: number }

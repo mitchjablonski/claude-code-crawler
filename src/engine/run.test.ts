@@ -321,7 +321,7 @@ describe('applyAction', () => {
       ...run('alpha'),
       phase: 'shop',
       gold: 100,
-      shop: { stock: [{ cardId: 'shield-wall', price: 50, sold: false }], potionStock: [] },
+      shop: { stock: [{ cardId: 'shield-wall', price: 50, sold: false }], potionStock: [], removeUsed: false },
     };
     const bought = applyAction(content, state, { type: 'buyCard', index: 0 });
     expect(bought.gold).toBe(50);
@@ -365,6 +365,7 @@ describe('applyAction', () => {
       shop: {
         stock: [],
         potionStock: [{ potionId: 'fire-flask', price: 35, sold: false }],
+        removeUsed: false,
       },
     };
     const bought = applyAction(content, state, { type: 'buyPotion', index: 0 });
@@ -383,6 +384,55 @@ describe('applyAction', () => {
     expect(() => applyAction(content, full, { type: 'buyPotion', index: 0 })).toThrow(
       EngineError,
     );
+  });
+
+  it('removeCard removes the chosen card, charges gold, and marks removal used (#49)', () => {
+    const state: RunState = {
+      ...run('alpha'),
+      phase: 'shop',
+      gold: 100,
+      deck: ['rusty-shortsword', 'shield-wall', 'a', 'b', 'c', 'd'],
+      shop: { stock: [], potionStock: [], removeUsed: false },
+    };
+    const removed = applyAction(content, state, { type: 'removeCard', deckIndex: 1 });
+    expect(removed.deck).toEqual(['rusty-shortsword', 'a', 'b', 'c', 'd']); // index 1 gone
+    expect(removed.gold).toBe(50); // 100 - SHOP_REMOVAL_COST (50)
+    expect(removed.shop?.removeUsed).toBe(true);
+    // A second removal in the same shop visit is rejected.
+    expect(() => applyAction(content, removed, { type: 'removeCard', deckIndex: 0 })).toThrow(
+      EngineError,
+    );
+  });
+
+  it('removeCard rejects when poor, deck at floor, bad index, or not at a shop (#49)', () => {
+    const okShop = { stock: [], potionStock: [], removeUsed: false };
+    const sixCards = ['a', 'b', 'c', 'd', 'e', 'f'];
+    // Insufficient gold.
+    expect(() =>
+      applyAction(content, { ...run('alpha'), phase: 'shop', gold: 10, deck: sixCards, shop: okShop }, {
+        type: 'removeCard',
+        deckIndex: 0,
+      }),
+    ).toThrow(EngineError);
+    // Deck at the floor (5 cards) — removal would drop below the floor.
+    expect(() =>
+      applyAction(
+        content,
+        { ...run('alpha'), phase: 'shop', gold: 100, deck: ['a', 'b', 'c', 'd', 'e'], shop: okShop },
+        { type: 'removeCard', deckIndex: 0 },
+      ),
+    ).toThrow(EngineError);
+    // Out-of-range deck index.
+    expect(() =>
+      applyAction(content, { ...run('alpha'), phase: 'shop', gold: 100, deck: sixCards, shop: okShop }, {
+        type: 'removeCard',
+        deckIndex: 9,
+      }),
+    ).toThrow(EngineError);
+    // Not at a shop (wrong phase).
+    expect(() =>
+      applyAction(content, { ...run('alpha'), gold: 100 }, { type: 'removeCard', deckIndex: 0 }),
+    ).toThrow(EngineError);
   });
 
   it('reward potion grant respects the slot limit', () => {
