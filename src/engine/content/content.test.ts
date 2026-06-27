@@ -216,6 +216,24 @@ describe('content integrity', () => {
       // The bonus branch is a damage effect (recursive validation also covers this).
       expect(cond.then.some((e) => e.kind === 'damage')).toBe(true);
     }
+    // #45: venom-reprisal is a poison PAYOFF — its conditional gates BONUS damage
+    // AND extra poison on the target already being poisoned (rewards, never
+    // consumes — no detonate loop), and it carries an upgrade.
+    const reprisal = content.cards['venom-reprisal'];
+    expect(reprisal, 'venom-reprisal exists').toBeDefined();
+    expect(reprisal!.upgradeTo).toBe('venom-reprisal-plus');
+    const rCond = reprisal!.effects.find((e) => e.kind === 'conditional');
+    expect(rCond, 'venom-reprisal has a conditional').toBeDefined();
+    if (rCond?.kind === 'conditional' && rCond.condition.type === 'targetHasStatus') {
+      expect(rCond.condition.status).toBe('poison');
+      // The payoff branch both deals damage and applies MORE poison (the ramp
+      // accelerator) — but applies poison, never removes it.
+      expect(rCond.then.some((e) => e.kind === 'damage')).toBe(true);
+      expect(
+        rCond.then.some((e) => e.kind === 'applyStatus' && e.status === 'poison' && e.stacks > 0),
+        'payoff adds poison, never consumes it',
+      ).toBe(true);
+    }
     // whirlwind gates a single-target floor on exactly one living enemy.
     const ww = content.cards['whirlwind'];
     const wwCond = ww!.effects.find((e) => e.kind === 'conditional');

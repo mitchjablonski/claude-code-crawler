@@ -265,6 +265,15 @@ const defs: readonly CardDef[] = [
   { id: 'rupture', name: 'Rupture', description: 'Deal 6 damage. Apply 3 Poison.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
   { id: 'bulwark', name: 'Bulwark', description: 'Gain 16 Block.', type: 'skill', rarity: 'uncommon', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 16 }] },
   { id: 'venom-blade', name: 'Venom Blade', description: 'Deal 5 damage. Apply 2 Poison. Draw 1 card.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  // #45: POISON PAYOFF (closes the apothecary nightmare gap without class-gating).
+  // Cold (target NOT poisoned) it is a plain 5-dmg 1-cost attack — strictly worse
+  // than torch-jab (8 dmg)/heavy-swing per cost, so a knight rarely wants it. When
+  // the target is already poisoned (apothecary's wheelhouse) it nearly triples in
+  // value: +5 dmg AND +2 Poison, ACCELERATING the slow poison ramp that was losing
+  // the long high-HP boss race. It REWARDS existing poison (conditional, #42) but
+  // does not CONSUME it, so there is no detonate one-shot loop — the +2 poison it
+  // adds still ticks down 1/round like all poison (no compounding explosion).
+  { id: 'venom-reprisal', name: 'Venom Reprisal', description: 'Deal 5 damage. If the target is Poisoned, deal 5 more and apply 2 Poison.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 }, then: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }] }], upgradeTo: 'venom-reprisal-plus' },
   { id: 'stone-skin', name: 'Stone Skin', description: 'Gain 1 Dexterity and 5 Block.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 5 }] },
   // Rares
   { id: 'viral-load', name: 'Viral Load', description: 'Apply 10 Poison. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 10, target: 'enemy' }, { kind: 'gainEnergy', amount: 1 }] },
@@ -298,6 +307,9 @@ const defs: readonly CardDef[] = [
   { id: 'flurry-of-knives-plus', name: 'Flurry of Knives+', description: 'Deal 4 damage three times.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 3 }] },
   { id: 'whirlwind-plus', name: 'Whirlwind+', description: 'Deal 9 damage to all enemies. If there is only one enemy, deal 6 more.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'eq', value: 1 }, then: [{ kind: 'damage', amount: 6, target: 'allEnemies' }] }] },
   { id: 'crippling-blow-plus', name: 'Crippling Blow+', description: 'Deal 14 damage. Apply 3 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
+  // #45: upgraded payoff — cold stays a modest 6-dmg 1-cost; set up it hits 6+7 and
+  // applies 3 Poison (a bigger ramp accelerator), still no consume/loop.
+  { id: 'venom-reprisal-plus', name: 'Venom Reprisal+', description: 'Deal 6 damage. If the target is Poisoned, deal 7 more and apply 3 Poison.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 }, then: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] }] },
   // Rare upgrades
   { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 9 damage. If the target is Poisoned, deal 9 more. Draw 2 cards.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 }, then: [{ kind: 'damage', amount: 9, target: 'enemy' }] }, { kind: 'draw', count: 2 }] },
   { id: 'guillotine-plus', name: 'Guillotine+', description: 'Deal 32 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 32, target: 'enemy' }] },
