@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type {
   ContentRegistry,
@@ -355,15 +356,27 @@ export function EventScreen({
   const options = def?.options ?? [];
   const result = state.event?.result;
 
+  // #50 (UI-only): remember which option the player pressed so the result view
+  // can echo `You chose: <label>` — recall is the standing playtest ask after a
+  // rolled outcome. Kept in a component ref (NOT RunState), keyed by eventId so a
+  // later event never shows a stale label; absent after a save+resume parked on a
+  // result (rare, transient) — we just omit the line then. Recorded at press
+  // time, before the choice resolves into a result.
+  const chosen = useRef<{ readonly eventId: string; readonly index: number } | null>(null);
+
   useInput((input, key) => {
     if (result) {
-      if (input === '1' || key.return) dispatch({ type: 'continueEvent' });
+      if (input === '1' || key.return) {
+        chosen.current = null; // reset on Continue so the next event starts clean
+        dispatch({ type: 'continueEvent' });
+      }
       return;
     }
     const n = Number(input);
     if (Number.isInteger(n) && n >= 1 && n <= options.length) {
       const option = options[n - 1];
-      if (option && eventRequirementMet(state, option.requires)) {
+      if (option && eventRequirementMet(state, option.requires) && state.event) {
+        chosen.current = { eventId: state.event.eventId, index: n - 1 };
         dispatch({ type: 'chooseEventOption', index: n - 1 });
       }
     }
@@ -377,8 +390,20 @@ export function EventScreen({
     // Aftermath flavor closes the narrative loop: a per-event authored line when
     // present, else a deterministic valence-keyed bank line. Pure display.
     const aftermath = aftermathLine(def, result.applied);
+    // #50: echo the player's choice — only when this ref's choice belongs to the
+    // event on screen (guards a stale label and the save+resume edge, where the
+    // ref is null → no line, never a crash).
+    const chosenLabel =
+      chosen.current && chosen.current.eventId === state.event?.eventId
+        ? def.options[chosen.current.index]?.label
+        : undefined;
     return (
       <Screen title={def.name} footer="[1] Continue" framed={false}>
+        {chosenLabel !== undefined && (
+          <Text dimColor color={theme.colors.muted}>
+            You chose: {chosenLabel}
+          </Text>
+        )}
         <Text color={theme.colors.accent}>{header}</Text>
         <Box marginTop={1} flexDirection="column">
           {result.applied.map((outcome, i) => {

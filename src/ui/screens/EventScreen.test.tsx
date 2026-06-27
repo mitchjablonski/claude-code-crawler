@@ -36,6 +36,9 @@ function onResult(
 
 const noop = () => undefined;
 
+/** Yield a macrotask so Ink's useInput effect can (un)subscribe to stdin. */
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
 describe('optionHintSegments (hint model)', () => {
   it('deterministic option shows signed HP and gold concretely', () => {
     const text = hintText([
@@ -222,6 +225,79 @@ describe('EventScreen result view shows aftermath flavor', () => {
     );
     const frame = lastFrame() ?? '';
     expect(frame).toContain(content.events['abandoned-armory']!.aftermath!.win);
+  });
+
+  // #50: the result view echoes the player's choice for recall (esp. after a
+  // rolled outcome). Tracked in component state at press time — no RunState/save
+  // change — so it shows only when the same component instance saw the press.
+  it('shows "You chose: <label>" after the player picks an option, then resolves', async () => {
+    const inst = render(
+      <EventScreen
+        state={onEvent('shrine-of-the-crawl')}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    await tick(); // let useInput's effect subscribe before we press
+    // Press option [1] ("Tithe and pray") — records the choice in the component.
+    inst.stdin.write('1');
+    await tick();
+    const label = content.events['shrine-of-the-crawl']!.options[0]!.label;
+    // Same instance now re-renders parked on that event's result view.
+    inst.rerender(
+      <EventScreen
+        state={onResult('shrine-of-the-crawl', [
+          { kind: 'loseGold', amount: 20 },
+          { kind: 'gainMaxHp', amount: 6 },
+        ])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = inst.lastFrame() ?? '';
+    expect(frame).toContain(`You chose: ${label}`);
+    // The rest of the result is intact.
+    expect(frame).toContain('It is done.');
+    expect(frame).toContain('[1] Continue');
+  });
+
+  it('shows no recall line on a fresh result with no recorded choice (resume edge)', () => {
+    // A component mounted straight onto a result (as a save+resume would) has no
+    // recorded press → it must omit the line, never crash.
+    const { lastFrame } = render(
+      <EventScreen
+        state={onResult('shrine-of-the-crawl', [{ kind: 'loseHp', amount: 9 }])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).not.toContain('You chose:');
+    // The result still renders normally.
+    expect(frame).toContain('It is done.');
+  });
+
+  it('does not show a stale label for a different event than the one chosen', async () => {
+    const inst = render(
+      <EventScreen
+        state={onEvent('shrine-of-the-crawl')}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    await tick(); // let useInput's effect subscribe before we press
+    inst.stdin.write('1'); // recorded against shrine-of-the-crawl
+    await tick();
+    // Re-render the same instance on a DIFFERENT event's result → the recorded
+    // choice belongs to another event, so no recall line.
+    inst.rerender(
+      <EventScreen
+        state={onResult('abandoned-armory', [{ kind: 'loseHp', amount: 18 }])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    expect(inst.lastFrame() ?? '').not.toContain('You chose:');
   });
 
   it('falls back to a deterministic valence-bank line when the event authors none', () => {
