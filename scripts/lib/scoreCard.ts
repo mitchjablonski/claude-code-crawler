@@ -25,13 +25,23 @@ const RARITY_WEIGHT: Record<CardDef['rarity'], number> = {
 /**
  * Per-stack value of each status. Tuned to rough archetype strength: poison and
  * strength/dexterity scale (so weighted up), vulnerable/weak are strong debuffs,
- * regen is steady value. These are raw "points" added to a card's effect value.
+ * regen COMPOUNDS over the fight. These are raw "points" added to effect value.
+ *
+ * #53: regen was UNDER-valued at 1.4 — the scorer treated `regen N` like a
+ * one-shot N points, but regen heals N HP EVERY turn for the rest of the fight,
+ * so its true worth is cumulative (≈ N * remaining-turns), not one-time. Greedy
+ * therefore never drafted iron-hide/troll-blood (pickRate ~0) while MCTS (the
+ * arbiter) values them ~0.25-0.46. Raised 1.4 -> 2.1 per stack: a single,
+ * regen-gated multiplier (no other status/effect weighting touched) that lifts
+ * iron-hide greedy pickRate to ~0.43 and troll-blood to ~0.26 — into their MCTS
+ * bands — WITHOUT over-boosting them to dominance. 2.1 (not higher) keeps the
+ * 1-cost uncommon iron-hide from leaping past its ~0.46 MCTS ceiling.
  */
 const STATUS_VALUE: Record<StatusId, number> = {
   strength: 3.0, // scales every future attack — high
   dexterity: 2.6, // scales every future block — high
   poison: 1.6, // ramping damage over the fight
-  regen: 1.4, // sustain per turn
+  regen: 2.1, // sustain EVERY turn — compounds over the fight (#53)
   vulnerable: 1.5, // +50% incoming dmg, strong tempo
   weak: 1.2, // -25% enemy dmg, defensive tempo
 };
