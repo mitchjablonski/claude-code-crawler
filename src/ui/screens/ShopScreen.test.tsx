@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'ink-testing-library';
-import { ShopScreen, isBuyable } from './ShopScreen.js';
+import { ShopScreen, isBuyable, canRemove } from './ShopScreen.js';
 import { createRun } from '../../engine/run.js';
 import { DEFAULT_RUN_CONFIG, content } from '../../engine/content/index.js';
 import type { RunState } from '../../engine/types.js';
@@ -29,6 +29,7 @@ function shop(opts: {
         price: p.price,
         sold: p.sold ?? false,
       })),
+      removeUsed: false,
     },
   };
 }
@@ -68,6 +69,36 @@ describe('ShopScreen affordability (#44)', () => {
     // Price stays present/readable on both (the dimmed one keeps its number).
     expect(frame).toContain('10g');
     expect(frame).toContain('100g');
+  });
+
+  it('canRemove gates the removal affordance like the engine guards (#49)', () => {
+    const big = ['a', 'b', 'c', 'd', 'e', 'f']; // 6 cards: above the floor (5)
+    const at = (over: Partial<RunState>): RunState => ({
+      ...shop({ gold: 100, stock: [] }),
+      deck: big,
+      ...over,
+    });
+    expect(canRemove(at({}))).toBe(true); // affordable, unused, above floor
+    expect(canRemove(at({ gold: 10 }))).toBe(false); // too poor (cost 50)
+    expect(canRemove(at({ deck: ['a', 'b', 'c', 'd', 'e'] }))).toBe(false); // at floor
+    const used = at({});
+    expect(canRemove({ ...used, shop: { ...used.shop!, removeUsed: true } })).toBe(false);
+    // No shop at all -> not removable.
+    expect(canRemove({ ...used, shop: null })).toBe(false);
+  });
+
+  it('renders the removal service affordance with its cost (#49)', () => {
+    const { lastFrame } = render(
+      <ShopScreen
+        state={{ ...shop({ gold: 100, stock: [] }), deck: ['a', 'b', 'c', 'd', 'e', 'f'] }}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Remove a card');
+    expect(frame).toContain('50g');
+    expect(frame).toContain('r: remove card');
   });
 
   it('renders an unaffordable potion with its price still shown', () => {

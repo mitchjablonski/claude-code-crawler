@@ -170,6 +170,21 @@ export function applyAction(
         },
       };
     }
+    case 'removeCard': {
+      requirePhase(state, 'shop');
+      if (!state.shop) throw new EngineError('no shop in progress');
+      if (state.shop.removeUsed) throw new EngineError('removal already used this shop');
+      if (state.gold < SHOP_REMOVAL_COST) throw new EngineError('not enough gold');
+      if (state.deck.length <= MIN_DECK_SIZE) throw new EngineError('deck at minimum size');
+      const cardId = state.deck[action.deckIndex];
+      if (cardId === undefined) throw new EngineError(`no deck card at ${action.deckIndex}`);
+      return {
+        ...state,
+        gold: state.gold - SHOP_REMOVAL_COST,
+        deck: state.deck.filter((_, i) => i !== action.deckIndex),
+        shop: { ...state.shop, removeUsed: true },
+      };
+    }
     case 'leaveShop':
       requirePhase(state, 'shop');
       return { ...state, shop: null, phase: 'map' };
@@ -564,6 +579,22 @@ const POTION_PRICES: Readonly<Record<Rarity, number>> = {
 
 const SHOP_POTION_COUNT = 2;
 
+/**
+ * Gold cost of the shop's one-per-visit card-removal service (#49). Priced like a
+ * common card (50g) so deck-thinning is a real economic tradeoff: a removal
+ * competes directly with buying a card or a couple of potions, not a no-brainer.
+ * Deterministic flat cost (no rng) → seeded replay of non-removing runs unchanged.
+ */
+export const SHOP_REMOVAL_COST = 50;
+
+/**
+ * The deck floor: removal may not shrink the deck to OR below this size. The
+ * starter deck is 9 cards; keeping >= 5 leaves a functional minimum hand engine
+ * (draw 5) and stops degenerate over-thinning. Removal is rejected when the deck
+ * is already at/under the floor.
+ */
+export const MIN_DECK_SIZE = 5;
+
 function enterShop(content: ContentRegistry, state: RunState): RunState {
   const act = state.map.nodes[state.currentNodeId]?.act ?? 0;
   const [shop, rng] = withStream(state.rng, 'loot', (r) => {
@@ -589,7 +620,9 @@ function enterShop(content: ContentRegistry, state: RunState): RunState {
     });
     return { stock, potionStock };
   });
-  return { ...state, rng, shop, phase: 'shop' };
+  // removeUsed starts false: the deck-thinning service is available once per
+  // shop visit and is reset to false here every time a shop node is entered.
+  return { ...state, rng, shop: { ...shop, removeUsed: false }, phase: 'shop' };
 }
 
 function enterEvent(content: ContentRegistry, state: RunState): RunState {
