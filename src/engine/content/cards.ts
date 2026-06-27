@@ -281,6 +281,21 @@ const defs: readonly CardDef[] = [
   { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 6 Poison to all enemies. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 6, target: 'allEnemies' }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  // #54: POISON FINISHER (closes the apothecary single/nightmare PEAK-DAMAGE gap —
+  // root cause was not endurance but too-slow poison ramp failing to kill the boss
+  // before HP runs out). A late "close it out" burst the class lacked. Cold (target
+  // NOT heavily poisoned) it is a weak 8-dmg 2-cost attack — strictly worse than
+  // heavy-swing (14/2) per cost, so a KNIGHT (who almost never stacks 5+ poison)
+  // rarely wants it. When the target is ALREADY heavily poisoned (poison >= 5 — the
+  // apothecary's wheelhouse vs the high-HP boss by mid-fight via viral-load 10 /
+  // corrosive-mist 6 / plague 5 / tipped-blade) it DETONATES for +18 fixed bonus
+  // (26 total, guillotine-class burst at a cheaper cost). Distinct from #45 Venom
+  // Reprisal (atLeast-1 EARLY tempo card that ACCELERATES the ramp by adding poison):
+  // this is a HIGH-threshold LATE finisher with a BIG fixed payoff that adds NO
+  // poison. Threshold->fixed-bonus only (no "x stacks" kind). It REWARDS existing
+  // poison (conditional, #42) but never CONSUMES it — no detonate one-shot loop, and
+  // it seeds no poison, so it adds no compounding combo (one-shot burst per play).
+  { id: 'poison-finisher', name: 'Detonation Vial', description: 'Deal 8 damage. If the target has 5 or more Poison, deal 18 more.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 5 }, then: [{ kind: 'damage', amount: 18, target: 'enemy' }] }], upgradeTo: 'poison-finisher-plus' },
   { id: 'last-bastion', name: 'Last Bastion', description: 'Gain 18 Block and 1 Dexterity.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 18 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   // --- D1: upgraded variants ('<base>-plus'). NEVER draftable: each is some
   // other card's upgradeTo target, so the draft pool filters them out. Reachable
@@ -313,6 +328,10 @@ const defs: readonly CardDef[] = [
   // Rare upgrades
   { id: 'lucky-dagger-plus', name: 'Lucky Dagger+', description: 'Deal 9 damage. If the target is Poisoned, deal 9 more. Draw 2 cards.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 1 }, then: [{ kind: 'damage', amount: 9, target: 'enemy' }] }, { kind: 'draw', count: 2 }] },
   { id: 'guillotine-plus', name: 'Guillotine+', description: 'Deal 32 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 32, target: 'enemy' }] },
+  // #54: upgraded finisher — cold stays a modest 10-dmg 2-cost; armed (poison >= 5)
+  // it detonates for 10+22 = 32 (guillotine+-class). Threshold unchanged; still adds
+  // no poison and consumes none (no loop).
+  { id: 'poison-finisher-plus', name: 'Detonation Vial+', description: 'Deal 10 damage. If the target has 5 or more Poison, deal 22 more.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'poison', atLeast: 5 }, then: [{ kind: 'damage', amount: 22, target: 'enemy' }] }] },
   // --- E2: UNLOCKABLE extra cards. Each carries an `unlock` milestone id and is
   // EXCLUDED from the draft pool until that milestone is earned (UNLOCKABLE_CARD_IDS
   // is filtered out of rollCardChoices by default). Core cards above stay always
