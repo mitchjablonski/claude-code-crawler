@@ -11,6 +11,7 @@ export function GameOverScreen({
   dailyDate,
   score,
   priorBest,
+  unlockedNames = [],
 }: {
   readonly state: RunState;
   /**
@@ -24,6 +25,14 @@ export function GameOverScreen({
   readonly dailyDate?: string;
   /** #28: this run's pure score (also the daily score for a daily run). */
   readonly score: number;
+  /**
+   * #46: display names of cross-run unlocks EARNED BY THIS RUN (the same diff
+   * App surfaces on the Title via `justUnlocked`). Resolved id->name in App the
+   * same way the Title does. When non-empty, GameOver celebrates them here too —
+   * the peak emotional moment — so a player starting a new run immediately
+   * doesn't miss the fanfare. Empty => no line.
+   */
+  readonly unlockedNames?: readonly string[];
   /**
    * #28: personal best for this run's (character, mode) among PRIOR runs, or
    * null when this is the first such run (which therefore reads as a NEW BEST).
@@ -78,6 +87,11 @@ export function GameOverScreen({
         )}
         {dailyDate !== undefined && (
           <Text color={theme.colors.muted}>Daily {dailyDate}</Text>
+        )}
+        {unlockedNames.length > 0 && (
+          <Text bold color={theme.colors.success} wrap="truncate-end">
+            NEW UNLOCKED: {unlockedNames.join(', ')}
+          </Text>
         )}
       </Box>
       <Box marginTop={1} flexDirection="column">
