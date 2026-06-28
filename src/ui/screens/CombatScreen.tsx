@@ -157,6 +157,13 @@ export function CombatScreen({
   // Letter keys address the satchel (shared with the shop; skips 'e' = end turn).
   const potionKeys = POTION_KEYS.slice(0, state.maxPotions);
   const pending = pendingCard !== null || pendingPotion !== null;
+  // Legibility (#60): pressing an unaffordable card silently no-ops below, so
+  // DERIVE a live count of hand cards whose cost exceeds current energy and
+  // surface it in the footer. No new state — recomputed every render from the
+  // live hand/energy, so it stays correct as energy is spent or cards drawn.
+  const unplayable = combat.hand.filter(
+    (id) => (content.cards[id]?.cost ?? 0) > combat.energy,
+  ).length;
 
   useInput((input, key) => {
     if (key.escape) {
@@ -237,7 +244,7 @@ export function CombatScreen({
 
   const footer = pending
     ? 'number: target  esc: cancel'
-    : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
+    : `number: play card${unplayable > 0 ? `  · ${unplayable} unplayable` : ''}  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
 
   return (
     <Screen title="Combat" footer={footer} framed={false}>

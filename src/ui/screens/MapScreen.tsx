@@ -7,10 +7,10 @@ import { Screen } from '../components/Screen.js';
 const KIND_LABEL: Readonly<Record<NodeKind, string>> = {
   start: 'Start',
   combat: 'Combat',
-  elite: 'ELITE combat',
-  event: 'Unknown event',
-  shop: 'Shop',
-  rest: 'Rest site',
+  elite: 'ELITE combat (harder, better loot)',
+  event: 'Unknown event (risk/reward)',
+  shop: 'Shop (spend gold)',
+  rest: 'Rest site (heal or upgrade)',
   boss: 'THE BOSS',
 };
 

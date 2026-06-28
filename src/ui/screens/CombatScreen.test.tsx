@@ -157,6 +157,37 @@ describe('CombatScreen juice beats (V6)', () => {
     expect(lastFrame() ?? '').toContain('DOWN');
   });
 
+  it('surfaces an unplayable-card count in the footer when a card is unaffordable (#60)', () => {
+    const start = combatWith('skeleton-intern', 0);
+    const combat = start.combat as CombatState;
+    // One affordable (cost<=energy) + two unaffordable cards at low energy.
+    const cheap = Object.values(content.cards).find((c) => c.cost === 1)!;
+    const dear = Object.values(content.cards).find((c) => c.cost >= 2)!;
+    const state: RunState = {
+      ...start,
+      combat: { ...combat, hand: [cheap.id, dear.id, dear.id], energy: 1 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    // Derived live from hand vs energy: two cards cost more than 1 energy.
+    expect(lastFrame() ?? '').toContain('2 unplayable');
+  });
+
+  it('shows NO unplayable hint when every card is affordable (#60)', () => {
+    const start = combatWith('skeleton-intern', 0);
+    const combat = start.combat as CombatState;
+    const cheap = Object.values(content.cards).find((c) => c.cost <= 1)!;
+    const state: RunState = {
+      ...start,
+      combat: { ...combat, hand: [cheap.id], energy: 3 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    expect(lastFrame() ?? '').not.toContain('unplayable');
+  });
+
   it('opens the deck overlay on [v] without dispatching a combat action (#56)', async () => {
     const tick = () => new Promise((resolve) => setTimeout(resolve, 25));
     const start = combatWith('skeleton-intern', 0);

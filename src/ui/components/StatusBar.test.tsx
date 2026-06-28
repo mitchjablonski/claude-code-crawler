@@ -257,6 +257,23 @@ describe('StatusBar', () => {
     expect(lastFrame() ?? '').toContain('+5blk');
   });
 
+  it('shows a -Nblk beat when block ABSORBED a hit on the last action (#60)', () => {
+    const start: RunState = {
+      ...combatState({}),
+      combat: { ...(combatState({}).combat as CombatState), playerBlock: 5 },
+    };
+    const spent: RunState = {
+      ...start,
+      combat: { ...(start.combat as CombatState), playerBlock: 1 },
+    };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked narration={null} relics={[]} characterName="Knight" />,
+    );
+    expect(lastFrame() ?? '').not.toContain('-4blk'); // no prior on first render
+    rerender(<StatusBar state={spent} linked narration={null} relics={[]} characterName="Knight" />);
+    expect(lastFrame() ?? '').toContain('-4blk'); // 5 -> 1 absorbed
+  });
+
   it('shows a +Ng gold beat when gold rose on the last action (V6 juice)', () => {
     const start = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
     const richer: RunState = { ...start, gold: start.gold + 25 };
