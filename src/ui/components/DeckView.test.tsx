@@ -140,3 +140,59 @@ describe('DeckView', () => {
     expect(lastFrame()).toContain('page 1/2');
   });
 });
+
+/** A combat RunState with the given hand/draw/discard piles (#56). */
+function inCombat(
+  hand: readonly string[],
+  drawPile: readonly string[],
+  discardPile: readonly string[],
+): RunState {
+  const base = createRun(content, 'combat-deck-test', DEFAULT_RUN_CONFIG);
+  return {
+    ...base,
+    phase: 'combat',
+    combat: {
+      enemies: [],
+      hand: [...hand],
+      drawPile: [...drawPile],
+      discardPile: [...discardPile],
+      energy: 3,
+      maxEnergy: 3,
+      playerHp: base.hp,
+      playerMaxHp: base.maxHp,
+      playerBlock: 0,
+      playerStatuses: {},
+      turn: 1,
+      dealt: 0,
+      taken: 0,
+      slain: 0,
+    },
+  };
+}
+
+describe('DeckView in combat (#56)', () => {
+  it('shows the pile summary and tags each card by its pile (hand/draw/disc)', () => {
+    const { lastFrame } = render(
+      <DeckView
+        state={inCombat(
+          ['rusty-shortsword', 'battered-buckler'], // hand
+          ['rusty-shortsword', 'rusty-shortsword'], // draw
+          ['battered-buckler'], // discard
+        )}
+        content={content}
+        onClose={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    // Title carries the live pile split (draw 2 | hand 2 | disc 1).
+    expect(frame).toContain('draw 2');
+    expect(frame).toContain('hand 2');
+    expect(frame).toContain('disc 1');
+    // Rows are tagged by pile so the player sees WHERE each card sits.
+    expect(frame).toContain('hand');
+    expect(frame).toContain('draw');
+    expect(frame).toContain('disc');
+    // The map-mode whole-deck title is NOT used in combat.
+    expect(frame).not.toContain('cards)');
+  });
+});

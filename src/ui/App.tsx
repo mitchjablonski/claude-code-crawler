@@ -336,8 +336,10 @@ export function App({ deps }: { readonly deps: GameDeps }) {
       )}
       {events.pause && !over ? (
         <PauseOverlay pause={events.pause} snark={snark} onDismiss={events.dismissPause} />
-      ) : deckOpen && run.phase === 'map' && !over ? (
-        // Deck-view overlay captures input; the underlying map's keys don't fire.
+      ) : deckOpen && (run.phase === 'map' || run.phase === 'combat') && !over ? (
+        // Deck-view overlay captures input; the underlying screen's keys don't
+        // fire. #56: also opens over combat (read-only, grouped by pile) so the
+        // player can check "what's still in my draw pile?" mid-fight.
         <DeckView state={run} content={game.content} onClose={() => setDeckOpen(false)} />
       ) : (
         <>
@@ -354,6 +356,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
               content={game.content}
               dispatch={game.dispatch}
               nameFor={enemyDisplayName}
+              onViewDeck={() => setDeckOpen(true)}
             />
           )}
           {run.phase === 'reward' && (
