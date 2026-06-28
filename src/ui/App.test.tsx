@@ -286,6 +286,10 @@ describe('App with hook events', () => {
     };
     const { lastFrame, stdin } = await renderApp(<App deps={{ ...deps(mem), ai: fakeAi }} />);
     expect(lastFrame()).toContain('Class: Knight');
+    // #58: the title groups the menu into sections — the class reads under a
+    // "Your hero" heading, separate from the "Run setup" toggles.
+    expect(lastFrame()).toContain('Your hero');
+    expect(lastFrame()).toContain('Run setup');
     // The selected class' tagline renders so a new player sees what it does,
     // and it changes when the class is cycled.
     expect(lastFrame()).toContain(CHARACTERS.knight!.description);
