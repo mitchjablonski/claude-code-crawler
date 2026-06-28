@@ -39,3 +39,29 @@ describe('MapScreen #32 exhaustion warning', () => {
     expect(frame).not.toContain('take its toll');
   });
 });
+
+describe('MapScreen #60 node-stake labels', () => {
+  /** Park on a node that links to a node of the given kind, returning the run. */
+  function arcLinkingTo(kind: MapNode['kind']): RunState {
+    const base = createRun(content, 'map-stakes', { ...DEFAULT_RUN_CONFIG, acts: 3 });
+    const parent = Object.values(base.map.nodes).find((n) =>
+      n.next.some((id) => base.map.nodes[id]?.kind === kind),
+    );
+    if (!parent) throw new Error(`no node linking to a ${kind}`);
+    return { ...base, phase: 'map', currentNodeId: parent.id };
+  }
+
+  it.each([
+    ['event', '(risk/reward)'],
+    ['rest', '(heal or upgrade)'],
+    ['shop', '(spend gold)'],
+    ['elite', '(harder, better loot)'],
+  ] as const)('annotates a %s node with its stake', (kind, stake) => {
+    const s = arcLinkingTo(kind);
+    const { lastFrame } = render(<MapScreen state={s} dispatch={noop} onViewDeck={noop} />);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain(stake);
+    // Labels stay within the column budget.
+    for (const line of frame.split('\n')) expect(line.length).toBeLessThanOrEqual(76);
+  });
+});

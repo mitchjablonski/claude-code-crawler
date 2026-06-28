@@ -96,6 +96,13 @@ export function StatusBar({
     prior && prior.combat && combat
       ? Math.max(0, combat.playerBlock - prior.combat.playerBlock)
       : 0;
+  // The symmetric beat (#60): block ABSORBING a hit. Mirrors blockGain's
+  // prior-state diff, clamped >=0, so it appears on the same action the block
+  // was spent and persists until the next action (snapshot-verifiable).
+  const blockLoss =
+    prior && prior.combat && combat
+      ? Math.max(0, prior.combat.playerBlock - combat.playerBlock)
+      : 0;
   // The player's own combat statuses, rendered with the SAME canonical glyphs
   // (icon + identity color + format) as enemy tags and intent chips. Only shown
   // in combat and only when the player actually has statuses — additive, so the
@@ -127,6 +134,12 @@ export function StatusBar({
                 <Text color={theme.colors.block} bold>
                   {' '}
                   +{blockGain}blk
+                </Text>
+              )}
+              {blockLoss > 0 && (
+                <Text color={theme.colors.block} bold>
+                  {' '}
+                  -{blockLoss}blk
                 </Text>
               )}
               <Text color={theme.colors.energy}>

@@ -184,14 +184,15 @@ describe('DeckView in combat (#56)', () => {
       />,
     );
     const frame = lastFrame() ?? '';
-    // Title carries the live pile split (draw 2 | hand 2 | disc 1).
+    // Title carries the live pile split (draw 2 | hand 2 | discard 1).
     expect(frame).toContain('draw 2');
     expect(frame).toContain('hand 2');
-    expect(frame).toContain('disc 1');
-    // Rows are tagged by pile so the player sees WHERE each card sits.
+    expect(frame).toContain('discard 1');
+    // Rows are tagged by pile so the player sees WHERE each card sits. The
+    // discard tag is spelled out in full (#60), no longer the `disc` abbrev.
     expect(frame).toContain('hand');
     expect(frame).toContain('draw');
-    expect(frame).toContain('disc');
+    expect(frame).toContain('discard');
     // The map-mode whole-deck title is NOT used in combat.
     expect(frame).not.toContain('cards)');
   });

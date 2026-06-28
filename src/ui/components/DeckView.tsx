@@ -17,7 +17,7 @@ import { Screen } from './Screen.js';
  *
  * Combat mode (#56): when opened during combat we read `combat.hand` /
  * `drawPile` / `discardPile` instead of `state.deck`. The title carries a pile
- * summary (`draw N | hand N | disc N`) and every row is tagged + GROUPED by its
+ * summary (`draw N | hand N | discard N`) and every row is tagged + GROUPED by its
  * pile (hand, then draw, then discard) so the listing reads as "what's where".
  * The draw pile is shown UNORDERED (it is shuffled) so this leaks no next-card
  * order. Read-only: opening it dispatches no combat action.
@@ -63,7 +63,7 @@ const DESC_WIDTH = theme.layout.contentWidth - 2;
 /** Combat pile a card currently sits in (#56). */
 type Pile = 'hand' | 'draw' | 'disc';
 /** Short, ASCII-safe pile label shown in the row header. */
-const PILE_LABEL: Readonly<Record<Pile, string>> = { hand: 'hand', draw: 'draw', disc: 'disc' };
+const PILE_LABEL: Readonly<Record<Pile, string>> = { hand: 'hand', draw: 'draw', disc: 'discard' };
 /** Pile colors route through theme tokens (hand=ready, draw=accent, disc=muted). */
 const PILE_COLOR: Readonly<Record<Pile, InkColor>> = {
   hand: theme.colors.success,
@@ -247,7 +247,7 @@ export function DeckView({
   // Combat title carries an ASCII pile summary so the player sees the split at a
   // glance even when a pile's cards fall on another page.
   const title = combat
-    ? `Your deck: draw ${combat.drawPile.length} | hand ${combat.hand.length} | disc ${combat.discardPile.length}`
+    ? `Your deck: draw ${combat.drawPile.length} | hand ${combat.hand.length} | discard ${combat.discardPile.length}`
     : `Your deck (${state.deck.length} cards)`;
 
   return (
