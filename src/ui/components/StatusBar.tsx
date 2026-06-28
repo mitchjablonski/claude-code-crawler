@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink';
 import type { RunState } from '../../engine/types.js';
-import { theme, statusSegments } from '../theme.js';
+import { theme, statusSegments, hpTint } from '../theme.js';
 import { usePrevOnChange } from '../juice.js';
 
 /** The literal prefix the relics line renders before the names. */
@@ -112,7 +112,11 @@ export function StatusBar({
     <Box flexDirection="column">
       <Box width={theme.layout.contentWidth} paddingX={1} justifyContent="space-between">
         <Text>
-          <Text color={theme.colors.hp} bold>
+          {/* #64: the HP readout tints by current fraction (hpTint) so a low-HP
+              state is FELT — a universal danger cue, and the Overclocker's
+              missing-HP "heat" made legible. Same row/glyphs (color only), so the
+              HUD budget is unchanged. */}
+          <Text color={hpTint(hp, state.maxHp)} bold>
             HP {hp}/{state.maxHp}
           </Text>
           {hpGain > 0 && (
