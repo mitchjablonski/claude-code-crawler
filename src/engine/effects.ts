@@ -24,6 +24,17 @@ export function addStatus(statuses: Statuses, id: StatusId, stacks: number): Sta
   return { ...statuses, [id]: next };
 }
 
+/**
+ * #62 overheat gradient: the continuous bonus an effect's amount gains from the
+ * player's MISSING HP — `floor((playerMaxHp - playerHp) / divisor)`. Returns 0
+ * when `divisor` is absent (every existing effect → byte-identical) or when the
+ * player is at full HP. Pure, draws no rng. Naturally bounded by maxHp.
+ */
+function missingHpBonus(combat: CombatState, divisor: number | undefined): number {
+  if (divisor === undefined) return 0;
+  return Math.floor((combat.playerMaxHp - combat.playerHp) / divisor);
+}
+
 /** base + strength, ×0.75 if attacker weak, ×1.5 if defender vulnerable. */
 export function attackDamage(base: number, attacker: Statuses, defender: Statuses): number {
   let dmg = base + getStatus(attacker, 'strength');
@@ -75,6 +86,11 @@ export function applyPlayerEffect(
   switch (effect.kind) {
     case 'damage': {
       const times = effect.times ?? 1;
+      // #62 overheat gradient: add the missing-HP bonus to the PER-HIT base so it
+      // is applied to every hit (intentional). NOTE: combining a large `times`
+      // with `scaleMissingHp` multiplies the bonus across hits and is degenerate;
+      // it is intentionally avoided in content (no card carries both).
+      const base = effect.amount + missingHpBonus(combat, effect.scaleMissingHp);
       let next = combat;
       for (let t = 0; t < times; t++) {
         const indices = targetIndices(next, effect.target, targetIndex);
@@ -85,7 +101,7 @@ export function applyPlayerEffect(
         let slain = 0;
         const enemies = next.enemies.map((e, i) => {
           if (!indices.includes(i) || e.hp <= 0) return e;
-          const hit = hitEnemy(e, attackDamage(effect.amount, next.playerStatuses, e.statuses));
+          const hit = hitEnemy(e, attackDamage(base, next.playerStatuses, e.statuses));
           dealt += e.hp - hit.hp;
           if (hit.hp <= 0) slain += 1;
           return hit;
@@ -99,8 +115,18 @@ export function applyPlayerEffect(
         ...combat,
         playerBlock:
           combat.playerBlock +
-          Math.max(0, effect.amount + getStatus(combat.playerStatuses, 'dexterity')),
+          Math.max(
+            0,
+            // #62: missing-HP bonus is injected into the amount BEFORE dexterity.
+            effect.amount +
+              missingHpBonus(combat, effect.scaleMissingHp) +
+              getStatus(combat.playerStatuses, 'dexterity'),
+          ),
       };
+    case 'loseHp':
+      // #62 overheat: an unblockable, rng-free HP COST. Ignores block (it is a
+      // cost, not an attack) and FLOORS AT 1 — a self-cost must never be lethal.
+      return { ...combat, playerHp: Math.max(1, combat.playerHp - effect.amount) };
     case 'draw':
       return drawCards(combat, effect.count, rng);
     case 'gainEnergy':
@@ -224,11 +250,13 @@ export function applyEnemyEffect(
       };
     }
     // Enemies have no hand or energy; these are player-only primitives. The
-    // `conditional` kind is authored only on player-facing content (#42), so it
-    // is an inert no-op here — enemy moves never carry it.
+    // `conditional` kind is authored only on player-facing content (#42), and
+    // `loseHp` is the player's overheat self-cost (#62) — both are inert no-ops
+    // here; enemy moves never carry them (enemies don't scale on player HP).
     case 'draw':
     case 'gainEnergy':
     case 'conditional':
+    case 'loseHp':
       return combat;
   }
 }
