@@ -310,9 +310,15 @@ describe('content integrity', () => {
   });
 
   it('relics use a valid trigger and any condition is well-formed', () => {
-    const TRIGGERS = ['combatStart', 'turnStart', 'onCardPlayed', 'onKill'];
+    const TRIGGERS = ['combatStart', 'turnStart', 'onCardPlayed', 'onKill', 'onCombatEnd'];
     for (const relic of Object.values(content.relics)) {
       expect(TRIGGERS, `${relic.id}:${relic.trigger}`).toContain(relic.trigger);
+      // onCombatEnd fires post-combat (no combat context) → heal-only effects.
+      if (relic.trigger === 'onCombatEnd') {
+        for (const fx of relic.effects) {
+          expect(fx.kind, `${relic.id}:${fx.kind}`).toBe('heal');
+        }
+      }
       if (relic.condition) {
         expect(relic.condition.kind, relic.id).toBe('hpBelow');
         expect(relic.condition.pct, relic.id).toBeGreaterThan(0);

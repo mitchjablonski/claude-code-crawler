@@ -950,3 +950,98 @@ describe('run stats (#25)', () => {
     expect(s.stats).toEqual({ turns: 0, damageDealt: 0, damageTaken: 0, enemiesSlain: 0 });
   });
 });
+
+describe('onCombatEnd relics (D9 post-victory sustain)', () => {
+  // A controlled winnable combat on a plain COMBAT node (no elite relic roll, so
+  // owner/non-owner loot rolls stay byte-identical). One strike (6 dmg) kills the
+  // 1-HP enemy on turn 1; onCombatEnd fires in finishCombat against RUN hp.
+  const enemy = (hp: number): EnemyInstance => ({
+    defId: 'cave-rat',
+    name: 'Cave Rat',
+    hp,
+    maxHp: hp,
+    block: 0,
+    statuses: {},
+    nextMoveIndex: 0, // Bite (5 damage) on the next enemy turn
+  });
+
+  const winnableRun = (opts: {
+    relics?: readonly string[];
+    playerHp?: number;
+    maxHp?: number;
+    enemyHp?: number;
+  }): RunState => {
+    const base = run('oncombatend-seed');
+    const playerHp = opts.playerHp ?? 30;
+    const maxHp = opts.maxHp ?? 50;
+    const combatNodeId = Object.keys(base.map.nodes).find(
+      (id) => base.map.nodes[id]?.kind === 'combat',
+    ) as string;
+    const combat: CombatState = {
+      enemies: [enemy(opts.enemyHp ?? 1)],
+      hand: ['rusty-shortsword', 'rusty-shortsword'],
+      drawPile: ['rusty-shortsword', 'rusty-shortsword'],
+      discardPile: [],
+      energy: 3,
+      maxEnergy: 3,
+      playerHp,
+      playerMaxHp: maxHp,
+      playerBlock: 0,
+      playerStatuses: {},
+      turn: 1,
+      dealt: 0,
+      taken: 0,
+      slain: 0,
+    };
+    return {
+      ...base,
+      currentNodeId: combatNodeId,
+      phase: 'combat',
+      hp: playerHp,
+      maxHp,
+      relics: [...(opts.relics ?? [])],
+      combat,
+    };
+  };
+
+  const strike = (s: RunState) =>
+    applyAction(content, s, { type: 'playCard', handIndex: 0, targetIndex: 0 });
+
+  it('heals RUN hp on victory for an owner', () => {
+    const won = strike(winnableRun({ relics: ['field-dressing'], playerHp: 30 }));
+    expect(won.phase).toBe('reward'); // non-boss win
+    expect(won.combat).toBeNull();
+    expect(won.hp).toBe(34); // 30 + 4
+  });
+
+  it('caps the post-victory heal at maxHp', () => {
+    const won = strike(winnableRun({ relics: ['field-dressing'], playerHp: 49, maxHp: 50 }));
+    expect(won.hp).toBe(50); // 49 + 4 → capped, not 53
+  });
+
+  it('is a strict no-op for a player owning no onCombatEnd relic', () => {
+    const won = strike(winnableRun({ relics: [], playerHp: 30 }));
+    expect(won.phase).toBe('reward');
+    expect(won.hp).toBe(30); // unchanged
+  });
+
+  it('owning an onCombatEnd relic is rng-free: combat is byte-identical to a non-owner (only hp/relics differ)', () => {
+    const owner = strike(winnableRun({ relics: ['field-dressing'], playerHp: 30 }));
+    const nonOwner = strike(winnableRun({ relics: [], playerHp: 30 }));
+    // The combat rng stream is untouched by the heal → identical.
+    expect(owner.rng).toEqual(nonOwner.rng);
+    // Everything except the healed hp (and the relic list) is identical.
+    expect({ ...owner, hp: nonOwner.hp, relics: nonOwner.relics }).toEqual(nonOwner);
+    expect(owner.hp).toBe(34);
+    expect(nonOwner.hp).toBe(30);
+  });
+
+  it('does NOT fire on defeat (no heal on a loss)', () => {
+    // Player at 5 HP vs a 100-HP enemy: strike (survives), endTurn → Bite 5 → dead.
+    let s = winnableRun({ relics: ['field-dressing'], playerHp: 5, enemyHp: 100 });
+    s = strike(s);
+    s = applyAction(content, s, { type: 'endTurn' });
+    expect(s.phase).toBe('defeat');
+    expect(s.hp).toBe(0); // killed, onCombatEnd never runs
+  });
+});

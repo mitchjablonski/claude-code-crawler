@@ -432,7 +432,39 @@ function foldCombatStats(stats: RunState['stats'], combat: NonNullable<RunState[
   };
 }
 
+/**
+ * Apply onCombatEnd relics to the RUN after a combat VICTORY. Unlike the combat
+ * triggers (which `applyRelics` runs against CombatState on the combat rng
+ * stream), the fight is OVER here: effects land on RUN hp (`state.hp`, capped at
+ * `state.maxHp`), not on combat state. RNG-FREE by construction — onCombatEnd
+ * relics are heal-only, so nothing draws from any rng stream and the combat
+ * simulation stays byte-identical whether or not the player owns one. Returns
+ * the SAME state reference when nothing heals, so it is a strict no-op for any
+ * player who owns no onCombatEnd relic.
+ */
+function applyRelicsToRun(content: ContentRegistry, state: RunState): RunState {
+  let hp = state.hp;
+  for (const relicId of state.relics) {
+    const relic = content.relics[relicId];
+    if (!relic || relic.trigger !== 'onCombatEnd') continue;
+    for (const effect of relic.effects) {
+      // onCombatEnd has no combat context, so only heal is meaningful. Other
+      // kinds (damage/block/applyStatus/draw/gainEnergy) are guarded out.
+      if (effect.kind !== 'heal') {
+        throw new EngineError(
+          `onCombatEnd relic '${relicId}' has unsupported effect '${effect.kind}' (heal-only)`,
+        );
+      }
+      hp = Math.min(state.maxHp, hp + effect.amount);
+    }
+  }
+  return hp === state.hp ? state : { ...state, hp };
+}
+
 function finishCombat(content: ContentRegistry, state: RunState): RunState {
+  // Post-victory sustain: fire onCombatEnd relics against the RUN (heal-only,
+  // rng-free) BEFORE rewards/phase transition. Only reached on combat WIN.
+  state = applyRelicsToRun(content, state);
   const node = state.map.nodes[state.currentNodeId] as MapNode;
   if (node.kind === 'boss') {
     return { ...state, combat: null, phase: 'victory' };

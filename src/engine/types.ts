@@ -134,19 +134,28 @@ export interface EnemyDef {
  * - combatStart / turnStart: fired from startCombat / endTurn (COMBAT rng stream).
  * - onCardPlayed: fired ONCE after each card the player plays.
  * - onKill: fired ONCE per enemy a played card kills this card (per-death).
+ * - onCombatEnd: fired ONCE on combat VICTORY (not death/flee). The fight is
+ *   OVER, so its effects apply to the RUN (`state.hp`, capped at `state.maxHp`),
+ *   NOT to CombatState. Restricted to heal-only effects, so it consumes NO rng.
  *
- * Determinism note: the new triggers (onCardPlayed/onKill) fire at the playCard
- * chokepoint and are strict NO-OPS (consume no rng, change no state) for any
- * player who owns no relic with that trigger — so existing runs whose relics are
- * all combatStart/turnStart stay byte-identical.
+ * Determinism note: the combat triggers (onCardPlayed/onKill) fire at the
+ * playCard chokepoint and are strict NO-OPS (consume no rng, change no state)
+ * for any player who owns no relic with that trigger — so existing runs whose
+ * relics are all combatStart/turnStart stay byte-identical. onCombatEnd is
+ * likewise rng-free (heal-only) and a strict no-op for non-owners: it applies to
+ * RUN hp AFTER the combat rng stream has closed, so the combat simulation (and
+ * every existing seeded run) is byte-identical whether or not the player owns
+ * one. (Owning a new onCombatEnd relic can still change which RELIC an elite
+ * rewards, exactly like adding any other relic to the pool.)
  *
- * Firing sites (all via `applyRelics` on the combat rng stream):
+ * Firing sites:
  *   - combatStart  → `startCombat` (combat.ts), after the opening hand is drawn
  *   - turnStart    → `applyAction` 'endTurn' case (run.ts), after the enemy turn
  *   - onKill       → `playCard` (combat.ts), once per enemy killed by that card
  *   - onCardPlayed → `playCard` (combat.ts), once after the card resolves
+ *   - onCombatEnd  → `finishCombat` (run.ts) via `applyRelicsToRun`, once per win
  */
-export type RelicTrigger = 'combatStart' | 'turnStart' | 'onCardPlayed' | 'onKill';
+export type RelicTrigger = 'combatStart' | 'turnStart' | 'onCardPlayed' | 'onKill' | 'onCombatEnd';
 
 /**
  * An optional, light condition gating whether a relic's effects fire. Pure —
