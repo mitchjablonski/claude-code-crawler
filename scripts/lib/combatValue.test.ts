@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { combatValue, poisonLifetimeValue } from './combatValue.js';
+import { combatValue, poisonLifetimeValue, predictIncomingDamage } from './combatValue.js';
 import { cards } from '../../src/engine/content/cards.js';
+import { content } from '../../src/engine/content/index.js';
 import type { CardDef, CombatState, EnemyInstance, Statuses } from '../../src/engine/types.js';
 
 // Tooling-only unit tests for the #57 state-aware combat-value heuristic. It is a
@@ -93,19 +94,52 @@ describe('combatValue', () => {
     expect(combatValue(vial, state, 1)).toBeGreaterThan(combatValue(vial, state, 0));
   });
 
-  it('caps damage/poison at the target HP (no overkill inflation)', () => {
-    const strike: CardDef = {
-      id: 't-big',
-      name: 'T Big',
+  it('values block by what it PREVENTS of incoming damage', () => {
+    const guard: CardDef = {
+      id: 't-guard',
+      name: 'T Guard',
+      description: '',
+      type: 'skill',
+      rarity: 'common',
+      cost: 1,
+      target: 'self',
+      effects: [{ kind: 'block', amount: 8 }],
+    };
+    const state = combat([enemy()]);
+    // With a big incoming hit, block is worth far more than when nothing is
+    // coming (where it is mostly wasted overflow).
+    const underThreat = combatValue(guard, state, undefined, { incoming: 12 });
+    const noThreat = combatValue(guard, state, undefined, { incoming: 0 });
+    expect(underThreat).toBeGreaterThan(noThreat);
+  });
+
+  it('predictIncomingDamage reads telegraphed enemy moves (real content)', () => {
+    const def = content.enemies['lint-goblin'];
+    expect(def).toBeDefined();
+    // Scan the move cycle: at least one telegraphed move is an attack, so some
+    // seeding yields positive predicted incoming damage (proves it reads moves).
+    const seen = def!.moves.map((_m, i) =>
+      predictIncomingDamage(combat([enemy({ defId: 'lint-goblin', nextMoveIndex: i })]), content),
+    );
+    expect(Math.max(...seen)).toBeGreaterThan(0);
+  });
+
+  it('does not inflate overkill: 999 dmg == exactly-lethal dmg vs a 7 HP enemy', () => {
+    const make = (amount: number): CardDef => ({
+      id: `t-${amount}`,
+      name: 'T',
       description: '',
       type: 'attack',
       rarity: 'common',
       cost: 1,
       target: 'enemy',
-      effects: [{ kind: 'damage', amount: 999, target: 'enemy' }],
-    };
+      effects: [{ kind: 'damage', amount, target: 'enemy' }],
+    });
     const state = combat([enemy({ hp: 7, maxHp: 7 })]);
-    // Value tracks at most the 7 HP available, not 999.
-    expect(combatValue(strike, state, 0)).toBeLessThanOrEqual(7);
+    // A massive overkill is valued the SAME as a just-lethal hit (HP-capped +
+    // the flat kill bonus) — overkill HP is never counted.
+    expect(combatValue(make(999), state, 0)).toBe(combatValue(make(7), state, 0));
+    // And a non-lethal chip (6 < 7) is worth strictly less (no kill bonus).
+    expect(combatValue(make(6), state, 0)).toBeLessThan(combatValue(make(7), state, 0));
   });
 });

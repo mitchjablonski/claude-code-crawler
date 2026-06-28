@@ -24,7 +24,7 @@ import type {
 import { EngineError, eventRequirementMet } from '../src/engine/types.js';
 import { mctsAction } from '../src/search/mcts.js';
 import { scoreCard } from './lib/scoreCard.js';
-import { combatValue } from './lib/combatValue.js';
+import { combatValue, predictIncomingDamage } from './lib/combatValue.js';
 
 type PolicyName = 'greedy' | 'cautious' | 'naive' | 'mcts';
 type Policy = (state: RunState, content: ContentRegistry, rand: () => number) => GameAction;
@@ -124,6 +124,9 @@ function combatAction(
   const combat = state.combat;
   if (!combat) throw new EngineError('no combat');
 
+  // Predicted incoming damage this turn — block is valued by what it prevents.
+  const incoming = predictIncomingDamage(combat, content);
+
   let best:
     | { handIndex: number; targetIndex: number | undefined; rank: number }
     | undefined;
@@ -141,14 +144,24 @@ function combatAction(
     const card = content.cards[combat.hand[i] as string];
     if (!card || card.cost > combat.energy) continue;
     if (card.target === 'enemy') {
-      // Score against every living enemy and keep the best target for this card.
+      // Pick the BEST target for this card: highest value, ties to the lowest-HP
+      // enemy (focus-fire — secures kills and concentrates poison). Deterministic.
+      let bestVal = -Infinity;
+      let bestJ: number | undefined;
+      let bestHp = Infinity;
       for (let j = 0; j < combat.enemies.length; j++) {
         const e = combat.enemies[j];
         if (!e || e.hp <= 0) continue;
-        consider(i, j, combatValue(card, combat, j, { prefer }), card.cost);
+        const v = combatValue(card, combat, j, { prefer, incoming });
+        if (v > bestVal || (v === bestVal && e.hp < bestHp)) {
+          bestVal = v;
+          bestJ = j;
+          bestHp = e.hp;
+        }
       }
+      if (bestJ !== undefined) consider(i, bestJ, bestVal, card.cost);
     } else {
-      consider(i, undefined, combatValue(card, combat, undefined, { prefer }), card.cost);
+      consider(i, undefined, combatValue(card, combat, undefined, { prefer, incoming }), card.cost);
     }
   }
 

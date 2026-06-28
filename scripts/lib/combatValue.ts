@@ -35,9 +35,11 @@
  * rng, no clock, no mutation. Tooling-only.
  */
 import { attackDamage, getStatus } from '../../src/engine/effects.js';
+import { resolveEnemyMove } from '../../src/engine/enemyMoves.js';
 import type {
   CardDef,
   CombatState,
+  ContentRegistry,
   Effect,
   EffectCondition,
   Statuses,
@@ -50,6 +52,10 @@ const DAMAGE_VALUE = 1.0;
 const BLOCK_WEIGHT_ATTACK = 0.5;
 /** Under a defensive (cautious/block) lean, block is worth more than offense. */
 const BLOCK_WEIGHT_BLOCK = 1.15;
+/** A point of block that PREVENTS incoming damage saves ~a point of HP. */
+const BLOCK_PREVENT = 1.0;
+/** Block beyond this turn's incoming threat is mostly wasted (decays unused). */
+const BLOCK_OVERFLOW = 0.2;
 /** Drawing a card replaces itself + digs — modest tempo value. */
 const DRAW_VALUE = 1.6;
 /** +1 energy refunds a play; ~a strong card's worth of future tempo. */
@@ -58,6 +64,14 @@ const ENERGY_VALUE = 3.5;
 const HEAL_VALUE = 0.4;
 /** Poison damage is delayed (slightly discounted vs immediate) but bypasses block. */
 const POISON_WEIGHT = 0.95;
+/**
+ * Flat bonus when a damage effect is LETHAL to its target. Removing an attacker
+ * prevents its future damage, which is worth more than the few HP of "overkill"
+ * the HP cap discards — so a killing blow on a low-HP enemy beats chipping a
+ * full-HP tank. This restores the focus-fire the old policy got from always
+ * targeting the lowest-HP enemy (critical in multi-enemy arc fights).
+ */
+const KILL_BONUS = 6;
 
 /**
  * Per-stack value of the non-poison statuses (poison has its own cumulative
@@ -125,11 +139,39 @@ function conditionHolds(
   }
 }
 
+/**
+ * Total damage the LIVING enemies will deal to the player on their next turn,
+ * from their currently-telegraphed moves (resolveEnemyMove — the same intent the
+ * combat UI shows). Accounts for strength/weak (attacker) and vulnerable (the
+ * player) via the engine's attackDamage. Pure: reads only state + static content.
+ * Used to value block by what it actually PREVENTS, so the bot blocks against big
+ * hits and doesn't waste block when little is incoming (skilled play, one-ply).
+ */
+export function predictIncomingDamage(combat: CombatState, content: ContentRegistry): number {
+  let total = 0;
+  for (const e of combat.enemies) {
+    if (e.hp <= 0) continue;
+    const def = content.enemies[e.defId];
+    if (!def) continue;
+    const move = resolveEnemyMove(def, e);
+    if (!move) continue;
+    for (const eff of move.effects) {
+      // In enemy moves, target 'enemy' means the player.
+      if (eff.kind === 'damage' && eff.target === 'enemy') {
+        const times = eff.times ?? 1;
+        total += attackDamage(eff.amount, e.statuses, combat.playerStatuses) * times;
+      }
+    }
+  }
+  return total;
+}
+
 function effectValue(
   combat: CombatState,
   effect: Effect,
   targetIndex: number | undefined,
   blockWeight: number,
+  incoming: number,
 ): number {
   switch (effect.kind) {
     case 'damage': {
@@ -139,13 +181,21 @@ function effectValue(
         const e = combat.enemies[i];
         if (!e) continue;
         const perHit = attackDamage(effect.amount, combat.playerStatuses, e.statuses);
-        total += Math.min(perHit * times, e.hp) * DAMAGE_VALUE;
+        const raw = perHit * times;
+        total += Math.min(raw, e.hp) * DAMAGE_VALUE;
+        if (raw >= e.hp && e.hp > 0) total += KILL_BONUS; // securing a kill
       }
       return total;
     }
     case 'block': {
       const amt = Math.max(0, effect.amount + getStatus(combat.playerStatuses, 'dexterity'));
-      return amt * blockWeight;
+      // Value the block that PREVENTS this turn's remaining incoming damage at
+      // ~HP rates; the overflow (beyond the threat) is mostly wasted and only
+      // matters under a defensive (block) lean.
+      const threat = Math.max(0, incoming - combat.playerBlock);
+      const prevented = Math.min(amt, threat);
+      const overflow = amt - prevented;
+      return prevented * BLOCK_PREVENT + overflow * BLOCK_OVERFLOW * blockWeight;
     }
     case 'draw':
       return effect.count * DRAW_VALUE;
@@ -178,15 +228,22 @@ function effectValue(
         ? effect.then
         : (effect.else ?? []);
       let total = 0;
-      for (const inner of branch) total += effectValue(combat, inner, targetIndex, blockWeight);
+      for (const inner of branch)
+        total += effectValue(combat, inner, targetIndex, blockWeight, incoming);
       return total;
     }
   }
 }
 
 export interface CombatValueOpts {
-  /** 'attack' (greedy) discounts block; 'block' (cautious) values it up. */
+  /** 'attack' (greedy) discounts overflow block; 'block' (cautious) values it up. */
   readonly prefer?: 'attack' | 'block';
+  /**
+   * Predicted incoming damage this turn (from {@link predictIncomingDamage}).
+   * Block is valued by what it PREVENTS of this threat. Defaults to 0 (so block
+   * is treated as pure overflow when the caller can't predict — conservative).
+   */
+  readonly incoming?: number;
 }
 
 /**
@@ -201,8 +258,10 @@ export function combatValue(
   opts: CombatValueOpts = {},
 ): number {
   const blockWeight = opts.prefer === 'block' ? BLOCK_WEIGHT_BLOCK : BLOCK_WEIGHT_ATTACK;
+  const incoming = opts.incoming ?? 0;
   let total = 0;
-  for (const e of card.effects) total += effectValue(combat, e, targetIndex, blockWeight);
+  for (const e of card.effects)
+    total += effectValue(combat, e, targetIndex, blockWeight, incoming);
   return total;
 }
 
