@@ -5,7 +5,17 @@ import type { Effect, EventOutcome, SimpleEventOutcome } from '../types.js';
 
 const COMPOSITE_KINDS = new Set(['rollOutcomes', 'conditional']);
 
-const EFFECT_KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus', 'conditional'];
+// #62: 'loseHp' (overheat self-cost) is a valid player-effect kind.
+const EFFECT_KINDS = [
+  'damage',
+  'block',
+  'draw',
+  'gainEnergy',
+  'heal',
+  'applyStatus',
+  'conditional',
+  'loseHp',
+];
 const EFFECT_TARGETS = ['enemy', 'allEnemies', 'self'];
 const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
 const CONDITION_TYPES = ['targetHasStatus', 'enemyCount'];
@@ -18,6 +28,12 @@ const CONDITION_TYPES = ['targetHasStatus', 'enemyCount'];
 function checkEffect(effect: Effect, where: string): void {
   expect(EFFECT_KINDS, `${where}:${effect.kind}`).toContain(effect.kind);
   if ('target' in effect) expect(EFFECT_TARGETS, `${where}:target`).toContain(effect.target);
+  // #62: where the optional overheat-gradient divisor is present (damage/block),
+  // it must be a positive integer.
+  if ((effect.kind === 'damage' || effect.kind === 'block') && effect.scaleMissingHp !== undefined) {
+    expect(Number.isInteger(effect.scaleMissingHp), `${where}:scaleMissingHp int`).toBe(true);
+    expect(effect.scaleMissingHp, `${where}:scaleMissingHp positive`).toBeGreaterThan(0);
+  }
   if (effect.kind === 'applyStatus') {
     expect(EFFECT_STATUSES, `${where}:${effect.status}`).toContain(effect.status);
   }

@@ -6,11 +6,35 @@ export type TargetKind = 'enemy' | 'allEnemies' | 'self';
 export type StatusId = 'strength' | 'vulnerable' | 'weak' | 'regen' | 'poison' | 'dexterity';
 
 export type Effect =
-  | { kind: 'damage'; amount: number; target: TargetKind; times?: number }
-  | { kind: 'block'; amount: number }
+  /**
+   * `scaleMissingHp` (#62, "overheat gradient"): an OPTIONAL positive-integer
+   * DIVISOR that scales the effect CONTINUOUSLY with the player's missing HP.
+   * Before the existing pipeline (strength/vulnerable/weak math, and before
+   * `times`), the amount gains `+ floor((playerMaxHp - playerHp) / scaleMissingHp)`.
+   * This is a gradient, NOT a binary threshold: the bonus grows smoothly as the
+   * player takes damage and is naturally bounded by maxHp. Player-only (computed
+   * from combat.playerMaxHp - combat.playerHp); enemies do NOT scale on player
+   * missing-HP, so it is ignored on the enemy-effect path. Pure, draws no rng.
+   *
+   * Determinism (#62, like #42): both new primitives live in STATIC content and
+   * change no serialized RunState shape (decks are card ids), so no SAVE_VERSION
+   * bump. Existing content uses NEITHER `loseHp` nor `scaleMissingHp` (absent on
+   * every card), so they are inert for old content and every existing seeded run
+   * stays byte-identical: `run(seed) === run(seed)`.
+   */
+  | { kind: 'damage'; amount: number; target: TargetKind; times?: number; scaleMissingHp?: number }
+  | { kind: 'block'; amount: number; scaleMissingHp?: number }
   | { kind: 'draw'; count: number }
   | { kind: 'gainEnergy'; amount: number }
   | { kind: 'heal'; amount: number }
+  /**
+   * `loseHp` (#62, "overheat"): an UNBLOCKABLE direct HP COST paid by the player
+   * for power. It FLOORS AT 1 — `playerHp = max(1, playerHp - amount)` — because
+   * a self-cost must never kill you; the risk is being left fragile vs the
+   * enemy's next turn (and, via `scaleMissingHp`, fuelling your own scaling).
+   * Ignores block (it is a cost, not an attack). Player-only, draws no rng.
+   */
+  | { kind: 'loseHp'; amount: number }
   | { kind: 'applyStatus'; status: StatusId; stacks: number; target: TargetKind }
   /**
    * A general, deterministic branch over the CURRENT combat state (#42). Evaluate
