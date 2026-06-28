@@ -430,7 +430,7 @@ const defs: readonly CardDef[] = [
   { id: 'spark-jab', name: 'Spark Jab', description: 'Deal 4 damage, plus 1 for every 10 HP you are missing.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', scaleMissingHp: 10 }] },
   { id: 'meltdown-strike', name: 'Meltdown Strike', description: 'Deal 7 damage, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 6 }], upgradeTo: 'meltdown-strike-plus' },
   { id: 'coolant-surge', name: 'Coolant Surge', description: 'Gain 8 Block, plus 1 for every 6 HP you are missing.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8, scaleMissingHp: 6 }], upgradeTo: 'coolant-surge-plus' },
-  { id: 'feedback-loop', name: 'Feedback Loop', description: 'Deal 7 damage. Heal 3 HP.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'heal', amount: 3 }] },
+  { id: 'feedback-loop', name: 'Feedback Loop', description: 'Deal 8 damage. Heal 3 HP.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'heal', amount: 3 }] },
   // Uncommons.
   // thermal-vent: an overheat cantrip (Vent Heat + a draw) — tempo near
   // battle-trance but paid in HP. overload-blast: a stronger gradient attack.
@@ -446,8 +446,14 @@ const defs: readonly CardDef[] = [
   // Rares.
   // critical-mass: the gradient CEILING — a big late-fight hit, capped (~21 at 60
   // maxHp, under guillotine 24). overdrive-core: a power that pays 3 HP for a big
-  // Strength spike (cheaper-per-stack than berserker-brew, but the HP cost + the
-  // glass-cannon risk keep it honest). emergency-coolant: a comeback defensive
+  // Strength spike — its HP loss FUELS the class's gradient cards (real upside for
+  // the Overclocker, not just a cost). Greedy over-picks it (its scoreCard is
+  // synergy-blind — it can't see that self-damage is good here), but the #63
+  // review confirmed it does NOT move other classes' win-rate (offer-set noise,
+  // not real power) — a known greedy artifact, not an imbalance; cost 2 made it
+  // strictly worse than berserker-brew and DEAD in greedy, so it stays cost 1. A
+  // future "convert HP-loss to Strength" redesign would make it class-asymmetric
+  // for real. emergency-coolant: a comeback defensive
   // rare (gradient block + a heal) so the class has a real "stabilize while
   // bloodied" answer instead of only going faster.
   { id: 'critical-mass', name: 'Critical Mass', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }], upgradeTo: 'critical-mass-plus' },
