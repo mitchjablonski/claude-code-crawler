@@ -87,18 +87,21 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'goblin-stomp',
-    // #55: dead 2-cost (8 dmg + 2 vuln) — strictly worse per energy than
-    // torch-jab (1-cost 8 dmg + 1 vuln). Bump the damage/vuln ratio for its cost
-    // so it's a real cost-2 vulnerable-setter: 11 dmg + 2 vuln (still under
-    // crippling-blow's 10+2weak tempo when you factor the +damage, modest).
+    // #61: STILL dead after two prior damage buffs (#55) — the cost-2 common slot
+    // is structurally capped below 0-cost commons, so more damage can't rescue it.
+    // Retire the "buff the damage" approach and change the SLOT instead: cost 2→1,
+    // damage 11→7 (keep 2 Vulnerable). A cheap 1-cost vulnerable-setter is
+    // distinctive and draftable — fewer raw damage than torch-jab (1-cost 8 dmg +
+    // 1 vuln) but DOUBLE the vulnerable, so it's a tempo/setup card, not a worse
+    // torch-jab.
     name: 'Goblin Stomp',
-    description: 'Deal 11 damage. Apply 2 Vulnerable.',
+    description: 'Deal 7 damage. Apply 2 Vulnerable.',
     type: 'attack',
     rarity: 'common',
-    cost: 2,
+    cost: 1,
     target: 'enemy',
     effects: [
-      { kind: 'damage', amount: 11, target: 'enemy' },
+      { kind: 'damage', amount: 7, target: 'enemy' },
       { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' },
     ],
     upgradeTo: 'goblin-stomp-plus',
@@ -266,13 +269,22 @@ const defs: readonly CardDef[] = [
   { id: 'whirlwind', name: 'Whirlwind', description: 'Deal 6 damage to all enemies. If there is only one enemy, deal 5 more.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 6, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'eq', value: 1 }, then: [{ kind: 'damage', amount: 5, target: 'allEnemies' }] }], upgradeTo: 'whirlwind-plus' },
   { id: 'battle-trance', name: 'Battle Trance', description: 'Draw 2 cards. Gain 1 Energy.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'draw', count: 2 }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'iron-hide', name: 'Iron Hide', description: 'Gain 3 Regen.', type: 'power', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'regen', stacks: 3, target: 'self' }] },
-  { id: 'second-wind', name: 'Second Wind', description: 'Heal 6 HP.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 6 }] },
+  // #61: DEAD uncommon (a structural inversion — it scored BELOW commons as a pure
+  // 6-HP heal). Make it dual-purpose: keep the 6 heal and ADD 3 Block, giving it a
+  // sustain+defense identity that lifts it into the contested uncommon band without
+  // overshooting (under shield-bash's 6 dmg + 4 block tempo).
+  { id: 'second-wind', name: 'Second Wind', description: 'Heal 6 HP. Gain 3 Block.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 6 }, { kind: 'block', amount: 3 }] },
   { id: 'crippling-blow', name: 'Crippling Blow', description: 'Deal 10 damage. Apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }], upgradeTo: 'crippling-blow-plus' },
   { id: 'shield-bash', name: 'Shield Bash', description: 'Deal 6 damage. Gain 4 Block.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'block', amount: 4 }] },
   // Rares
   { id: 'avalanche', name: 'Avalanche', description: 'Deal 12 damage to all enemies. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 12, target: 'allEnemies' }, { kind: 'draw', count: 1 }] },
   { id: 'berserker-brew', name: 'Berserker Brew', description: 'Gain 3 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
-  { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'heal', amount: 12 }] },
+  // #61: DEAD rare (a dead RARE wastes the most per offer slot, and pure heal can't
+  // clear the rare bar). Lean into the phoenix REBIRTH theme: keep the 12 heal and
+  // add 2 Strength so it "rises stronger from the ashes" — a sustain+offense rare
+  // distinct from the block rares, landing in the contested rare band (well under
+  // last-bastion / viral-load) so it's draftable but NOT a new auto-pick.
+  { id: 'phoenix-feather', name: 'Phoenix Feather', description: 'Heal 12 HP. Gain 2 Strength.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'heal', amount: 12 }, { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }] },
   { id: 'perfect-parry', name: 'Perfect Parry', description: 'Gain 10 Block. Draw 1 card.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10 }, { kind: 'draw', count: 1 }] },
   { id: 'guillotine', name: 'Guillotine', description: 'Deal 24 damage.', type: 'attack', rarity: 'rare', cost: 3, target: 'enemy', effects: [{ kind: 'damage', amount: 24, target: 'enemy' }], upgradeTo: 'guillotine-plus' },
   // --- M12 expansion: poison + dexterity archetypes ---
@@ -321,7 +333,10 @@ const defs: readonly CardDef[] = [
   { id: 'iron-stance', name: 'Iron Stance', description: 'Gain 3 Dexterity. Gain 6 Block.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }, { kind: 'block', amount: 6 }] },
   { id: 'corrosive-mist', name: 'Corrosive Mist', description: 'Apply 6 Poison to all enemies. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 6, target: 'allEnemies' }, { kind: 'gainEnergy', amount: 1 }] },
   { id: 'juggernaut', name: 'Juggernaut', description: 'Gain 2 Strength and 1 Dexterity.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
-  { id: 'plague', name: 'Plague', description: 'Apply 5 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 5, target: 'enemy' }, { kind: 'draw', count: 1 }] },
+  // #61: was the #1 auto-pick (~2 pts above any other rare), trivializing
+  // rare-vs-rare drafts. Trim poison 5→4 to bring it in line with the other top
+  // rares while keeping its identity (cheap 1-cost poison cantrip).
+  { id: 'plague', name: 'Plague', description: 'Apply 4 Poison. Draw 1 card.', type: 'attack', rarity: 'rare', cost: 1, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 4, target: 'enemy' }, { kind: 'draw', count: 1 }] },
   // #54: POISON FINISHER (closes the apothecary single/nightmare PEAK-DAMAGE gap —
   // root cause was not endurance but too-slow poison ramp failing to kill the boss
   // before HP runs out). A late "close it out" burst the class lacked. Cold (target
