@@ -301,6 +301,13 @@ describe('App with hook events', () => {
     expect(lastFrame()).toContain(CHARACTERS.apothecary!.description);
     expect(lastFrame()).not.toContain(CHARACTERS.knight!.description);
     expect(mem.store.loadMeta().settings?.character).toBe('apothecary');
+
+    // #63: a third class (Overclocker) joins the cycle.
+    stdin.write('k');
+    await tick();
+    expect(lastFrame()).toContain('Class: Overclocker');
+    expect(lastFrame()).toContain(CHARACTERS.overclocker!.description);
+    expect(mem.store.loadMeta().settings?.character).toBe('overclocker');
   });
 
   it('retires stale runs as abandoned at startup (REQ-12)', async () => {

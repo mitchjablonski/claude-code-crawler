@@ -90,6 +90,24 @@ function poisonLifetime(stacks: number): number {
   return (stacks * (stacks + 1)) / 2;
 }
 
+/**
+ * #63 overheat gradient: the bonus a damage/block amount gains from the player's
+ * CURRENT missing HP — `floor((maxHp - hp) / divisor)`. Mirrors the engine's
+ * missingHpBonus (effects.ts) so greedy values gradient cards against the REAL
+ * state. Pure; 0 when absent or at full HP.
+ */
+function missingHpBonus(combat: CombatState, divisor: number | undefined): number {
+  if (divisor === undefined) return 0;
+  return Math.floor((combat.playerMaxHp - combat.playerHp) / divisor);
+}
+
+/**
+ * #63 overheat: per-HP value of `loseHp`, a self-cost that FLOORS at 1 (never
+ * lethal). It is risk, not board impact, so a small negative — enough that the
+ * bot doesn't overheat for free, but it still plays the strong tempo it buys.
+ */
+const LOSE_HP_VALUE = -0.5;
+
 /** Indices of living enemies an effect of `target` would hit (self -> []). */
 function targetIndices(
   combat: CombatState,
@@ -176,19 +194,30 @@ function effectValue(
   switch (effect.kind) {
     case 'damage': {
       const times = effect.times ?? 1;
+      // #63: the missing-HP gradient lifts the per-hit base, exactly like the engine.
+      const base = effect.amount + missingHpBonus(combat, effect.scaleMissingHp);
       let total = 0;
       for (const i of targetIndices(combat, effect.target, targetIndex)) {
         const e = combat.enemies[i];
         if (!e) continue;
-        const perHit = attackDamage(effect.amount, combat.playerStatuses, e.statuses);
+        const perHit = attackDamage(base, combat.playerStatuses, e.statuses);
         const raw = perHit * times;
         total += Math.min(raw, e.hp) * DAMAGE_VALUE;
         if (raw >= e.hp && e.hp > 0) total += KILL_BONUS; // securing a kill
       }
       return total;
     }
+    case 'loseHp':
+      // #63 overheat: an unblockable self-cost (floors at 1) — a small negative.
+      return effect.amount * LOSE_HP_VALUE;
     case 'block': {
-      const amt = Math.max(0, effect.amount + getStatus(combat.playerStatuses, 'dexterity'));
+      const amt = Math.max(
+        0,
+        // #63: the gradient lifts block before dexterity, like the engine.
+        effect.amount +
+          missingHpBonus(combat, effect.scaleMissingHp) +
+          getStatus(combat.playerStatuses, 'dexterity'),
+      );
       // Value the block that PREVENTS this turn's remaining incoming damage at
       // ~HP rates; the overflow (beyond the threat) is mostly wasted and only
       // matters under a defensive (block) lean.

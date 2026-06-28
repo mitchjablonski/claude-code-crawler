@@ -402,6 +402,74 @@ const defs: readonly CardDef[] = [
   { id: 'veterans-edge', name: "Veteran's Edge", description: 'Gain 2 Strength and 1 Dexterity. Draw 1 card.', type: 'power', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'draw', count: 1 }], unlock: 'three-victories' },
   // hard-victory grant — a hard-won aggressive rare (relic-equivalent earned same milestone).
   { id: 'hard-won-strike', name: 'Hard-Won Strike', description: 'Deal 16 damage. Apply 2 Vulnerable.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 16, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }], unlock: 'hard-victory' },
+
+  // --- #63 OVERCLOCKER card pack. Two levers: `loseHp` (overheat — an
+  // unblockable self-cost that FLOORS at 1, so it never kills you, only leaves
+  // you fragile) and `scaleMissingHp` (the gradient — `+floor(missingHp/N)` added
+  // to a damage/block amount, growing CONTINUOUSLY as you take damage, capped by
+  // maxHp). The two SYNERGIZE (overheating fuels the gradient) — that is the class
+  // fantasy, and loseHp+scaleMissingHp on one card is intended (e.g. power-spike).
+  // GUARDRAIL: `times>1` is NEVER combined with `scaleMissingHp` (that would
+  // multiply the bonus per hit — degenerate; enforced by a content.test). Numbers
+  // are calibrated against existing peers: no card beats the current rare ceiling
+  // (guillotine 24), the gradient swing is capped (critical-mass tops out ~21 at
+  // 60 maxHp), and a sustain/defense sub-theme (feedback-loop, siphon-capacitor,
+  // emergency-coolant) keeps the archetype off a death-spiral — it pairs with the
+  // onCombatEnd heal relics (field-dressing/surgeons-satchel).
+  // Starters (NOT draftable — starter rarity; exclusive to the Overclocker deck).
+  { id: 'vent-heat', name: 'Vent Heat', description: 'Overheat: lose 3 HP. Gain 1 Energy.', type: 'skill', rarity: 'starter', cost: 0, target: 'self', effects: [{ kind: 'loseHp', amount: 3 }, { kind: 'gainEnergy', amount: 1 }], upgradeTo: 'vent-heat-plus' },
+  { id: 'meltdown-jab', name: 'Meltdown Jab', description: 'Deal 5 damage, plus 1 for every 10 HP you are missing.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy', scaleMissingHp: 10 }], upgradeTo: 'meltdown-jab-plus' },
+  // Commons.
+  // reckless-swing: an overheat burst — more damage than torch-jab (8/1) but you
+  // pay 2 HP for it. spark-jab: a cost-0 gradient cantrip (cold = throwing-knife
+  // 4/0; scales when hurt). meltdown-strike: the bread-and-butter gradient attack
+  // (cold = a shortsword; wounded it overtakes torch-jab). coolant-surge: a
+  // gradient BLOCK so the class can defend WHILE hurt. feedback-loop: pseudo-
+  // lifesteal sustain to offset overheat.
+  { id: 'reckless-swing', name: 'Reckless Swing', description: 'Overheat: lose 2 HP. Deal 11 damage.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 11, target: 'enemy' }], upgradeTo: 'reckless-swing-plus' },
+  { id: 'spark-jab', name: 'Spark Jab', description: 'Deal 4 damage, plus 1 for every 10 HP you are missing.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', scaleMissingHp: 10 }] },
+  { id: 'meltdown-strike', name: 'Meltdown Strike', description: 'Deal 7 damage, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 6 }], upgradeTo: 'meltdown-strike-plus' },
+  { id: 'coolant-surge', name: 'Coolant Surge', description: 'Gain 8 Block, plus 1 for every 6 HP you are missing.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8, scaleMissingHp: 6 }], upgradeTo: 'coolant-surge-plus' },
+  { id: 'feedback-loop', name: 'Feedback Loop', description: 'Deal 8 damage. Heal 3 HP.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'heal', amount: 3 }] },
+  // Uncommons.
+  // thermal-vent: an overheat cantrip (Vent Heat + a draw) — tempo near
+  // battle-trance but paid in HP. overload-blast: a stronger gradient attack.
+  // frost-plating: a stronger gradient block. siphon-capacitor: the heavier
+  // sustain card. power-spike: the SIGNATURE dual-lever card — overheat 2 HP, then
+  // a gradient strike that the very same overheat (and the fight's accrued
+  // missing HP) feeds.
+  { id: 'thermal-vent', name: 'Thermal Vent', description: 'Overheat: lose 2 HP. Gain 1 Energy. Draw 1 card.', type: 'skill', rarity: 'uncommon', cost: 0, target: 'self', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'gainEnergy', amount: 1 }, { kind: 'draw', count: 1 }] },
+  { id: 'overload-blast', name: 'Overload Blast', description: 'Deal 7 damage, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 6 }], upgradeTo: 'overload-blast-plus' },
+  { id: 'frost-plating', name: 'Frost Plating', description: 'Gain 8 Block, plus 1 for every 6 HP you are missing.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 8, scaleMissingHp: 6 }] },
+  { id: 'siphon-capacitor', name: 'Siphon Capacitor', description: 'Deal 6 damage. Heal 4 HP.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'heal', amount: 4 }] },
+  { id: 'power-spike', name: 'Power Spike', description: 'Overheat: lose 2 HP. Deal 7 damage, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 6 }], upgradeTo: 'power-spike-plus' },
+  // Rares.
+  // critical-mass: the gradient CEILING — a big late-fight hit, capped (~21 at 60
+  // maxHp, under guillotine 24). overdrive-core: a power that pays 3 HP for a big
+  // Strength spike — its HP loss FUELS the class's gradient cards (real upside for
+  // the Overclocker, not just a cost). Greedy over-picks it (its scoreCard is
+  // synergy-blind — it can't see that self-damage is good here), but the #63
+  // review confirmed it does NOT move other classes' win-rate (offer-set noise,
+  // not real power) — a known greedy artifact, not an imbalance; cost 2 made it
+  // strictly worse than berserker-brew and DEAD in greedy, so it stays cost 1. A
+  // future "convert HP-loss to Strength" redesign would make it class-asymmetric
+  // for real. emergency-coolant: a comeback defensive
+  // rare (gradient block + a heal) so the class has a real "stabilize while
+  // bloodied" answer instead of only going faster.
+  { id: 'critical-mass', name: 'Critical Mass', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }], upgradeTo: 'critical-mass-plus' },
+  { id: 'overdrive-core', name: 'Overdrive Core', description: 'Overheat: lose 3 HP. Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'loseHp', amount: 3 }, { kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
+  { id: 'emergency-coolant', name: 'Emergency Coolant', description: 'Gain 10 Block, plus 1 for every 6 HP you are missing. Heal 4 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10, scaleMissingHp: 6 }, { kind: 'heal', amount: 4 }] },
+
+  // --- #63 Overclocker upgraded variants ('<base>-plus'). NEVER draftable
+  // (upgradeTo targets). Reachable only at a rest. Terminal (no further upgrade).
+  { id: 'vent-heat-plus', name: 'Vent Heat+', description: 'Overheat: lose 2 HP. Gain 1 Energy.', type: 'skill', rarity: 'starter', cost: 0, target: 'self', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'gainEnergy', amount: 1 }] },
+  { id: 'meltdown-jab-plus', name: 'Meltdown Jab+', description: 'Deal 7 damage, plus 1 for every 8 HP you are missing.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 8 }] },
+  { id: 'reckless-swing-plus', name: 'Reckless Swing+', description: 'Overheat: lose 2 HP. Deal 15 damage.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 15, target: 'enemy' }] },
+  { id: 'meltdown-strike-plus', name: 'Meltdown Strike+', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }] },
+  { id: 'coolant-surge-plus', name: 'Coolant Surge+', description: 'Gain 11 Block, plus 1 for every 5 HP you are missing.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 11, scaleMissingHp: 5 }] },
+  { id: 'overload-blast-plus', name: 'Overload Blast+', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }] },
+  { id: 'power-spike-plus', name: 'Power Spike+', description: 'Overheat: lose 2 HP. Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }] },
+  { id: 'critical-mass-plus', name: 'Critical Mass+', description: 'Deal 14 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy', scaleMissingHp: 5 }] },
 ];
 
 /**
