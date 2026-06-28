@@ -156,4 +156,30 @@ describe('CombatScreen juice beats (V6)', () => {
     rerender(<CombatScreen state={withEnemyHp(start, 0)} content={content} dispatch={noop} />);
     expect(lastFrame() ?? '').toContain('DOWN');
   });
+
+  it('opens the deck overlay on [v] without dispatching a combat action (#56)', async () => {
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 25));
+    const start = combatWith('skeleton-intern', 0);
+    let opened = false;
+    let dispatched = false;
+    const { lastFrame, stdin } = render(
+      <CombatScreen
+        state={start}
+        content={content}
+        dispatch={() => {
+          dispatched = true;
+        }}
+        onViewDeck={() => {
+          opened = true;
+        }}
+      />,
+    );
+    // The affordance is advertised in the footer.
+    expect(lastFrame() ?? '').toContain('[v] view deck');
+    await tick();
+    stdin.write('v');
+    await tick();
+    expect(opened).toBe(true); // overlay requested
+    expect(dispatched).toBe(false); // read-only: no combat action fired
+  });
 });

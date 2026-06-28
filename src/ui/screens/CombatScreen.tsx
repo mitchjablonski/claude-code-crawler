@@ -129,11 +129,17 @@ export function CombatScreen({
   content,
   dispatch,
   nameFor,
+  onViewDeck,
 }: {
   readonly state: RunState;
   readonly content: ContentRegistry;
   readonly dispatch: (action: GameAction) => void;
   readonly nameFor?: (defId: string) => string | undefined;
+  /**
+   * Opens the read-only deck overlay (#56). App-local UI state, mirroring the
+   * map's `[v] view deck`; optional so direct-render tests need not wire it.
+   */
+  readonly onViewDeck?: () => void;
 }) {
   const combat = state.combat as CombatState;
   // V6 juice: diff the combat state the player's LAST action changed to derive
@@ -156,6 +162,12 @@ export function CombatScreen({
     if (key.escape) {
       setPendingCard(null);
       setPendingPotion(null);
+      return;
+    }
+    // #56: open the read-only deck overlay. 'v' is not a card/potion/target key,
+    // so it never conflicts; opening dispatches nothing (combat state untouched).
+    if (input === 'v' && onViewDeck) {
+      onViewDeck();
       return;
     }
     if (input === 'e') {
@@ -225,7 +237,7 @@ export function CombatScreen({
 
   const footer = pending
     ? 'number: target  esc: cancel'
-    : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn`;
+    : `number: play card  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
 
   return (
     <Screen title="Combat" footer={footer} framed={false}>
