@@ -33,6 +33,12 @@ function checkEffect(effect: Effect, where: string): void {
   if ((effect.kind === 'damage' || effect.kind === 'block') && effect.scaleMissingHp !== undefined) {
     expect(Number.isInteger(effect.scaleMissingHp), `${where}:scaleMissingHp int`).toBe(true);
     expect(effect.scaleMissingHp, `${where}:scaleMissingHp positive`).toBeGreaterThan(0);
+    // #63 GUARDRAIL (carried nit from #62): the missing-HP gradient must NEVER be
+    // combined with `times > 1` on a damage effect — the per-hit bonus would
+    // multiply across hits, a degenerate scaling spike. Enforced for ALL content.
+    if (effect.kind === 'damage') {
+      expect(effect.times ?? 1, `${where}: times>1 with scaleMissingHp is degenerate`).toBe(1);
+    }
   }
   if (effect.kind === 'applyStatus') {
     expect(EFFECT_STATUSES, `${where}:${effect.status}`).toContain(effect.status);
@@ -188,6 +194,8 @@ describe('content integrity', () => {
     const ids = Object.keys(CHARACTERS);
     expect(ids).toContain('knight');
     expect(ids).toContain('apothecary');
+    // #63: the Overclocker class ships with its overheat-fueled kit.
+    expect(ids).toContain('overclocker');
     for (const c of Object.values(CHARACTERS)) {
       expect(c.starterDeck.length).toBeGreaterThan(0);
       for (const id of c.starterDeck) expect(content.cards[id], `${c.id}:${id}`).toBeDefined();

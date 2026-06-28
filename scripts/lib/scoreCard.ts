@@ -57,17 +57,40 @@ const DAMAGE_VALUE = 1.0;
 const BLOCK_VALUE = 0.85;
 /** Heal is overworld-relevant but weak in-combat vs block — discounted. */
 const HEAL_VALUE = 0.7;
+/**
+ * #63 overheat: `loseHp` is a self-COST, not raw tempo — it is YOUR hp and it
+ * floors at 1 (never lethal), so each point is a modest negative. Cheaper than a
+ * point of enemy damage is worth positively (it's risk, not board impact), but
+ * real enough that greedy doesn't treat overheat cards as free.
+ */
+const LOSE_HP_VALUE = -0.5;
+/**
+ * #63 gradient: a static scorer has no combat state, so `scaleMissingHp` (the
+ * `+floor(missingHp/N)` bonus) is approximated at a MODERATE missing-HP estimate
+ * — not full missing (over-values) nor zero (under-values). 18 missing HP is a
+ * typical mid-fight wound for a ~60-HP aggressor; the estimated bonus
+ * `floor(18/N)` is added to the effect amount and valued like the rest of it.
+ */
+const ASSUMED_MISSING_HP = 18;
+
+/** The estimated flat amount a `scaleMissingHp` divisor adds at a typical wound. */
+function scaleBonus(divisor: number | undefined): number {
+  if (divisor === undefined) return 0;
+  return Math.floor(ASSUMED_MISSING_HP / divisor);
+}
 
 /** Sum the raw (pre-rarity, pre-cost) value of a single effect. */
 function effectValue(e: Effect): number {
   switch (e.kind) {
     case 'damage': {
       const hits = e.times ?? 1;
-      const raw = e.amount * hits * DAMAGE_VALUE;
+      const raw = (e.amount + scaleBonus(e.scaleMissingHp)) * hits * DAMAGE_VALUE;
       return e.target === 'allEnemies' ? raw * AOE_MULT : raw;
     }
     case 'block':
-      return e.amount * BLOCK_VALUE;
+      return (e.amount + scaleBonus(e.scaleMissingHp)) * BLOCK_VALUE;
+    case 'loseHp':
+      return e.amount * LOSE_HP_VALUE;
     case 'draw':
       return e.count * DRAW_VALUE;
     case 'gainEnergy':
