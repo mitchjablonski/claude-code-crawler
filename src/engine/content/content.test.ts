@@ -234,6 +234,28 @@ describe('content integrity', () => {
         'payoff adds poison, never consumes it',
       ).toBe(true);
     }
+    // #54: poison-finisher (Detonation Vial) is a LATE FINISHER — its conditional
+    // gates a BIG fixed bonus on a HIGH poison threshold (>= 5, distinct from #45's
+    // atLeast-1 ramp card), and it adds NO poison (pure burst, never consumes ->
+    // no loop). It carries an upgrade.
+    const finisher = content.cards['poison-finisher'];
+    expect(finisher, 'poison-finisher exists').toBeDefined();
+    expect(finisher!.upgradeTo).toBe('poison-finisher-plus');
+    const fCond = finisher!.effects.find((e) => e.kind === 'conditional');
+    expect(fCond, 'poison-finisher has a conditional').toBeDefined();
+    if (fCond?.kind === 'conditional' && fCond.condition.type === 'targetHasStatus') {
+      expect(fCond.condition.status).toBe('poison');
+      // HIGH threshold is the whole identity (a late finisher, not an early-ramp
+      // card) — guards against accidentally turning it into another Venom Reprisal.
+      expect(fCond.condition.atLeast ?? 1).toBeGreaterThanOrEqual(5);
+      // The payoff is a big fixed bonus DAMAGE and it must add NO poison (no ramp,
+      // no consume) — a pure threshold->fixed-bonus finisher with no loop.
+      expect(fCond.then.some((e) => e.kind === 'damage')).toBe(true);
+      expect(
+        fCond.then.every((e) => e.kind !== 'applyStatus'),
+        'finisher adds no poison (pure burst, no loop)',
+      ).toBe(true);
+    }
     // whirlwind gates a single-target floor on exactly one living enemy.
     const ww = content.cards['whirlwind'];
     const wwCond = ww!.effects.find((e) => e.kind === 'conditional');
