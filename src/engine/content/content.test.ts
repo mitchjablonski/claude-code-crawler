@@ -290,6 +290,37 @@ describe('content integrity', () => {
     }
   });
 
+  it('#64: chain-reaction is a draftable GRADIENT AoE (no times+scale degenerate)', () => {
+    const card = content.cards['chain-reaction'];
+    expect(card, 'chain-reaction exists').toBeDefined();
+    // Draftable: a real rarity and NOT an upgrade target.
+    expect(card!.rarity).toBe('rare');
+    expect(UPGRADE_TARGET_IDS.has('chain-reaction')).toBe(false);
+    const dmg = card!.effects.find((e) => e.kind === 'damage');
+    expect(dmg, 'has a damage effect').toBeDefined();
+    if (dmg?.kind === 'damage') {
+      // It is the class's multi-enemy answer: hits ALL enemies (never a single-
+      // target nuke) and it is a gradient (scales with missing HP).
+      expect(dmg.target).toBe('allEnemies');
+      expect(dmg.scaleMissingHp).toBeGreaterThan(0);
+      // The #62/#63 guardrail must hold for the new card too.
+      expect(dmg.times ?? 1).toBe(1);
+    }
+  });
+
+  it('#64: the overheat events resolve and keep an ungated (anti-stall) option', () => {
+    for (const id of ['overclock-altar', 'coolant-reservoir']) {
+      const ev = content.events[id];
+      expect(ev, `${id} exists`).toBeDefined();
+      // Every grant/cost id resolves (also covered generically, asserted here too).
+      for (const option of ev!.options) {
+        for (const outcome of option.outcomes) checkOutcome(outcome, id);
+      }
+      // Anti-stall: at least one option is always selectable.
+      expect(ev!.options.some((o) => !o.requires), `${id} ungated option`).toBe(true);
+    }
+  });
+
   it('enemy phases are well-formed (thresholds in (0,1], ascending, valid effects)', () => {
     const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
     const TARGETS = ['enemy', 'allEnemies', 'self'];

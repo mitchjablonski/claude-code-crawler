@@ -287,6 +287,89 @@ const defs: readonly NarrativeEventDef[] = [
       loss: 'The well bargains, but not fairly. It keeps more than you offered.',
     },
   },
+  {
+    // #64 OVERHEAT-THEMED (class-agnostic, flavored on the overheat fantasy):
+    // pay HP -> power. Option ORDER matters: the dev greedy bot always takes the
+    // FIRST ungated option, so option 0 is a measured, CLASS-AGNOSTIC net-positive
+    // trade (bank max HP for a little current HP — mirrors suspicious-healer /
+    // complaints-department, proven neutral-to-positive). The big overheat GAMBLE
+    // (a class power for HP, sometimes a burn) is a SECOND ungated option a human
+    // weighs but the greedy economy never auto-eats — so adding this event can't
+    // regress any class. "Let it cool" is the always-available safe exit (anti-stall).
+    id: 'overclock-altar',
+    name: 'The Overclock Altar',
+    prompt:
+      'A cracked reactor altar throbs with stored heat, its dials pinned in the red. A worn brass plate reads: FEED IT, AND IT FEEDS YOU BACK. RISK: push the core too far and it pushes back.',
+    options: [
+      {
+        // Measured, class-agnostic net-positive: temper your frame on the heat.
+        label: 'Temper your frame on the heat',
+        outcomes: [
+          { kind: 'gainMaxHp', amount: 6 },
+          { kind: 'loseHp', amount: 4 },
+        ],
+      },
+      {
+        // RISK/REWARD overheat GAMBLE (human choice): redline for a power, or burn.
+        label: 'Redline the core (risky)',
+        outcomes: [
+          {
+            kind: 'rollOutcomes',
+            branches: [
+              [{ kind: 'gainCard', cardId: 'overdrive-core' }],
+              [
+                { kind: 'gainCard', cardId: 'overdrive-core' },
+                { kind: 'loseHp', amount: 6 },
+              ],
+              [{ kind: 'loseHp', amount: 12 }],
+            ],
+            weights: [2, 2, 1],
+          },
+        ],
+      },
+      { label: 'Let it cool and move on', outcomes: [] },
+    ],
+    aftermath: {
+      win: 'The dials ease out of the red, satisfied. The heat is yours now, coiled and waiting.',
+      loss: 'The core vents straight through your guard. FEED IT, the plate insists, as you stagger off.',
+    },
+  },
+  {
+    // #64 OVERHEAT-THEMED, STAT-GATE variant: a coolant cache. The gated option
+    // spends gold to bank max HP (a clean stabilize) and is the greedy bot's pick
+    // WHEN AFFORDABLE; when broke, the bot falls through to a class-agnostic
+    // net-positive (a relic for a little blood — relics are worth it for any
+    // class, like cursed-idol), so the event never drains the greedy economy.
+    // "Leave the valve shut" is the always-available ungated safe exit (anti-stall).
+    id: 'coolant-reservoir',
+    name: 'Coolant Reservoir',
+    prompt:
+      'A frost-rimed tank hisses in a maintenance alcove, gauges fogged with cold. A scrawled note: BLEED THE LINE OR PAY THE TECH. STAT CHECK: the flush is not free.',
+    options: [
+      {
+        // STAT GATE: a proper coolant flush costs gold, banks max HP cleanly.
+        label: 'Pay the tech for a full flush',
+        requires: { check: 'gold', atLeast: 30 },
+        outcomes: [
+          { kind: 'loseGold', amount: 30 },
+          { kind: 'gainMaxHp', amount: 8 },
+        ],
+      },
+      {
+        // Class-agnostic net-positive fallback: a comeback relic for a little blood.
+        label: 'Bleed the line and grab the regulator',
+        outcomes: [
+          { kind: 'gainRelic', relicId: 'redline' },
+          { kind: 'loseHp', amount: 4 },
+        ],
+      },
+      { label: 'Leave the valve shut', outcomes: [] },
+    ],
+    aftermath: {
+      win: 'The line bleeds clear and the gauges settle. You leave a few degrees cooler, and richer for it.',
+      loss: 'The valve fights you the whole way and takes its toll in blood. You move on, ticking.',
+    },
+  },
 ];
 
 export const events: Readonly<Record<string, NarrativeEventDef>> = Object.fromEntries(

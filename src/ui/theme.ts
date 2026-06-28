@@ -54,6 +54,16 @@ const colors = {
   title: 'yellow',
   /** Player/enemy hit points. */
   hp: 'red',
+  /**
+   * #64 player-HP legibility gradient. The player's HP readout tints by current
+   * fraction so a low-HP state is FELT at a glance (and, for the Overclocker,
+   * the missing-HP that powers its cards reads as rising "heat"): a cool/healthy
+   * end, a yellow warning band, then the red critical/redline alarm. Semantic
+   * tokens (never raw Ink names at the call site); see {@link hpTint}.
+   */
+  hpHealthy: 'green',
+  hpWarning: 'yellow',
+  hpCritical: 'red',
   /** Block / armor. */
   block: 'cyan',
   /** Energy. */
@@ -223,6 +233,20 @@ export const theme = {
 
 export type Theme = typeof theme;
 export type BoxTheme = typeof box;
+
+/**
+ * #64: the player HP readout's tint by current fraction. Pure & deterministic so
+ * it is unit-testable without rendering. Thresholds: healthy above 50%, a warning
+ * band from 50% down to 25%, critical at/under 25% (a universal low-HP alarm that
+ * also makes the Overclocker's missing-HP gradient legible). Returns a SEMANTIC
+ * color token (one of the `hp*` gradient tokens), never a raw Ink color name.
+ */
+export function hpTint(hp: number, maxHp: number): InkColor {
+  const ratio = maxHp > 0 ? hp / maxHp : 0;
+  if (ratio > 0.5) return colors.hpHealthy;
+  if (ratio > 0.25) return colors.hpWarning;
+  return colors.hpCritical;
+}
 
 /**
  * Build a fixed-width HP bar split into its filled and empty runs. Pure: the

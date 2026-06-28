@@ -459,6 +459,18 @@ const defs: readonly CardDef[] = [
   { id: 'critical-mass', name: 'Critical Mass', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }], upgradeTo: 'critical-mass-plus' },
   { id: 'overdrive-core', name: 'Overdrive Core', description: 'Overheat: lose 3 HP. Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'loseHp', amount: 3 }, { kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
   { id: 'emergency-coolant', name: 'Emergency Coolant', description: 'Gain 10 Block, plus 1 for every 6 HP you are missing. Heal 4 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10, scaleMissingHp: 6 }, { kind: 'heal', amount: 4 }] },
+  // chain-reaction (#64): the class's lone AoE — a GRADIENT pack-clear that closes
+  // the Overclocker's known multi-enemy gap (it shipped in #63 with zero AoE, so
+  // arc lagged). A glass cannon spends the fight wounded, so the same missing-HP
+  // that feeds its single-target gradient also lights up this whole-room hit. cost
+  // 2 rare, peer to avalanche (12 flat to all + draw) / corrosive-mist (6 poison +
+  // energy): the base 8-to-all sits UNDER avalanche when healthy, and only the
+  // glass cannon's deep-wound spike (~+5 at half HP, capping ~+9 near death) lifts
+  // it past avalanche — earned, not free. NEVER `times>1` with scaleMissingHp
+  // (content.test guard); the AoE_MULT in the static scorer keeps it a contested
+  // pick (peers the rare AoE band), not an auto-pick or a single-target nuke
+  // (it can't focus one enemy — it always splashes the room).
+  { id: 'chain-reaction', name: 'Chain Reaction', description: 'Deal 8 damage to all enemies, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'damage', amount: 8, target: 'allEnemies', scaleMissingHp: 6 }] },
 
   // --- #63 Overclocker upgraded variants ('<base>-plus'). NEVER draftable
   // (upgradeTo targets). Reachable only at a rest. Terminal (no further upgrade).
