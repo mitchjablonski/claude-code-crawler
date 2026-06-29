@@ -339,6 +339,30 @@ describe('StatusBar', () => {
     expect(inCombat.lastFrame() ?? '').toContain('[Apothecary]');
   });
 
+  it('#65: shows the warm HEAT chip for the Overclocker only when missing HP', () => {
+    const full = combatState({});
+    const hurt: RunState = {
+      ...full,
+      combat: { ...(full.combat as CombatState), playerHp: 30, playerMaxHp: 60 },
+      maxHp: 60,
+    };
+    // Hurt Overclocker -> powered zone, chip shows.
+    const a = render(
+      <StatusBar state={hurt} linked narration={null} relics={[]} characterName="Overclocker" />,
+    );
+    expect(a.lastFrame() ?? '').toContain('HEAT');
+    // Full-HP Overclocker -> no missing HP, no chip.
+    const b = render(
+      <StatusBar state={full} linked narration={null} relics={[]} characterName="Overclocker" />,
+    );
+    expect(b.lastFrame() ?? '').not.toContain('HEAT');
+    // Another class, even hurt, never sees it (low HP there is pure danger).
+    const c = render(
+      <StatusBar state={hurt} linked narration={null} relics={[]} characterName="Knight" />,
+    );
+    expect(c.lastFrame() ?? '').not.toContain('HEAT');
+  });
+
   it('shows a +Nhp beat when HP rose on the last action (V6 juice)', () => {
     const start = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
     const hurt: RunState = { ...start, hp: start.hp - 10 };

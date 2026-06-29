@@ -91,7 +91,7 @@ export const CHARACTERS: Readonly<Record<string, Character>> = {
   overclocker: {
     id: 'overclocker',
     name: 'Overclocker',
-    description: 'Reckless glass cannon. Burns its own HP for power. Crashes optional.',
+    description: 'Burns HP for power; hits harder the more hurt. Crashes optional.',
     starterDeck: OVERCLOCKER_DECK,
     startingRelics: ['overclock-chip'],
     maxHp: 60,

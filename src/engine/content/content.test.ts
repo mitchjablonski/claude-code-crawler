@@ -204,6 +204,24 @@ describe('content integrity', () => {
     }
   });
 
+  it('#65: every overheat (loseHp) card reassures it "won\'t kill" the player', () => {
+    // loseHp floors at 1 HP in the engine (it can never be lethal); the
+    // description must SAY so or players sandbag at low HP.
+    const overheat = Object.values(content.cards).filter((c) =>
+      c.effects.some((e) => e.kind === 'loseHp'),
+    );
+    expect(overheat.length).toBeGreaterThan(0);
+    for (const card of overheat) {
+      expect(card.description.toLowerCase(), card.id).toContain("won't kill");
+    }
+  });
+
+  it('#65: the Overclocker tagline conveys BOTH overheat AND the missing-HP gradient', () => {
+    const desc = CHARACTERS.overclocker!.description.toLowerCase();
+    expect(desc).toContain('burns hp'); // the overheat lever
+    expect(desc).toContain('more hurt'); // the missing-HP gradient lever
+  });
+
   it('starter deck and starting relics resolve', () => {
     for (const id of STARTER_DECK) expect(content.cards[id], id).toBeDefined();
     for (const id of DEFAULT_RUN_CONFIG.startingRelics) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type {
+  CardDef,
   CombatState,
   ContentRegistry,
   EnemyInstance,
@@ -122,6 +123,27 @@ function intentKindFor(content: ContentRegistry, enemy: EnemyInstance): IntentKi
   if (fx.some(isBuff)) return 'buff';
   if (fx.some(isDebuff)) return 'debuff';
   return 'unknown';
+}
+
+/**
+ * #65 Overclocker legibility: the LIVE effective value of a missing-HP gradient
+ * card, computed from the CURRENT combat HP so the player SEES the payoff number
+ * rise as they take damage — the static card description only carries the base
+ * plus the "+1 per N missing" template and forces mental math. Returns null for
+ * cards without a `scaleMissingHp` damage/block effect (so non-gradient cards are
+ * untouched). Mirrors the engine's `floor((maxHp - hp) / divisor)` EXACTLY
+ * (display only — no effect/amount change). Combat-only: the map/deck view has no
+ * live HP context and keeps showing the static text.
+ */
+function liveGradient(card: CardDef, combat: CombatState): string | null {
+  for (const e of card.effects) {
+    if ((e.kind === 'damage' || e.kind === 'block') && e.scaleMissingHp !== undefined) {
+      const bonus = Math.floor((combat.playerMaxHp - combat.playerHp) / e.scaleMissingHp);
+      const effective = e.amount + bonus;
+      return `now ${effective} ${e.kind === 'damage' ? 'dmg' : 'blk'}`;
+    }
+  }
+  return null;
 }
 
 export function CombatScreen({
@@ -333,6 +355,7 @@ export function CombatScreen({
                 marker={`[${i + 1}]`}
                 card={card}
                 dim={!affordable}
+                live={liveGradient(card, combat)}
               />
             );
           })}

@@ -64,6 +64,13 @@ const colors = {
   hpHealthy: 'green',
   hpWarning: 'yellow',
   hpCritical: 'red',
+  /**
+   * #65 "powered/overheat" warm cue. Marks the Overclocker's missing-HP payoff
+   * as INTENTIONAL (not just danger): the live gradient value on a hand card and
+   * the HEAT chip both render in this warm tone so low HP reads as "powered up".
+   * Semantic token (never a raw Ink name at the call site).
+   */
+  heat: 'yellow',
   /** Block / armor. */
   block: 'cyan',
   /** Energy. */
