@@ -149,6 +149,17 @@ export function StatusBar({
               <Text color={theme.colors.energy}>
                 {'  '}EN {combat.energy}/{combat.maxEnergy}
               </Text>
+              {/* #65 "powered" co-signal: for the Overclocker, missing HP is the
+                  payoff (it fuels the gradient), not just danger. A subtle warm
+                  HEAT chip marks the powered zone so the red HP readout reads as
+                  INTENTIONAL. Gated to the class (its name is already a prop) so
+                  other classes — for whom low HP is pure danger — never see it.
+                  Inline on the existing row (no new HUD row), combat-only. */}
+              {characterName === 'Overclocker' && hp < state.maxHp && (
+                <Text color={theme.colors.heat} bold>
+                  {'  '}HEAT
+                </Text>
+              )}
             </>
           )}
           {playerStatusSegs.length > 0 && (

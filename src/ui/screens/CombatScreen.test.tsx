@@ -188,6 +188,37 @@ describe('CombatScreen juice beats (V6)', () => {
     expect(lastFrame() ?? '').not.toContain('unplayable');
   });
 
+  it('shows the LIVE gradient value of a missing-HP card, rising as HP drops (#65)', () => {
+    // meltdown-jab: deal 5, +1 per 10 HP missing. At 30/60 missing = 30 → +3 → 8.
+    const start = combatWith('skeleton-intern', 0);
+    const combat = start.combat as CombatState;
+    const state: RunState = {
+      ...start,
+      combat: { ...combat, hand: ['meltdown-jab'], playerHp: 30, playerMaxHp: 60 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    // The effective number is surfaced (the "aha": hurt → bigger number).
+    expect(lastFrame() ?? '').toContain('now 8 dmg');
+  });
+
+  it('shows only the base gradient value at full HP and NO live line for plain cards (#65)', () => {
+    const start = combatWith('skeleton-intern', 0);
+    const combat = start.combat as CombatState;
+    // Full HP → bonus 0 → effective = base 5; a plain attack gets no live line.
+    const state: RunState = {
+      ...start,
+      combat: { ...combat, hand: ['meltdown-jab', 'rusty-shortsword'], playerHp: 60, playerMaxHp: 60 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('now 5 dmg'); // gradient card, base at full HP
+    expect((frame.match(/now \d+ /g) ?? []).length).toBe(1); // only the gradient card
+  });
+
   it('opens the deck overlay on [v] without dispatching a combat action (#56)', async () => {
     const tick = () => new Promise((resolve) => setTimeout(resolve, 25));
     const start = combatWith('skeleton-intern', 0);
