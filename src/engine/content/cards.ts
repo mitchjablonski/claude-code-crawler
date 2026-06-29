@@ -128,15 +128,21 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'weakening-jab',
+    // #67 deadcard-pass7: greedy read this ~0.00 for many passes, but MCTS (the
+    // arbiter) drafts it heavily (knight 0.56 / apoth 0.29 / over 0.17) — `weak`
+    // is a defensive-tempo blind spot the greedy ranking under-rates against pure
+    // damage. BUFF to greedy-visibility (lift the static score into the contested
+    // torch-jab band, ~0.27) by leaning the debuff identity: 5 dmg + 2 weak ->
+    // 6 dmg + 3 weak. Still no auto-pick (well under the 0.7+ staples).
     name: 'Weakening Jab',
-    description: 'Deal 5 damage. Apply 2 Weak.',
+    description: 'Deal 6 damage. Apply 3 Weak.',
     type: 'attack',
     rarity: 'common',
     cost: 1,
     target: 'enemy',
     effects: [
-      { kind: 'damage', amount: 5, target: 'enemy' },
-      { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' },
+      { kind: 'damage', amount: 6, target: 'enemy' },
+      { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' },
     ],
     upgradeTo: 'weakening-jab-plus',
   },
@@ -290,12 +296,33 @@ const defs: readonly CardDef[] = [
   // --- M12 expansion: poison + dexterity archetypes ---
   // Commons
   { id: 'venom-dart', name: 'Venom Dart', description: 'Apply 3 Poison.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }], upgradeTo: 'venom-dart-plus' },
-  { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }], upgradeTo: 'tipped-blade-plus' },
-  { id: 'limber', name: 'Limber', description: 'Gain 1 Dexterity. Gain 4 Block.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'block', amount: 4 }] },
+  // #67 deadcard-pass7: tipped-blade is the Apothecary STARTER (in APOTHECARY_DECK)
+  // yet was also a dead DRAFTABLE common (greedy 0.00). SHELVE it from the draft
+  // pool by reclassifying rarity 'common' -> 'starter' (the draft pool is
+  // `rarity !== 'starter' && not an upgrade-target`), exactly like the
+  // spore-burst / rusty-shortsword starter pattern. It STAYS the Apothecary
+  // starter and keeps its rest-site upgrade (tipped-blade-plus). Save-safe: the
+  // CardDef is kept, so saved decks holding it still resolve (no SAVE_VERSION bump).
+  { id: 'tipped-blade', name: 'Tipped Blade', description: 'Deal 4 damage. Apply 2 Poison.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 2, target: 'enemy' }], upgradeTo: 'tipped-blade-plus' },
+  // #67: greedy read limber ~0.00 but MCTS drafts it across all classes (knight
+  // 0.25 / apoth 0.33 / over 0.25) — `dexterity` is a scaling blind spot the
+  // greedy ranking under-rates. BUFF to greedy-visibility by leaning the agility
+  // (dex) identity: 1 Dex + 4 Block -> 2 Dex + 4 Block. It is the common
+  // dex-archetype SEED (a touch ahead of pure-dex caltrops by design — an
+  // intended enabler, not a new auto-pick: still under the uncommon dex powers).
+  { id: 'limber', name: 'Limber', description: 'Gain 2 Dexterity. Gain 4 Block.', type: 'power', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 2, target: 'self' }, { kind: 'block', amount: 4 }] },
   // #55: still dead at 4 block + draw 1 — a touch light next to the draw/tempo
   // skills. Bump block 4→5 (closer to adrenaline-rush tempo) without adding a
   // second draw, so it stays a modest block-cantrip.
-  { id: 'sidestep', name: 'Sidestep', description: 'Gain 5 Block. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 5 }, { kind: 'draw', count: 1 }] },
+  // #67 deadcard-pass7: the #55 buff did not take — sidestep is the lone target
+  // with NO greedy-blind-spot mechanic (plain block+draw, redundant with
+  // brace / shield-wall / oath-keeper), and MCTS confirms it dead (knight 0.20 on
+  // a tiny sample, apoth 0.00, over 0.10 — aggregate ~0.09, the laggard of the
+  // five). CULL = SHELVE: reclassify rarity 'common' -> 'starter' so it leaves the
+  // draft pool while KEEPING the CardDef (it is in NO starter deck, so it becomes
+  // inert — never offered, never dealt). Save-safe (CardDef kept; no SAVE_VERSION
+  // bump). No -plus to orphan.
+  { id: 'sidestep', name: 'Sidestep', description: 'Gain 5 Block. Draw 1 card.', type: 'skill', rarity: 'starter', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 5 }, { kind: 'draw', count: 1 }] },
   { id: 'throwing-knife', name: 'Throwing Knife', description: 'Deal 4 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }] },
   // #55: dead pure-block common (8 block/1) — flat block with no scaling lost to
   // riders. Add a +1 Dexterity scaling rider (every future block card gets +1),
@@ -303,7 +330,13 @@ const defs: readonly CardDef[] = [
   // Sits right by limber (4 block + 1 dex, common) — a hair more block — and the
   // dex makes it a dexterity-archetype enabler rather than linear block.
   { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 6 Block. Gain 1 Dexterity.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
-  { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 4 damage twice.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 2 }] },
+  // #67: greedy read twin-jab ~0.00 but MCTS drafts it across classes (knight
+  // 0.20 / apoth 0.09 / over 0.17) — multi-hit is a blind spot the greedy ranking
+  // under-rates (each hit scales independently with Strength). BUFF to greedy-
+  // visibility: 4 dmg x2 -> 5 dmg x2 (10 split damage), landing in the contested
+  // goblin-stomp band. Multi-hit is worse into block than a single big hit, so the
+  // raw edge over torch-jab (8) is paid for by that downside — not a new auto-pick.
+  { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 5 damage twice.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy', times: 2 }] },
   // Uncommons
   // #55: dead AoE-poison uncommon — 2 poison all/1 was too thin a clock to draft.
   // Bump 2→4 poison all at cost 1. Still well under corrosive-mist (rare, 6 poison
@@ -365,7 +398,9 @@ const defs: readonly CardDef[] = [
   // Common upgrades
   { id: 'goblin-stomp-plus', name: 'Goblin Stomp+', description: 'Deal 14 damage. Apply 3 Vulnerable.', type: 'attack', rarity: 'common', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 3, target: 'enemy' }] },
   { id: 'cleave-the-horde-plus', name: 'Cleave the Horde+', description: 'Deal 9 damage to all enemies. Apply 2 Vulnerable to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 9, target: 'allEnemies' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'allEnemies' }] },
-  { id: 'weakening-jab-plus', name: 'Weakening Jab+', description: 'Deal 7 damage. Apply 3 Weak.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] },
+  // #67: bumped in step with the base buff (5/2->6/3) to preserve the rest-site
+  // upgrade gap (+2 dmg / +1 weak over base): 7 dmg/3 weak -> 8 dmg/4 weak.
+  { id: 'weakening-jab-plus', name: 'Weakening Jab+', description: 'Deal 8 damage. Apply 4 Weak.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 4, target: 'enemy' }] },
   { id: 'second-breakfast-plus', name: 'Second Breakfast+', description: 'Heal 8 HP. Draw 1 card.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'heal', amount: 8 }, { kind: 'draw', count: 1 }] },
   { id: 'shield-wall-plus', name: 'Shield Wall+', description: 'Gain 14 Block.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 14 }] },
   { id: 'rat-bite-plus', name: 'Rat Bite+', description: 'Deal 8 damage.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }] },
