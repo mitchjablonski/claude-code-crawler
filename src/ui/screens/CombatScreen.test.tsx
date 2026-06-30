@@ -48,7 +48,82 @@ function withEnemyHp(state: RunState, hp: number): RunState {
   };
 }
 
+/** Build a multi-enemy combat RunState (all enemies full HP, on move 0). */
+function multiCombat(defIds: readonly string[], hand: readonly string[] = []): RunState {
+  const base = createRun(content, 'multi-test', DEFAULT_RUN_CONFIG);
+  const enemies: EnemyInstance[] = defIds.map((defId) => {
+    const def = content.enemies[defId];
+    if (!def) throw new Error(`unknown enemy ${defId}`);
+    return {
+      defId,
+      name: def.name,
+      hp: def.hp[1],
+      maxHp: def.hp[1],
+      block: 0,
+      statuses: {},
+      nextMoveIndex: 0,
+    };
+  });
+  const combat: CombatState = {
+    enemies,
+    hand: [...hand],
+    drawPile: [],
+    discardPile: [],
+    energy: 3,
+    maxEnergy: 3,
+    playerHp: base.hp,
+    playerMaxHp: base.maxHp,
+    playerBlock: 0,
+    playerStatuses: {},
+    turn: 1,
+    dealt: 0,
+    taken: 0,
+    slain: 0,
+  };
+  return { ...base, phase: 'combat', combat };
+}
+
 const noop = () => {};
+
+describe('CombatScreen multi-enemy separation (#72)', () => {
+  it('separates stacked enemy blocks with a blank row so each reads as a unit', () => {
+    const { lastFrame } = render(
+      <CombatScreen
+        state={multiCombat(['lint-goblin', 'skeleton-intern'])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const lines = (lastFrame() ?? '').split('\n');
+    const first = lines.findIndex((l) => l.includes('Lint Goblin'));
+    const second = lines.findIndex((l) => l.includes('Skeleton Intern'));
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(second).toBeGreaterThan(first);
+    // A blank separator row sits between the first enemy's block (header+detail)
+    // and the second enemy's header — the marginBottom gap that groups each unit.
+    expect(lines.slice(first, second).some((l) => l.trim() === '')).toBe(true);
+  });
+
+  it('does NOT add a trailing gap after the last enemy (budget-aware spacing)', () => {
+    const { lastFrame } = render(
+      <CombatScreen
+        state={multiCombat(['lint-goblin', 'skeleton-intern'])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const lines = (lastFrame() ?? '').split('\n');
+    // The last enemy is the Skeleton: its detail (HP bar) row is immediately
+    // followed by the single hand-zone gap, not a gap+gap double blank.
+    const detail = lines.findIndex(
+      (l, i) => i > 0 && lines[i - 1]!.includes('Skeleton Intern') && l.includes('next:'),
+    );
+    expect(detail).toBeGreaterThan(0);
+    // exactly one blank row before the "Your hand:" header (the zone seam).
+    expect(lines[detail + 1]?.trim()).toBe('');
+    expect(lines[detail + 2]?.trim()).not.toBe('');
+  });
+});
 
 describe('CombatScreen intent telegraph', () => {
   it('shows BOTH the damage and the debuff chip for a multi-effect move', () => {

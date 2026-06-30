@@ -278,11 +278,29 @@ export function CombatScreen({
           const bar = hpBarSegments(enemy.hp, enemy.maxHp);
           const kind = intentKindFor(content, enemy);
           const beat = beats[i];
+          // #72 multi-enemy legibility: a 1-row gap BETWEEN enemy blocks (never
+          // after the last — the hand zone's marginTop owns that seam) so each
+          // header+detail pair reads as one unit. Gap-between (not after-each)
+          // keeps the worst-case (3-enemy) pack inside the 30-row budget.
+          const lastEnemy = i === combat.enemies.length - 1;
           return (
-            <Box key={`${enemy.defId}-${i}`} flexDirection="column">
+            <Box
+              key={`${enemy.defId}-${i}`}
+              flexDirection="column"
+              marginBottom={lastEnemy ? 0 : 1}
+            >
               {/* Header: marker, sigil, name, numeric HP, block, statuses. */}
               <Text dimColor={!alive}>
-                {pending && alive ? `[${i + 1}] ` : '    '}
+                {/* #72 targeting clarity: in target-select mode the selectable
+                    `[N]` marker POPS (accent + bold) so the eye lands on the
+                    pickable enemies instantly; otherwise it's blank padding. */}
+                {pending && alive ? (
+                  <Text color={theme.colors.accent} bold>
+                    {`[${i + 1}] `}
+                  </Text>
+                ) : (
+                  '    '
+                )}
                 {sigil ? (
                   <Text color={theme.colors.accent}>{sigil} </Text>
                 ) : null}
