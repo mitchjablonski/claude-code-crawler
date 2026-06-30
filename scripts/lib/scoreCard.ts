@@ -54,11 +54,13 @@ const STATUS_VALUE: Record<StatusId, number> = {
 /**
  * #68 overcharge synergy: each `loseHp` card in the deck is worth this much extra
  * draft value PER overcharge stack a card grants — because that card will, over a
- * fight, convert that overheat into a stack of Strength. Tuned so overdrive-core
- * scores like a real rare ONLY in an overheat deck (several loseHp cards) and ~0
- * in a Knight/Apothecary deck (no loseHp), making greedy class-aware for it.
+ * fight, convert that overheat into a stack of Strength. Each loseHp card is thus
+ * worth ~one future Strength stack, so it is valued at the per-stack STRENGTH rate
+ * (STATUS_VALUE.strength). This makes overdrive-core score like a real rare ONLY
+ * in an overheat deck (several loseHp cards) and ~0 in a Knight/Apothecary deck
+ * (no loseHp — the bonus is multiplied by 0), making greedy class-aware for it.
  */
-const OVERCHARGE_PER_LOSEHP = 1.4;
+const OVERCHARGE_PER_LOSEHP = STATUS_VALUE.strength;
 
 /** Cards that hit the whole pack are worth more than single-target — a flat bonus. */
 const AOE_MULT = 1.4;
