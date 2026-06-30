@@ -58,7 +58,9 @@ function RemoveOption({
   return (
     <Box flexDirection="column" width={DESC_WIDTH}>
       <Text>
-        <Text bold>{marker}</Text>
+        <Text color={theme.colors.accent} bold>
+          {marker}
+        </Text>
         {' ('}
         <Text color={theme.colors.cardCost}>{card.cost}</Text>
         {') '}

@@ -56,7 +56,9 @@ function UpgradeOption({
   return (
     <Box flexDirection="column" width={theme.layout.contentWidth - 2}>
       <Text>
-        <Text bold>{marker}</Text>
+        <Text color={theme.colors.accent} bold>
+          {marker}
+        </Text>
         {' ('}
         <Text color={theme.colors.cardCost}>{base.cost}</Text>
         {') '}
