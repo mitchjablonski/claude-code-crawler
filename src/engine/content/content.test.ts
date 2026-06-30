@@ -365,6 +365,49 @@ describe('content integrity', () => {
     }
   });
 
+  it('#70: second-breakfast is shelved (rarity starter, out of the draft pool, kept for saves)', () => {
+    const card = content.cards['second-breakfast'];
+    // CardDef is KEPT (save-safe: saved decks holding it still resolve)...
+    expect(card, 'second-breakfast still exists').toBeDefined();
+    // ...but reclassified to 'starter' so the draft pool excludes it.
+    expect(card!.rarity).toBe('starter');
+    expect(new Set(draftablePool()).has('second-breakfast')).toBe(false);
+    // It is in NO starter deck → inert, not playable from any kit.
+    for (const c of Object.values(CHARACTERS)) {
+      expect(c.starterDeck).not.toContain('second-breakfast');
+    }
+    // Its upgrade target is retained.
+    expect(content.cards['second-breakfast-plus'], 'upgrade kept').toBeDefined();
+  });
+
+  it('#70: twin-jab is a draftable Weak-synergy payoff (conditional, no times+scaleMissingHp)', () => {
+    const card = content.cards['twin-jab'];
+    expect(card, 'twin-jab exists').toBeDefined();
+    // Still a draftable common, NOT an upgrade target.
+    expect(card!.rarity).toBe('common');
+    expect(UPGRADE_TARGET_IDS.has('twin-jab')).toBe(false);
+    expect(new Set(draftablePool()).has('twin-jab')).toBe(true);
+    const cond = card!.effects.find((e) => e.kind === 'conditional');
+    expect(cond, 'twin-jab has a conditional').toBeDefined();
+    if (cond?.kind === 'conditional' && cond.condition.type === 'targetHasStatus') {
+      expect(cond.condition.status).toBe('weak');
+      // Both branches are multi-hit damage; the forbidden combo is times+scaleMissingHp.
+      for (const branch of [cond.then, cond.else ?? []]) {
+        for (const fx of branch) {
+          if (fx.kind === 'damage') {
+            expect((fx.times ?? 1) > 1 && (fx.scaleMissingHp ?? 0) > 0).toBe(false);
+          }
+        }
+      }
+      expect(cond.then.some((e) => e.kind === 'damage')).toBe(true);
+      expect((cond.else ?? []).some((e) => e.kind === 'damage')).toBe(true);
+    }
+  });
+
+  it('#70: overclocker maxHp is 63 (arc-attrition QoL buffer)', () => {
+    expect(CHARACTERS.overclocker!.maxHp).toBe(63);
+  });
+
   it('#64: the overheat events resolve and keep an ungated (anti-stall) option', () => {
     for (const id of ['overclock-altar', 'coolant-reservoir']) {
       const ev = content.events[id];
