@@ -123,10 +123,20 @@ export function applyPlayerEffect(
               getStatus(combat.playerStatuses, 'dexterity'),
           ),
       };
-    case 'loseHp':
+    case 'loseHp': {
       // #62 overheat: an unblockable, rng-free HP COST. Ignores block (it is a
       // cost, not an attack) and FLOORS AT 1 — a self-cost must never be lethal.
-      return { ...combat, playerHp: Math.max(1, combat.playerHp - effect.amount) };
+      const afterHp = Math.max(1, combat.playerHp - effect.amount);
+      // #68 overcharge: SELF-INFLICTED overheat (this loseHp path only — NOT the
+      // enemy `hitPlayer` path) converts heat into permanent power. With N stacks
+      // of `overcharge`, each overheat grants N Strength. Pure, draws no rng; a
+      // strict no-op when overcharge is 0, so existing overheat cards/runs are
+      // byte-identical. This is the class-asymmetry hook for `overdrive-core`.
+      const overcharge = getStatus(combat.playerStatuses, 'overcharge');
+      const playerStatuses =
+        overcharge > 0 ? addStatus(combat.playerStatuses, 'strength', overcharge) : combat.playerStatuses;
+      return { ...combat, playerHp: afterHp, playerStatuses };
+    }
     case 'draw':
       return drawCards(combat, effect.count, rng);
     case 'gainEnergy':

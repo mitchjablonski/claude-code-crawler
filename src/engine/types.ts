@@ -3,7 +3,21 @@ import type { RngStreams } from './rng.js';
 // ---- Effects: the closed primitive set every system composes from ----
 
 export type TargetKind = 'enemy' | 'allEnemies' | 'self';
-export type StatusId = 'strength' | 'vulnerable' | 'weak' | 'regen' | 'poison' | 'dexterity';
+export type StatusId =
+  | 'strength'
+  | 'vulnerable'
+  | 'weak'
+  | 'regen'
+  | 'poison'
+  | 'dexterity'
+  /**
+   * `overcharge` (#68): a PERMANENT combat power (like strength/dexterity — it
+   * does NOT decay at round end). While the player carries >= 1 stack, every
+   * SELF-INFLICTED overheat (`loseHp`) grants that many Strength. This is what
+   * makes `overdrive-core` class-asymmetric: it only pays off in a deck that
+   * overheats (the Overclocker), and is inert for Knight/Apothecary (no loseHp).
+   */
+  | 'overcharge';
 
 export type Effect =
   /**

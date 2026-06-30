@@ -169,6 +169,10 @@ const status: Readonly<Record<StatusId, StatusStyle>> = {
   weak: { label: 'weak', icon: 'WK', color: 'blue' },
   regen: { label: 'regen', icon: 'REG', color: 'green' },
   poison: { label: 'poison', icon: 'PSN', color: 'magenta' },
+  // #68 overcharge: the Overclocker's overheat->Strength payoff power. Rendered in
+  // the same warm tone as the `heat` token (the missing-HP "powered" cue) so the
+  // overheat fantasy reads consistently. Compact `OVC` glyph keeps the HUD budget.
+  overcharge: { label: 'overcharge', icon: 'OVC', color: colors.heat },
 };
 
 /** Shared layout constants. */

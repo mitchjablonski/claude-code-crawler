@@ -17,7 +17,7 @@ const EFFECT_KINDS = [
   'loseHp',
 ];
 const EFFECT_TARGETS = ['enemy', 'allEnemies', 'self'];
-const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity', 'overcharge'];
 const CONDITION_TYPES = ['targetHasStatus', 'enemyCount'];
 
 /**
@@ -214,6 +214,17 @@ describe('content integrity', () => {
     for (const card of overheat) {
       expect(card.description.toLowerCase(), card.id).toContain("won't kill");
     }
+  });
+
+  it('#68: overdrive-core is an overcharge power (not the old loseHp+strength body)', () => {
+    const card = content.cards['overdrive-core'];
+    expect(card).toBeDefined();
+    expect(card?.type).toBe('power');
+    expect(card?.rarity).toBe('rare');
+    // It grants overcharge and NOTHING else — no direct loseHp / strength.
+    expect(card?.effects).toEqual([
+      { kind: 'applyStatus', status: 'overcharge', stacks: 1, target: 'self' },
+    ]);
   });
 
   it('#65: the Overclocker tagline conveys BOTH overheat AND the missing-HP gradient', () => {

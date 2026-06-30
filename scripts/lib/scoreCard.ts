@@ -44,7 +44,23 @@ const STATUS_VALUE: Record<StatusId, number> = {
   regen: 2.1, // sustain EVERY turn — compounds over the fight (#53)
   vulnerable: 1.5, // +50% incoming dmg, strong tempo
   weak: 1.2, // -25% enemy dmg, defensive tempo
+  // #68 overcharge has NO static worth — its value is entirely synergy-driven
+  // (Strength per overheat) and is added as a deck-context bonus in scoreCard,
+  // proportional to how many `loseHp` cards the deck runs. 0 here so a synergy-
+  // blind score (no deck) treats overdrive-core as near-worthless — the point.
+  overcharge: 0,
 };
+
+/**
+ * #68 overcharge synergy: each `loseHp` card in the deck is worth this much extra
+ * draft value PER overcharge stack a card grants — because that card will, over a
+ * fight, convert that overheat into a stack of Strength. Each loseHp card is thus
+ * worth ~one future Strength stack, so it is valued at the per-stack STRENGTH rate
+ * (STATUS_VALUE.strength). This makes overdrive-core score like a real rare ONLY
+ * in an overheat deck (several loseHp cards) and ~0 in a Knight/Apothecary deck
+ * (no loseHp — the bonus is multiplied by 0), making greedy class-aware for it.
+ */
+const OVERCHARGE_PER_LOSEHP = STATUS_VALUE.strength;
 
 /** Cards that hit the whole pack are worth more than single-target — a flat bonus. */
 const AOE_MULT = 1.4;
@@ -176,6 +192,22 @@ export function scoreCard(card: CardDef, ctx: DeckContext = {}): number {
     // Powers are rare/expensive to acquire — a small flat draft nudge for them.
     const powerNudge = card.type === 'power' ? 0.5 : 0;
     score += (0.4 - frac) * 1.5 + powerNudge;
+
+    // #68 overcharge synergy: value an overcharge-granting card (overdrive-core)
+    // by the deck's overheat density — # of `loseHp` cards it already runs. With
+    // no loseHp cards (Knight/Apothecary) this is 0, so greedy no longer
+    // auto-picks it cross-class; in an overheat deck it scales into a real rare.
+    const overchargeStacks = card.effects.reduce(
+      (s, e) => s + (e.kind === 'applyStatus' && e.status === 'overcharge' ? e.stacks : 0),
+      0,
+    );
+    if (overchargeStacks > 0) {
+      const loseHpCards = ctx.deck.reduce((n, id) => {
+        const c = ctx.cards?.[id];
+        return n + (c && c.effects.some((e) => e.kind === 'loseHp') ? 1 : 0);
+      }, 0);
+      score += overchargeStacks * loseHpCards * OVERCHARGE_PER_LOSEHP;
+    }
   }
 
   return score;
