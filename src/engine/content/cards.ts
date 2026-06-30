@@ -148,13 +148,17 @@ const defs: readonly CardDef[] = [
   },
   {
     id: 'second-breakfast',
-    // #55: dead heal-cantrip — 3 HP + draw 1 was too little sustain to draft over
-    // a pure draw/tempo skill. Bump heal 3→5 (still a modest cost-1 sustain
-    // cantrip, under second-wind's 6 raw heal which has no draw).
+    // #55: bumped heal 3→5; #70 final-balance SHELVES it — best-sampled dead card
+    // (0.00 greedy, 0.10-0.14 MCTS over 21 offers): a heal+draw cantrip the MCTS
+    // arbiter never wanted. Reclassify rarity 'common'→'starter' the save-safe way
+    // (draft pool = rarity !== 'starter' && not an upgrade-target, so it leaves the
+    // pool; CardDef KEPT so any saved deck still resolves). It's in NO starter deck
+    // → inert. second-breakfast-plus (its upgrade target) is kept. No SAVE_VERSION
+    // bump (reclassify-not-delete; cards serialize as ids).
     name: 'Second Breakfast',
     description: 'Heal 5 HP. Draw 1 card.',
     type: 'skill',
-    rarity: 'common',
+    rarity: 'starter',
     cost: 1,
     target: 'self',
     effects: [{ kind: 'heal', amount: 5 }, { kind: 'draw', count: 1 }],
@@ -330,13 +334,15 @@ const defs: readonly CardDef[] = [
   // Sits right by limber (4 block + 1 dex, common) — a hair more block — and the
   // dex makes it a dexterity-archetype enabler rather than linear block.
   { id: 'warding-stone', name: 'Warding Stone', description: 'Gain 6 Block. Gain 1 Dexterity.', type: 'skill', rarity: 'common', cost: 1, target: 'self', effects: [{ kind: 'block', amount: 6 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
-  // #67: greedy read twin-jab ~0.00 but MCTS drafts it across classes (knight
-  // 0.20 / apoth 0.09 / over 0.17) — multi-hit is a blind spot the greedy ranking
-  // under-rates (each hit scales independently with Strength). BUFF to greedy-
-  // visibility: 4 dmg x2 -> 5 dmg x2 (10 split damage), landing in the contested
-  // goblin-stomp band. Multi-hit is worse into block than a single big hit, so the
-  // raw edge over torch-jab (8) is paid for by that downside — not a new auto-pick.
-  { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 5 damage twice.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy', times: 2 }] },
+  // #70 final-balance: #67's flat 5x2 buff didn't rescue twin-jab (MCTS ~0.07,
+  // still the dead zone) — multi-hit with no synergy hook stayed a filler attack.
+  // REWORK into a Weak-synergy PAYOFF for weakening-jab (which applies Weak): cold
+  // it is a stat-neutral 5x2=10 split attack, but once the enemy is Weak each hit
+  // deals +2 (7x2=14). Pairs the multi-hit identity with the debuff archetype so
+  // it lifts out of filler in Weak-setup decks without becoming a cold auto-pick
+  // (still worse into block than a single big hit). times+conditional is allowed
+  // (forbidden combo is times+scaleMissingHp only; neither used here).
+  { id: 'twin-jab', name: 'Twin Jab', description: 'Deal 5 damage twice. If the enemy is Weak, each hit deals 2 more.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'conditional', condition: { type: 'targetHasStatus', status: 'weak' }, then: [{ kind: 'damage', amount: 7, target: 'enemy', times: 2 }], else: [{ kind: 'damage', amount: 5, target: 'enemy', times: 2 }] }] },
   // Uncommons
   // #55: dead AoE-poison uncommon — 2 poison all/1 was too thin a clock to draft.
   // Bump 2→4 poison all at cost 1. Still well under corrosive-mist (rare, 6 poison

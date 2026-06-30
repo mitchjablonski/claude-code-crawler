@@ -152,4 +152,15 @@ describe('conditional cards in content (#42)', () => {
     const pack = playCardEffects(combatWith([enemy(40), enemy(40)]), 'whirlwind-plus', 0);
     expect(pack.enemies.map((e) => 40 - e.hp)).toEqual([9, 9]);
   });
+
+  it('#70: twin-jab deals 10 (5x2) cold, 14 (7x2) vs a Weak enemy (weakening-jab payoff)', () => {
+    // Weak on the ENEMY only reduces the enemy's own outgoing damage, not the
+    // player's — so the player's hits land full; the bonus is purely the
+    // conditional then-branch (7x2 instead of 5x2).
+    const cold = playCardEffects(combatWith([enemy(40)]), 'twin-jab', 0);
+    expect(40 - cold.enemies[0]!.hp).toBe(10); // 5 + 5
+
+    const weak = playCardEffects(combatWith([enemy(40, { weak: 2 })]), 'twin-jab', 0);
+    expect(40 - weak.enemies[0]!.hp).toBe(14); // 7 + 7 (Weak-setup payoff)
+  });
 });

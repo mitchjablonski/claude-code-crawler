@@ -94,7 +94,13 @@ export const CHARACTERS: Readonly<Record<string, Character>> = {
     description: 'Burns HP for power; hits harder the more hurt. Crashes optional.',
     starterDeck: OVERCLOCKER_DECK,
     startingRelics: ['overclock-chip'],
-    maxHp: 60,
+    // #70 final-balance: 60→63 as a modest arc-attrition QoL buffer. Arc-nightmare
+    // greedy reads 0.455 ("frustratingly lossy"), BUT — honest caveat — arc is
+    // MCTS-unverifiable here (arc MCTS times out) AND greedy under-pilots a glass
+    // cannon, so 0.455 likely understates skilled play. Single-mode is ALREADY at
+    // MCTS parity (1.0), so this is a small arc buffer, NOT a power fix; deliberately
+    // kept to +3 and offensive cards left untouched.
+    maxHp: 63,
   },
 };
 
