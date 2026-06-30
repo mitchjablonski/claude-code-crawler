@@ -499,7 +499,7 @@ const defs: readonly CardDef[] = [
   // rare (gradient block + a heal) so the class has a real "stabilize while
   // bloodied" answer instead of only going faster.
   { id: 'critical-mass', name: 'Critical Mass', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }], upgradeTo: 'critical-mass-plus' },
-  { id: 'overdrive-core', name: 'Overdrive Core', description: 'Power: whenever you overheat (lose HP), gain 1 Strength.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'overcharge', stacks: 1, target: 'self' }] },
+  { id: 'overdrive-core', name: 'Overdrive Core', description: 'Power: gain 1 Overcharge (OVC). Each time you overheat (lose HP), gain Strength equal to your OVC.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'overcharge', stacks: 1, target: 'self' }] },
   { id: 'emergency-coolant', name: 'Emergency Coolant', description: 'Gain 10 Block, plus 1 for every 6 HP you are missing. Heal 4 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10, scaleMissingHp: 6 }, { kind: 'heal', amount: 4 }] },
   // chain-reaction (#64): the class's lone AoE — a GRADIENT pack-clear that closes
   // the Overclocker's known multi-enemy gap (it shipped in #63 with zero AoE, so

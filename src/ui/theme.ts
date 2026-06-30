@@ -169,10 +169,14 @@ const status: Readonly<Record<StatusId, StatusStyle>> = {
   weak: { label: 'weak', icon: 'WK', color: 'blue' },
   regen: { label: 'regen', icon: 'REG', color: 'green' },
   poison: { label: 'poison', icon: 'PSN', color: 'magenta' },
-  // #68 overcharge: the Overclocker's overheat->Strength payoff power. Rendered in
-  // the same warm tone as the `heat` token (the missing-HP "powered" cue) so the
-  // overheat fantasy reads consistently. Compact `OVC` glyph keeps the HUD budget.
-  overcharge: { label: 'overcharge', icon: 'OVC', color: colors.heat },
+  // #68/#71 overcharge: the Overclocker's overheat->Strength payoff power. It was
+  // yellow (the `heat` token), but in Overclocker combat the HUD already shows
+  // four yellow signals at once (HP tint, HEAT chip, the live missing-HP gradient,
+  // and OVC) -> visual noise. OVC pays out as Strength, so it now borrows
+  // Strength's identity color (red) instead: it reads APART from the yellow heat
+  // family and visually links the power to the stat it produces (the STR chip).
+  // Compact `OVC` glyph keeps the HUD budget.
+  overcharge: { label: 'overcharge', icon: 'OVC', color: 'red' },
 };
 
 /** Shared layout constants. */

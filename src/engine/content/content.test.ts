@@ -255,6 +255,13 @@ describe('content integrity', () => {
     ]);
   });
 
+  it('#71: overdrive-core names the OVC/Overcharge chip the HUD shows', () => {
+    // Text must connect card -> chip -> Strength so the power is legible.
+    const desc = content.cards['overdrive-core']!.description;
+    expect(desc).toContain('Overcharge');
+    expect(desc).toContain('OVC');
+  });
+
   it('#65: the Overclocker tagline conveys BOTH overheat AND the missing-HP gradient', () => {
     const desc = CHARACTERS.overclocker!.description.toLowerCase();
     expect(desc).toContain('burns hp'); // the overheat lever
