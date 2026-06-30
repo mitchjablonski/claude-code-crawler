@@ -17,6 +17,10 @@ export function RewardScreen({
 }) {
   const reward = state.reward;
   const cards = reward?.cards ?? [];
+  // Auto-granted loot (relic / potion) is a distinct group from the card the
+  // player actively CHOOSES; grouping + a uniform section gap separates "what
+  // you found" from "what to pick" (matches the shop's marginTop={1} sections).
+  const hasLoot = reward?.relicId !== undefined || reward?.potionId !== undefined;
 
   useInput((input) => {
     if (input === 's') {
@@ -31,25 +35,31 @@ export function RewardScreen({
 
   return (
     <Screen title={`Victory! +${reward?.gold ?? 0}g`} footer="number: take card  [s] skip" framed={false}>
-      {reward?.relicId !== undefined && (
-        <Text color={theme.colors.accent}>
-          Relic claimed:{' '}
-          {relicDisplayName ?? content.relics[reward.relicId]?.name ?? reward.relicId}
-        </Text>
+      {hasLoot && (
+        <Box flexDirection="column">
+          {reward?.relicId !== undefined && (
+            <Text color={theme.colors.accent}>
+              Relic claimed:{' '}
+              {relicDisplayName ?? content.relics[reward.relicId]?.name ?? reward.relicId}
+            </Text>
+          )}
+          {reward?.potionId !== undefined && (
+            <Text color={theme.colors.success}>
+              Found a potion:{' '}
+              {content.potions[reward.potionId]?.name ?? reward.potionId} (added to your satchel)
+            </Text>
+          )}
+        </Box>
       )}
-      {reward?.potionId !== undefined && (
-        <Text color={theme.colors.success}>
-          Found a potion:{' '}
-          {content.potions[reward.potionId]?.name ?? reward.potionId} (added to your satchel)
-        </Text>
-      )}
-      <Text bold>Take a card for your deck:</Text>
-      <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
-        {cards.map((cardId, i) => {
-          const card = content.cards[cardId];
-          if (!card) return null;
-          return <CardTile key={cardId} marker={`[${i + 1}]`} card={card} />;
-        })}
+      <Box flexDirection="column" marginTop={hasLoot ? 1 : 0}>
+        <Text bold>Take a card for your deck:</Text>
+        <Box flexDirection="row" flexWrap="wrap" width={theme.layout.contentWidth}>
+          {cards.map((cardId, i) => {
+            const card = content.cards[cardId];
+            if (!card) return null;
+            return <CardTile key={cardId} marker={`[${i + 1}]`} card={card} />;
+          })}
+        </Box>
       </Box>
     </Screen>
   );

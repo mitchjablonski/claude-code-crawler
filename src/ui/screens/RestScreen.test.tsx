@@ -24,6 +24,9 @@ describe('RestScreen rest menu', () => {
     expect(frame).toContain('[r] Rest');
     expect(frame).toContain('[u] Upgrade a card');
     expect(frame).toContain('(1 upgradeable)');
+    // The rest menu is unframed (no bordered panel), matching its sibling
+    // economy screens (reward / shop) and this screen's own upgrade chooser.
+    expect(frame).not.toContain('╭');
   });
 
   it('shows the rest heal as an absolute HP number matching the engine formula (#60)', () => {
