@@ -151,17 +151,33 @@ export function RestScreen({
     );
   }
 
+  const healAmount = Math.floor((state.maxHp * HEAL_PCT) / 100);
   return (
-    <Screen title="The Rest Site" footer="[r] rest  [u] upgrade">
+    // Unframed to match its sibling economy screens (reward / shop) and this
+    // screen's OWN upgrade chooser — the calm transactional screens read as one
+    // family, the bordered panel is reserved for map / title / game-over.
+    <Screen title="The Rest Site" footer="[r] rest  [u] upgrade" framed={false}>
       <Text bold>A defensible alcove, warm and quiet.</Text>
       <Text dimColor>Someone has carved {'"'}5 stars, would die here again{'"'} into the wall.</Text>
       <Box marginTop={1} flexDirection="column">
         {/* Show the COMPUTED heal as an absolute number (#60): mirrors the
             engine's rest formula exactly (Math.floor(maxHp * 0.2)) so the label
-            never lies. Derived live from state.maxHp — no new state. */}
-        <Text>[r] Rest (heal {Math.floor((state.maxHp * HEAL_PCT) / 100)} HP)</Text>
+            never lies. Derived live from state.maxHp — no new state. The heal
+            number reads in the success token (a tangible gain), mirroring how the
+            shop tints its gold cost so the actionable value pops on each row. */}
+        <Text>
+          [r] Rest (heal{' '}
+          <Text color={theme.colors.success}>{healAmount}</Text> HP)
+        </Text>
         <Text dimColor={options.length === 0}>
-          [u] Upgrade a card{options.length === 0 ? ' (none upgradeable)' : ` (${options.length} upgradeable)`}
+          [u] Upgrade a card{' '}
+          {options.length === 0 ? (
+            '(none upgradeable)'
+          ) : (
+            <Text>
+              (<Text color={theme.colors.accent} dimColor={false}>{options.length}</Text> upgradeable)
+            </Text>
+          )}
         </Text>
       </Box>
     </Screen>
