@@ -12,7 +12,6 @@ import type {
 import type { Effect } from '../../engine/types.js';
 import type { InkColor, IntentKind } from '../theme.js';
 import { theme, statusSegments, statusChip, hpBarSegments, POTION_KEYS } from '../theme.js';
-import { CardTile } from '../components/CardTile.js';
 import { Screen } from '../components/Screen.js';
 import { resolveEnemyMove } from '../../engine/enemyMoves.js';
 import { usePrevOnChange, enemyBeats } from '../juice.js';
@@ -146,6 +145,83 @@ function liveGradient(card: CardDef, combat: CombatState): string | null {
   return null;
 }
 
+/** Pad a string to `n` visible columns (no-op if already wide enough). */
+function padEnd(s: string, n: number): string {
+  const len = [...s].length;
+  return len >= n ? s : s + ' '.repeat(n - len);
+}
+
+/** Truncate to `n` columns with a trailing ellipsis (graceful, never empty-cuts). */
+function truncateText(s: string, n: number): string {
+  const chars = [...s];
+  if (chars.length <= n) return s;
+  return chars.slice(0, Math.max(0, n - 1)).join('') + '…';
+}
+
+/** Width of the card-type column (longest of attack/skill/power). */
+const TYPE_COL = 6;
+
+/**
+ * #74 combat-only compact hand row. A full 5-card hand rendered as bordered
+ * `CardTile`s is 3 tile-rows (~18 rows) — a 3-enemy pack + full hand overran the
+ * 30-row snapshot budget (~34). The reward and shop screens still use the rich
+ * `CardTile` (browsing contexts where space is free), but COMBAT — where the
+ * enemies are already terse text rows — renders each hand card as ONE aligned
+ * text row, unifying the combat screen's visual language and collapsing the hand
+ * to ~6 rows. Every required affordance survives: the `[N]` marker, the cost pip
+ * (kept bright even when the row is dimmed for unaffordability), the rarity-tinted
+ * NAME (NEVER truncated — the caller sizes `nameWidth` to the longest card in
+ * hand), the type, the description (gracefully `…`-truncated to fit ≤76 cols; the
+ * full text is always one `[v]` away in the deck view), and the live "now N"
+ * missing-HP gradient. Colors route exclusively through theme tokens.
+ */
+function CompactHandCard({
+  marker,
+  card,
+  dim = false,
+  live,
+  nameWidth,
+}: {
+  readonly marker: string;
+  readonly card: CardDef;
+  readonly dim?: boolean;
+  readonly live?: string | null;
+  readonly nameWidth: number;
+}) {
+  const plus =
+    card.upgradeTo === undefined && card.id.endsWith('-plus') ? ' [+]' : '';
+  const name = card.name + plus;
+  const liveStr = live != null && live !== '' ? `  ${live}` : '';
+  // Inner content width of the unframed screen, minus the fixed-width columns:
+  // marker `[N] ` (4) + `(C) ` cost (4) + name + space + type + 2 gap, then the
+  // live annotation is reserved so it always survives. The remainder is the
+  // description budget; it stays >= a small floor so a long name never zeroes it.
+  const prefix = 4 + 4 + nameWidth + 1 + TYPE_COL + 2;
+  const descBudget = Math.max(
+    8,
+    theme.layout.contentWidth - 2 - prefix - [...liveStr].length,
+  );
+  return (
+    <Text dimColor={dim}>
+      <Text bold>{marker}</Text>
+      {' ('}
+      <Text color={theme.colors.cardCost} dimColor={false}>
+        {card.cost}
+      </Text>
+      {') '}
+      <Text color={theme.colors.rarity[card.rarity]}>{padEnd(name, nameWidth)}</Text>{' '}
+      <Text color={theme.colors.cardType[card.type]}>{padEnd(card.type, TYPE_COL)}</Text>
+      {'  '}
+      <Text>{truncateText(card.description, descBudget)}</Text>
+      {liveStr !== '' && (
+        <Text color={theme.colors.heat} dimColor={dim} bold>
+          {liveStr}
+        </Text>
+      )}
+    </Text>
+  );
+}
+
 export function CombatScreen({
   state,
   content,
@@ -264,9 +340,12 @@ export function CombatScreen({
     }
   });
 
+  // #74 footer tightened so the worst case (unplayable + potions + view-deck) fits
+  // <=76 cols instead of truncating with an ellipsis. Every key affordance stays
+  // legible: [N], the potion letters, [e], and [v].
   const footer = pending
-    ? 'number: target  esc: cancel'
-    : `number: play card${unplayable > 0 ? `  |  ${unplayable} unplayable` : ''}  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
+    ? '[N] target  esc cancel'
+    : `[N] play${unplayable > 0 ? `  ${unplayable} unplayable` : ''}${state.potions.length > 0 ? '  [a-] potion' : ''}  [e] end${onViewDeck ? '  [v] deck' : ''}`;
 
   return (
     <Screen title="Combat" footer={footer} framed={false}>
@@ -358,26 +437,32 @@ export function CombatScreen({
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text bold>{pending ? 'Choose a target:' : 'Your hand:'}</Text>
-        <Box
-          flexDirection="row"
-          flexWrap="wrap"
-          width={theme.layout.contentWidth}
-        >
-          {combat.hand.map((cardId, i) => {
+        {(() => {
+          // Size the NAME column to the widest card currently in hand (incl. its
+          // `[+]` upgrade marker) so names are aligned but NEVER truncated.
+          const nameWidth = combat.hand.reduce((w, id) => {
+            const c = content.cards[id];
+            if (!c) return w;
+            const plus =
+              c.upgradeTo === undefined && c.id.endsWith('-plus') ? ' [+]' : '';
+            return Math.max(w, [...(c.name + plus)].length);
+          }, 0);
+          return combat.hand.map((cardId, i) => {
             const card = content.cards[cardId];
             if (!card) return null;
             const affordable = card.cost <= combat.energy;
             return (
-              <CardTile
+              <CompactHandCard
                 key={`${cardId}-${i}`}
                 marker={`[${i + 1}]`}
                 card={card}
                 dim={!affordable}
                 live={liveGradient(card, combat)}
+                nameWidth={nameWidth}
               />
             );
-          })}
-        </Box>
+          });
+        })()}
       </Box>
       {state.potions.length > 0 && (
         <Box marginTop={1}>
