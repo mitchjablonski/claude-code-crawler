@@ -85,6 +85,76 @@ function multiCombat(defIds: readonly string[], hand: readonly string[] = []): R
 
 const noop = () => {};
 
+describe('CombatScreen compact hand (#74)', () => {
+  const FULL_HAND = [
+    'rusty-shortsword',
+    'battered-buckler',
+    'cleave-the-horde',
+    'weakening-jab',
+    'adrenaline-rush',
+  ];
+
+  it('fits a 3-enemy pack + full 5-card hand within the 28-row budget', () => {
+    const { lastFrame } = render(
+      <CombatScreen
+        state={multiCombat(['lint-goblin', 'skeleton-intern', 'cave-rat'], FULL_HAND)}
+        content={content}
+        dispatch={noop}
+        onViewDeck={noop}
+      />,
+    );
+    const lines = (lastFrame() ?? '').split('\n');
+    expect(lines.length).toBeLessThanOrEqual(28);
+    // every rendered row stays within the content width
+    const widest = Math.max(...lines.map((l) => l.length));
+    expect(widest).toBeLessThanOrEqual(76);
+  });
+
+  it('renders each hand card as ONE compact text row (no bordered tile in combat)', () => {
+    const { lastFrame } = render(
+      <CombatScreen
+        state={multiCombat(['cave-rat'], FULL_HAND)}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    // Combat hand no longer draws card-tile borders (those stay in reward/shop).
+    expect(frame).not.toContain('╭');
+    // The [N] marker, cost pip, name and (single-line) description coexist.
+    const line = (frame.split('\n').find((l) => l.includes('Rusty Shortsword')) ?? '');
+    expect(line).toContain('[1]');
+    expect(line).toContain('(1)');
+    expect(line).toContain('Deal 6 damage.');
+  });
+
+  it('never truncates a card NAME (the name column fits the widest card in hand)', () => {
+    const { lastFrame } = render(
+      <CombatScreen
+        state={multiCombat(['cave-rat'], ['cleave-the-horde', 'adrenaline-rush'])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('Cleave the Horde');
+    expect(frame).toContain('Adrenaline Rush');
+  });
+
+  it('keeps the live missing-HP gradient on the compact row (#65 survives #74)', () => {
+    const base = multiCombat(['cave-rat'], ['meltdown-jab']);
+    const combat = base.combat as CombatState;
+    const state: RunState = {
+      ...base,
+      combat: { ...combat, playerHp: 30, playerMaxHp: 60 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    expect(lastFrame() ?? '').toContain('now 8 dmg');
+  });
+});
+
 describe('CombatScreen multi-enemy separation (#72)', () => {
   it('separates stacked enemy blocks with a blank row so each reads as a unit', () => {
     const { lastFrame } = render(
@@ -330,7 +400,7 @@ describe('CombatScreen juice beats (V6)', () => {
       />,
     );
     // The affordance is advertised in the footer.
-    expect(lastFrame() ?? '').toContain('[v] view deck');
+    expect(lastFrame() ?? '').toContain('[v] deck');
     await tick();
     stdin.write('v');
     await tick();
