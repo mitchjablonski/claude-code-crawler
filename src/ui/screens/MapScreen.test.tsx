@@ -56,7 +56,6 @@ describe('MapScreen #60 node-stake labels', () => {
   }
 
   it.each([
-    ['event', '(risk/reward)'],
     ['rest', '(heal or upgrade)'],
     ['shop', '(spend gold)'],
     ['elite', '(harder, better loot)'],
@@ -68,6 +67,18 @@ describe('MapScreen #60 node-stake labels', () => {
     const frame = lastFrame() ?? '';
     expect(frame).toContain(stake);
     // Labels stay within the column budget.
+    for (const line of frame.split('\n')) expect(line.length).toBeLessThanOrEqual(76);
+  });
+
+  // #71: an event node always carries a stake tag, but it is now conditional —
+  // ` (event)` for revealed/known events, ` (risk/reward)` for hidden gambles.
+  it('annotates an event node with a conditional stake tag', () => {
+    const s = arcLinkingTo('event');
+    const { lastFrame } = render(
+      <MapScreen state={s} content={content} dispatch={noop} onViewDeck={noop} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toMatch(/\((event|risk\/reward)\)/);
     for (const line of frame.split('\n')) expect(line.length).toBeLessThanOrEqual(76);
   });
 });
@@ -102,8 +113,12 @@ describe('MapScreen #69 tiered reveal', () => {
     expect(frame).toContain('??? Unknown event');
     // The hidden event's real name must NEVER leak onto the map.
     expect(frame).not.toContain('Abandoned Vending Machine');
-    // The #60 stake hint rides along on every event node.
-    expect(frame).toContain('(risk/reward)');
+    // #71: the stake tag is conditional — a REVEALED event is a known decision,
+    // so it reads "(event)"; a HIDDEN gamble keeps "(risk/reward)".
+    expect(frame).toContain('Shrine of the Crawl (event)');
+    expect(frame).toContain('??? Unknown event (risk/reward)');
+    // A revealed event must NOT be mislabeled as a gamble.
+    expect(frame).not.toContain('Shrine of the Crawl (risk/reward)');
     // Budget holds.
     for (const line of frame.split('\n')) expect(line.length).toBeLessThanOrEqual(76);
   });

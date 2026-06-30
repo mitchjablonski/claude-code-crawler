@@ -261,6 +261,17 @@ describe('EventScreen result view shows aftermath flavor', () => {
     expect(frame).toContain('[1] Continue');
   });
 
+  it('#71: the continue action names its destination ("Continue to map")', () => {
+    const { lastFrame } = render(
+      <EventScreen
+        state={onResult('shrine-of-the-crawl', [{ kind: 'loseHp', amount: 9 }])}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    expect(lastFrame() ?? '').toContain('[1] Continue to map');
+  });
+
   it('shows no recall line on a fresh result with no recorded choice (resume edge)', () => {
     // A component mounted straight onto a result (as a save+resume would) has no
     // recorded press → it must omit the line, never crash.

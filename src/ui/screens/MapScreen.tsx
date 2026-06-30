@@ -21,12 +21,16 @@ const KIND_LABEL: Readonly<Record<NodeKind, string>> = {
 };
 
 // The #60 category hint kept on every event node so stakes always read at a
-// glance — on revealed nodes it tags the named event, on hidden nodes it keeps
-// the mystery flavor.
-const EVENT_TAG = ' (risk/reward)';
+// glance. #71: the tag is now CONDITIONAL — a REVEALED (named) event is a known
+// decision/stat-gate/fixed-trade, so it reads ` (event)`; a HIDDEN gamble keeps
+// ` (risk/reward)` (those curated mystery nodes really are the rollOutcomes
+// gambles), so the warning no longer mislabels deterministic events as gambles.
+const EVENT_TAG_REVEALED = ' (event)';
+const EVENT_TAG_HIDDEN = ' (risk/reward)';
 // Column budget: "[n] " prefix (4) eats into the Screen's ~76-col line budget.
-// Truncate long event names gracefully so labels never blow the budget.
-const MAX_EVENT_NAME = 76 - 4 - EVENT_TAG.length;
+// Truncate long event names gracefully so labels never blow the budget; size
+// against the LONGER tag so either variant always fits.
+const MAX_EVENT_NAME = 76 - 4 - EVENT_TAG_HIDDEN.length;
 
 function truncate(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, Math.max(0, max - 1))}…`;
@@ -43,7 +47,8 @@ function nodeLabel(node: MapNode, content: ContentRegistry): string {
   const def = node.eventId ? content.events[node.eventId] : undefined;
   if (!def) return KIND_LABEL.event;
   const name = def.hiddenOnMap ? '??? Unknown event' : def.name;
-  return `${truncate(name, MAX_EVENT_NAME)}${EVENT_TAG}`;
+  const tag = def.hiddenOnMap ? EVENT_TAG_HIDDEN : EVENT_TAG_REVEALED;
+  return `${truncate(name, MAX_EVENT_NAME)}${tag}`;
 }
 
 export function MapScreen({

@@ -266,7 +266,7 @@ export function CombatScreen({
 
   const footer = pending
     ? 'number: target  esc: cancel'
-    : `number: play card${unplayable > 0 ? `  · ${unplayable} unplayable` : ''}  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
+    : `number: play card${unplayable > 0 ? `  |  ${unplayable} unplayable` : ''}  ${state.potions.length > 0 ? 'letter: use potion  ' : ''}e: end turn${onViewDeck ? '  [v] view deck' : ''}`;
 
   return (
     <Screen title="Combat" footer={footer} framed={false}>

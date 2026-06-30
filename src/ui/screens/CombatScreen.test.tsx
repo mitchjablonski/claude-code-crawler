@@ -174,6 +174,24 @@ describe('CombatScreen juice beats (V6)', () => {
     expect(lastFrame() ?? '').toContain('2 unplayable');
   });
 
+  it('uses an ASCII-only separator in the footer — no U+00B7 middle dot (#71)', () => {
+    const start = combatWith('skeleton-intern', 0);
+    const combat = start.combat as CombatState;
+    // A cost>=2 card at 0 energy is unplayable, so the separator before the
+    // "N unplayable" segment is rendered.
+    const dear = Object.values(content.cards).find((c) => c.cost >= 2)!;
+    const state: RunState = {
+      ...start,
+      combat: { ...combat, hand: [dear.id], energy: 0 },
+    };
+    const { lastFrame } = render(
+      <CombatScreen state={state} content={content} dispatch={noop} />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('1 unplayable'); // separator segment is present
+    expect(frame).not.toContain('·'); // ASCII-safe: no middle dot
+  });
+
   it('shows NO unplayable hint when every card is affordable (#60)', () => {
     const start = combatWith('skeleton-intern', 0);
     const combat = start.combat as CombatState;

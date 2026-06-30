@@ -398,7 +398,7 @@ export function EventScreen({
         ? def.options[chosen.current.index]?.label
         : undefined;
     return (
-      <Screen title={def.name} footer="[1] Continue" framed={false}>
+      <Screen title={def.name} footer="[1] Continue to map" framed={false}>
         {chosenLabel !== undefined && (
           <Text dimColor color={theme.colors.muted}>
             You chose: {chosenLabel}

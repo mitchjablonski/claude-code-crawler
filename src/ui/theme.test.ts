@@ -29,3 +29,13 @@ describe('hpTint (#64 player-HP legibility gradient)', () => {
     expect(hpTint(0, 0)).toBe(hpCritical);
   });
 });
+
+describe('#71 overcharge color reads apart from the yellow heat family', () => {
+  it('is NOT the heat/yellow tone (so OVC does not vanish into HP/HEAT/gradient)', () => {
+    expect(theme.status.overcharge.color).not.toBe(theme.colors.heat);
+  });
+
+  it("borrows Strength's identity color (the stat OVC produces)", () => {
+    expect(theme.status.overcharge.color).toBe(theme.status.strength.color);
+  });
+});
