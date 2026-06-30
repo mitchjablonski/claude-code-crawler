@@ -147,6 +147,34 @@ describe('content integrity', () => {
     expect(statEvents, 'stat-check events').toBeGreaterThanOrEqual(2);
   });
 
+  it('#69: hiddenOnMap is boolean and a curated ~1/3 of events are mystery', () => {
+    const all = Object.values(content.events);
+    for (const event of all) {
+      if (event.hiddenOnMap !== undefined) {
+        expect(typeof event.hiddenOnMap, `${event.id} hiddenOnMap`).toBe('boolean');
+      }
+    }
+    const hidden = all.filter((e) => e.hiddenOnMap);
+    // A deliberate fraction stays a mystery — neither all nor none.
+    expect(hidden.length, 'some events are mystery').toBeGreaterThan(0);
+    expect(hidden.length, 'most events are revealed').toBeLessThan(all.length);
+    const frac = hidden.length / all.length;
+    expect(frac, 'mystery fraction ~1/3-ish').toBeGreaterThanOrEqual(0.2);
+    expect(frac, 'mystery fraction not a majority').toBeLessThanOrEqual(0.5);
+  });
+
+  it('#69: mystery (hiddenOnMap) correlates with spice — they are the rollOutcomes gambles', () => {
+    for (const event of Object.values(content.events)) {
+      const hasRoll = event.options.some((o) =>
+        o.outcomes.some((out) => out.kind === 'rollOutcomes'),
+      );
+      // The curation rule: every hiddenOnMap event is a high-variance gamble.
+      if (event.hiddenOnMap) {
+        expect(hasRoll, `${event.id} is hidden but has no rollOutcomes gamble`).toBe(true);
+      }
+    }
+  });
+
   it('every event has at least one always-available (ungated) option', () => {
     // Anti-stall safety: if all options were gated and the player met none,
     // legalActions would return [] in the option phase and the run would hang.

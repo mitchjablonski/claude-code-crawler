@@ -346,6 +346,7 @@ export function App({ deps }: { readonly deps: GameDeps }) {
           {run.phase === 'map' && (
             <MapScreen
               state={run}
+              content={game.content}
               dispatch={game.dispatch}
               onViewDeck={() => setDeckOpen(true)}
             />

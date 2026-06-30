@@ -4,6 +4,8 @@ const defs: readonly NarrativeEventDef[] = [
   {
     id: 'abandoned-vending-machine',
     name: 'Abandoned Vending Machine',
+    // #69: high-variance gamble (rollOutcomes) → stays a "??? Unknown" map mystery.
+    hiddenOnMap: true,
     prompt:
       'A vending machine hums in the dark, decades from the nearest power outlet. Its glass is fogged with something that is probably condensation. RISK: kicking it could pay off — or rattle something loose in you.',
     options: [
@@ -91,6 +93,8 @@ const defs: readonly NarrativeEventDef[] = [
   {
     id: 'abandoned-armory',
     name: 'Abandoned Armory',
+    // #69: high-variance gamble (rollOutcomes) → stays a "??? Unknown" map mystery.
+    hiddenOnMap: true,
     prompt:
       'Racks of equipment under centuries of dust. A sign reads: TAKE ONE. The handwriting is ominous.',
     options: [
@@ -173,6 +177,8 @@ const defs: readonly NarrativeEventDef[] = [
   {
     id: 'traveling-alchemist',
     name: 'Traveling Alchemist',
+    // #69: high-variance gamble (rollOutcomes) → stays a "??? Unknown" map mystery.
+    hiddenOnMap: true,
     prompt:
       'A cart of bubbling vials, attended by someone with no eyebrows. "Potent stuff," they wheeze. RISK: the green vial does SOMETHING.',
     options: [
@@ -251,6 +257,8 @@ const defs: readonly NarrativeEventDef[] = [
   {
     id: 'whispering-well',
     name: 'Whispering Well',
+    // #69: high-variance gamble (rollOutcomes) → stays a "??? Unknown" map mystery.
+    hiddenOnMap: true,
     prompt: 'A well exhales cold air and your own voice, slightly out of sync. RISK: the well bargains, but not always fairly.',
     options: [
       {
@@ -298,6 +306,8 @@ const defs: readonly NarrativeEventDef[] = [
     // regress any class. "Let it cool" is the always-available safe exit (anti-stall).
     id: 'overclock-altar',
     name: 'The Overclock Altar',
+    // #69: high-variance gamble (rollOutcomes) → stays a "??? Unknown" map mystery.
+    hiddenOnMap: true,
     prompt:
       'A cracked reactor altar throbs with stored heat, its dials pinned in the red. A worn brass plate reads: FEED IT, AND IT FEEDS YOU BACK. RISK: push the core too far and it pushes back.',
     options: [
