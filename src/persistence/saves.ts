@@ -8,7 +8,7 @@ import type { RunState } from '../engine/types.js';
 // transient run (per-run determinism is preserved by storing counters on state).
 // META (run history) is versioned and migrated SEPARATELY below so progression
 // data is NEVER wiped by this bump.
-const SAVE_VERSION = 11; // v11: shop state gained removeUsed (#49 card-removal service)
+const SAVE_VERSION = 12; // v12: MapNode gained eventId (#69 tiered reveal — events decided at gen)
 
 /**
  * Current meta (progression) schema version. Decoupled from SAVE_VERSION so an

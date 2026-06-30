@@ -292,6 +292,13 @@ export interface NarrativeEventDef {
    * valence. Purely display; events may omit it (valence-bank fallback applies).
    */
   readonly aftermath?: EventAftermath;
+  /**
+   * #69 Tiered reveal: when true, this event stays a "??? Unknown" mystery on the
+   * map even though its id is decided at generation. Curated true on the spicier,
+   * high-variance gambles (the ones with `rollOutcomes`) so mystery tracks stakes.
+   * Display-only; the engine resolves the stored eventId either way.
+   */
+  readonly hiddenOnMap?: boolean;
 }
 
 export interface ContentRegistry {
@@ -313,6 +320,13 @@ export interface MapNode {
   /** 0-indexed act this node belongs to (single mode = all act 0). */
   readonly act: number;
   readonly next: readonly string[];
+  /**
+   * #69 Tiered reveal: for `kind === 'event'` nodes ONLY, the specific narrative
+   * event is decided at MAP GENERATION (not at entry) and stored here so the map
+   * can NAME most events for route planning. Entering the node reads this id
+   * (no re-roll). Undefined on non-event nodes.
+   */
+  readonly eventId?: string;
 }
 
 export interface RunMap {

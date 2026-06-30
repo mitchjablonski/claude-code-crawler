@@ -11,7 +11,7 @@ import { DEFAULT_RUN_CONFIG, content } from './content/index.js';
 import { UPGRADE_TARGET_IDS, UNLOCKABLE_CARD_IDS } from './content/cards.js';
 import { EngineError, eventRequirementMet } from './types.js';
 import { Rng, seedFromString } from './rng.js';
-import type { CombatState, EnemyInstance, RunState } from './types.js';
+import type { CombatState, EnemyInstance, MapNode, RunState } from './types.js';
 
 const run = (seed: string) => createRun(content, seed, DEFAULT_RUN_CONFIG);
 
@@ -155,6 +155,54 @@ describe('createRun', () => {
     expect(state.currentNodeId).toBe(state.map.startId);
     expect(state.deck).toHaveLength(DEFAULT_RUN_CONFIG.starterDeck.length);
     expect(state.hp).toBe(DEFAULT_RUN_CONFIG.maxHp);
+  });
+});
+
+describe('#69 tiered reveal: eventId decided at generation', () => {
+  it('assigns a real content eventId to every event node (and none elsewhere)', () => {
+    for (let i = 0; i < 50; i++) {
+      const s = createRun(content, `ev-gen-${i}`, { ...DEFAULT_RUN_CONFIG, acts: 3 });
+      for (const node of Object.values(s.map.nodes)) {
+        if (node.kind === 'event') {
+          expect(node.eventId, node.id).toBeDefined();
+          expect(content.events[node.eventId as string], node.eventId).toBeDefined();
+        } else {
+          expect(node.eventId, node.id).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  it('entering an event uses the STORED eventId — no re-roll at entry', () => {
+    // Find an arc seed with an event node reachable from a parent.
+    let found: { state: RunState; parent: MapNode; ev: MapNode } | undefined;
+    for (let i = 0; i < 200 && !found; i++) {
+      const s = createRun(content, `ev-enter-${i}`, { ...DEFAULT_RUN_CONFIG, acts: 3 });
+      for (const ev of Object.values(s.map.nodes)) {
+        if (ev.kind !== 'event') continue;
+        const parent = Object.values(s.map.nodes).find((p) => p.next.includes(ev.id));
+        if (parent) {
+          found = { state: s, parent, ev };
+          break;
+        }
+      }
+    }
+    expect(found, 'an arc seed has a reachable event node').toBeDefined();
+    const { state, parent, ev } = found as { state: RunState; parent: MapNode; ev: MapNode };
+    // Override the stored eventId to a sentinel; entry must read exactly it.
+    const sentinel = 'shrine-of-the-crawl';
+    const nodes = { ...state.map.nodes, [ev.id]: { ...ev, eventId: sentinel } };
+    const parked: RunState = {
+      ...state,
+      map: { ...state.map, nodes },
+      phase: 'map',
+      currentNodeId: parent.id,
+    };
+    const entered = applyAction(content, parked, { type: 'chooseNode', nodeId: ev.id });
+    expect(entered.phase).toBe('event');
+    expect(entered.event?.eventId).toBe(sentinel);
+    // No rng consumed at entry (the roll already happened at generation).
+    expect(entered.rng).toEqual(parked.rng);
   });
 });
 
