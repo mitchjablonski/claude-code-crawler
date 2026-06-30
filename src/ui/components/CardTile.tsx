@@ -54,7 +54,9 @@ export function CardTile({
     >
       <Box justifyContent="space-between">
         <Text dimColor={dim}>
-          <Text bold>{marker}</Text>
+          <Text color={theme.colors.accent} bold>
+            {marker}
+          </Text>
           {' ('}
           <Text color={theme.colors.cardCost} dimColor={false}>
             {card.cost}
