@@ -1,4 +1,4 @@
-import { Text, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import type {
   ContentRegistry,
   GameAction,
@@ -94,19 +94,30 @@ export function MapScreen({
     >
       <Text bold>The passage forks. Choose your path:</Text>
       {crossesIntoNextAct && (
-        <Text color={theme.colors.danger}>
-          The descent into the next act will take its toll: -
-          {ACT_TRANSITION_EXHAUSTION_HP} max HP.
-        </Text>
-      )}
-      {options.map((option, i) => (
-        <Text key={option.id}>
-          [{i + 1}]{' '}
-          <Text color={theme.colors.nodeKind[option.kind]}>
-            {nodeLabel(option, content)}
+        <Box marginTop={1} width={theme.layout.contentWidth - 4}>
+          <Text color={theme.colors.danger} wrap="wrap">
+            The descent into the next act will take its toll: -
+            {ACT_TRANSITION_EXHAUSTION_HP} max HP.
           </Text>
-        </Text>
-      ))}
+        </Box>
+      )}
+      {/* The choosable list sits in its own gapped section (matches the economy
+          screens) so the prompt/warning read apart from the paths. Each `[N]`
+          marker POPS in accent+bold — the same treatment as combat's target
+          markers (#73) — so the eye lands on the key to press; the path label
+          keeps its node-kind color. */}
+      <Box marginTop={1} flexDirection="column">
+        {options.map((option, i) => (
+          <Text key={option.id}>
+            <Text color={theme.colors.accent} bold>
+              [{i + 1}]
+            </Text>{' '}
+            <Text color={theme.colors.nodeKind[option.kind]}>
+              {nodeLabel(option, content)}
+            </Text>
+          </Text>
+        ))}
+      </Box>
     </Screen>
   );
 }

@@ -440,8 +440,10 @@ export function EventScreen({
           // the resolved roll being spoiled. Empty outcomes ("Walk away") -> none.
           const hint = optionHintSegments(option.outcomes, content, state.eventLoseHpMult);
           if (!available) {
-            // Keep the real number (dimmed) so locked/unlocked rows align in
-            // one column; pressing it is a no-op (guarded in useInput).
+            // Locked: the WHOLE row dims (marker included) with the gating reason
+            // inline — mirrors the shop's unaffordable-row treatment — so it reads
+            // as not-actionable at a glance. The real number stays so locked and
+            // open rows align in one column; pressing it is a no-op (guarded above).
             return (
               <Box key={i} flexDirection="column">
                 <Text color={theme.colors.muted}>
@@ -451,10 +453,16 @@ export function EventScreen({
               </Box>
             );
           }
+          // Open option: the `[N]` marker POPS in accent+bold (the same treatment
+          // as combat's target markers, #73) so the choosable key is obvious;
+          // the label keeps default weight so the marker leads the eye.
           return (
             <Box key={i} flexDirection="column">
               <Text>
-                [{i + 1}] {option.label}
+                <Text color={theme.colors.accent} bold>
+                  [{i + 1}]
+                </Text>{' '}
+                {option.label}
               </Text>
               {hint.length > 0 && <HintLine segments={hint} />}
             </Box>
