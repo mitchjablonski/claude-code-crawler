@@ -83,6 +83,12 @@ const STATUS_VALUE: Record<string, number> = {
   regen: 2.0,
   vulnerable: 2.0,
   weak: 1.5,
+  // #68 overcharge: a permanent power that grants Strength on every future
+  // overheat. Worth a bit less per stack than raw strength (its payoff is gated on
+  // actually overheating again), but enough that the bot plays overdrive-core when
+  // it still has overheat cards to fire — and the per-overheat Strength is then
+  // credited on each loseHp play below.
+  overcharge: 3.5,
 };
 
 /** Cumulative poison damage over its decaying life: f(q) = q(q+1)/2. */
@@ -207,9 +213,15 @@ function effectValue(
       }
       return total;
     }
-    case 'loseHp':
+    case 'loseHp': {
       // #63 overheat: an unblockable self-cost (floors at 1) — a small negative.
-      return effect.amount * LOSE_HP_VALUE;
+      // #68: if the player is OVERCHARGED, this overheat ALSO grants that many
+      // Strength (engine loseHp hook), so credit it at the strength rate — this is
+      // why an overcharged Overclocker happily keeps overheating.
+      const overcharge = getStatus(combat.playerStatuses, 'overcharge');
+      const overchargeGain = overcharge * (STATUS_VALUE.strength ?? 4.0);
+      return effect.amount * LOSE_HP_VALUE + overchargeGain;
+    }
     case 'block': {
       const amt = Math.max(
         0,

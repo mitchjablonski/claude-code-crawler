@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from './rng.js';
-import { applyPlayerEffect } from './effects.js';
+import { applyEnemyEffect, applyPlayerEffect } from './effects.js';
 import type { CombatState, EnemyInstance, Effect, Statuses } from './types.js';
 
 /** Build a minimal combat; overrides let a test set player HP/block precisely. */
@@ -58,6 +58,46 @@ describe('loseHp effect (#62 overheat self-cost)', () => {
     const stateBefore = rng.state();
     applyPlayerEffect(c, { kind: 'loseHp', amount: 6 }, undefined, rng);
     expect(rng.state()).toBe(stateBefore);
+  });
+});
+
+describe('overcharge (#68 overheat -> Strength)', () => {
+  it('grants Strength equal to overcharge stacks on a loseHp overheat', () => {
+    const c = combatWith([enemy(30)], { playerHp: 40, playerStatuses: { overcharge: 2 } });
+    const next = applyPlayerEffect(c, { kind: 'loseHp', amount: 3 }, undefined, new Rng(1));
+    expect(next.playerHp).toBe(37); // cost still lands
+    expect(next.playerStatuses.strength).toBe(2); // +overcharge Strength
+    expect(next.playerStatuses.overcharge).toBe(2); // overcharge itself unchanged
+  });
+
+  it('stacks onto existing Strength each overheat (scales over a fight)', () => {
+    let c = combatWith([enemy(30)], { playerHp: 50, playerStatuses: { overcharge: 1, strength: 1 } });
+    c = applyPlayerEffect(c, { kind: 'loseHp', amount: 2 }, undefined, new Rng(1));
+    c = applyPlayerEffect(c, { kind: 'loseHp', amount: 2 }, undefined, new Rng(1));
+    expect(c.playerStatuses.strength).toBe(3); // 1 + 1 + 1 over two overheats
+  });
+
+  it('with no overcharge, loseHp grants no Strength', () => {
+    const c = combatWith([enemy(30)], { playerHp: 40 });
+    const next = applyPlayerEffect(c, { kind: 'loseHp', amount: 3 }, undefined, new Rng(1));
+    expect(next.playerStatuses.strength).toBeUndefined();
+  });
+
+  it('the overheat->Strength hook draws no rng (deterministic)', () => {
+    const c = combatWith([enemy(30)], { playerHp: 40, playerStatuses: { overcharge: 3 } });
+    const rng = new Rng(7);
+    const stateBefore = rng.state();
+    applyPlayerEffect(c, { kind: 'loseHp', amount: 4 }, undefined, rng);
+    expect(rng.state()).toBe(stateBefore);
+  });
+
+  it('only SELF-inflicted loseHp triggers it — enemy damage does not', () => {
+    // Enemy damage flows through hitPlayer (applyEnemyEffect), a different path,
+    // so a player with overcharge gains NO Strength when an enemy hits them.
+    const c = combatWith([enemy(30)], { playerHp: 40, playerStatuses: { overcharge: 2 } });
+    const hit = applyEnemyEffect(c, 0, { kind: 'damage', amount: 6, target: 'enemy' });
+    expect(hit.playerHp).toBe(34);
+    expect(hit.playerStatuses.strength).toBeUndefined();
   });
 });
 

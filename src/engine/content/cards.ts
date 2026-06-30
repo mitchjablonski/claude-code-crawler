@@ -480,19 +480,20 @@ const defs: readonly CardDef[] = [
   { id: 'power-spike', name: 'Power Spike', description: 'Overheat: lose 2 HP (won\'t kill you). Deal 7 damage, plus 1 for every 6 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 7, target: 'enemy', scaleMissingHp: 6 }], upgradeTo: 'power-spike-plus' },
   // Rares.
   // critical-mass: the gradient CEILING — a big late-fight hit, capped (~21 at 60
-  // maxHp, under guillotine 24). overdrive-core: a power that pays 3 HP for a big
-  // Strength spike — its HP loss FUELS the class's gradient cards (real upside for
-  // the Overclocker, not just a cost). Greedy over-picks it (its scoreCard is
-  // synergy-blind — it can't see that self-damage is good here), but the #63
-  // review confirmed it does NOT move other classes' win-rate (offer-set noise,
-  // not real power) — a known greedy artifact, not an imbalance; cost 2 made it
-  // strictly worse than berserker-brew and DEAD in greedy, so it stays cost 1. A
-  // future "convert HP-loss to Strength" redesign would make it class-asymmetric
-  // for real. emergency-coolant: a comeback defensive
+  // maxHp, under guillotine 24). overdrive-core (#68 redesign): a PAYOFF power that
+  // turns the class's own overheat into permanent Strength — `overcharge 1` means
+  // "whenever you overheat (lose HP), gain 1 Strength". This is GENUINELY
+  // class-asymmetric: it scales with how often the deck overheats (many loseHp
+  // cards for the Overclocker), and is INERT for Knight/Apothecary (no loseHp ->
+  // it never fires). It replaces the old "lose 3 HP, gain 3 Strength" body, which
+  // greedy auto-picked across ALL classes (a synergy-blind artifact — the
+  // self-damage was only upside for the overheat deck, which greedy couldn't see).
+  // Scaling is bounded by the number of overheats per fight, so it is not a
+  // degenerate one-shot Strength nuke. emergency-coolant: a comeback defensive
   // rare (gradient block + a heal) so the class has a real "stabilize while
   // bloodied" answer instead of only going faster.
   { id: 'critical-mass', name: 'Critical Mass', description: 'Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }], upgradeTo: 'critical-mass-plus' },
-  { id: 'overdrive-core', name: 'Overdrive Core', description: 'Overheat: lose 3 HP (won\'t kill you). Gain 3 Strength.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'loseHp', amount: 3 }, { kind: 'applyStatus', status: 'strength', stacks: 3, target: 'self' }] },
+  { id: 'overdrive-core', name: 'Overdrive Core', description: 'Power: whenever you overheat (lose HP), gain 1 Strength.', type: 'power', rarity: 'rare', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'overcharge', stacks: 1, target: 'self' }] },
   { id: 'emergency-coolant', name: 'Emergency Coolant', description: 'Gain 10 Block, plus 1 for every 6 HP you are missing. Heal 4 HP.', type: 'skill', rarity: 'rare', cost: 2, target: 'self', effects: [{ kind: 'block', amount: 10, scaleMissingHp: 6 }, { kind: 'heal', amount: 4 }] },
   // chain-reaction (#64): the class's lone AoE — a GRADIENT pack-clear that closes
   // the Overclocker's known multi-enemy gap (it shipped in #63 with zero AoE, so
