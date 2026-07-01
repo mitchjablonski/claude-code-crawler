@@ -830,6 +830,41 @@ describe('content integrity', () => {
     ).toBe(true);
   });
 
+  it('#83: the Warlock/Corrupted-Core events resolve, stay ungated, and curate hiddenOnMap', () => {
+    const NEW = ['bloodpact-altar', 'withered-reliquary'];
+    for (const id of NEW) {
+      const ev = content.events[id];
+      expect(ev, `${id} exists`).toBeDefined();
+      // Every grant/cost id resolves (recurses rolls/conditionals).
+      for (const option of ev!.options) {
+        for (const outcome of option.outcomes) checkOutcome(outcome, id);
+      }
+      // Anti-stall: at least one always-selectable (ungated) option.
+      expect(ev!.options.some((o) => !o.requires), `${id} has an ungated option`).toBe(true);
+    }
+    // The dark-pact gamble is the mystery (hiddenOnMap + rollOutcomes); the
+    // reliquary decision is named/deterministic and stays revealed (#69 curation).
+    const altar = content.events['bloodpact-altar']!;
+    expect(altar.hiddenOnMap, 'bloodpact-altar is a map mystery').toBe(true);
+    expect(
+      altar.options.some((o) => o.outcomes.some((out) => out.kind === 'rollOutcomes')),
+      'bloodpact-altar is a rollOutcomes gamble',
+    ).toBe(true);
+    // The greedy bot's pick (first ungated option) is the measured net-positive
+    // trade, NOT the gamble, so adding this event can't regress any class.
+    expect(altar.options[0]!.requires, 'bloodpact-altar option 0 is ungated').toBeUndefined();
+    expect(
+      altar.options[0]!.outcomes.every((o) => o.kind !== 'rollOutcomes'),
+      'bloodpact-altar greedy pick is not the gamble',
+    ).toBe(true);
+    const reliquary = content.events['withered-reliquary']!;
+    expect(reliquary.hiddenOnMap, 'withered-reliquary stays revealed').toBeFalsy();
+    expect(
+      reliquary.options.some((o) => o.requires?.check === 'relics'),
+      'withered-reliquary has a relics stat-gate',
+    ).toBe(true);
+  });
+
   it('potions compose only valid effect kinds/targets', () => {
     const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
     const TARGETS = ['enemy', 'allEnemies', 'self'];

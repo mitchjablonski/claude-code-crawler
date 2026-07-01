@@ -30,9 +30,15 @@ describe('hpTint (#64 player-HP legibility gradient)', () => {
   });
 });
 
-describe('#80 hex chip (Warlock life-siphon curse)', () => {
+describe('#80/#83 hex chip (Warlock life-siphon curse)', () => {
   it('reads DISTINCT from poison so the two enemy DoTs never blur together', () => {
     expect(theme.status.hex.color).not.toBe(theme.status.poison.color);
+  });
+
+  it('#83: reads DISTINCT from weak so the two enemy debuffs never share a hue', () => {
+    // hex and weak can sit in the SAME enemy status row (e.g. hex-bolt applies
+    // Weak, then curse-brand applies Hex to the same enemy) — they must not blur.
+    expect(theme.status.hex.color).not.toBe(theme.status.weak.color);
   });
 
   it('has a HEX glyph/label', () => {
