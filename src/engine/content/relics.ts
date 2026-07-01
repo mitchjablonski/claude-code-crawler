@@ -79,6 +79,26 @@ const defs: readonly RelicDef[] = [
   // the elite relic pool. Relics aren't drafted by choice, so this only shifts
   // which relic a seeded elite rewards (expected when adding any relic).
   { id: 'redline', name: 'Redline', description: 'At the start of each turn, if below 50% HP, gain 1 Strength.', trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 50 }, effects: [{ kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+  // --- #78 CONTENT PACK relics ("Finesse & Control" support). Built on existing
+  // triggers/effects only; each is modest (not dominant, not degenerate). Relics
+  // aren't drafted by choice, so these only shift WHICH relic a seeded elite
+  // rewards — expected when adding any relic; existing seeded runs stay
+  // byte-identical (additions only, no SAVE_VERSION bump: relics serialize as ids).
+  // hex-charm: a debuff OPENER — the pool had no relic that touches enemies. 1
+  // Weak to the pack at combat start softens the opening turn and seeds the
+  // Weak-payoff line (pressure-point). Decays 1/turn (only ~turn-one uptime), so
+  // it is a tempo nudge, not a lock — peer to graphite-talisman's 2 block/turn.
+  { id: 'hex-charm', name: 'Hex Charm', description: 'At the start of each combat, apply 1 Weak to all enemies.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'weak', stacks: 1, target: 'allEnemies' }] },
+  // serrated-talon: a DEXTERITY onKill engine (parallels bloodthirster's Strength
+  // onKill). Bounded by kills landed, so multi-kill AoE turns pay a little more
+  // but it never runs away; the dex it banks scales the deck's block for the rest
+  // of the fight — the finesse counterpart to the strength-onKill relic.
+  { id: 'serrated-talon', name: 'Serrated Talon', description: 'Whenever a card you play kills an enemy, gain 1 Dexterity.', trigger: 'onKill', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  // adrenal-reserve: a comeback TEMPO relic — existing hpBelow relics give
+  // block/strength; this digs for answers instead. Gated to < 50% HP (real
+  // danger), so it never compounds a winning fight; 1 card/turn while bloodied is
+  // a modest dig, not an engine.
+  { id: 'adrenal-reserve', name: 'Adrenal Reserve', description: 'At the start of each turn, if below 50% HP, draw 1 card.', trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 50 }, effects: [{ kind: 'draw', count: 1 }] },
 ];
 
 export const relics: Readonly<Record<string, RelicDef>> = Object.fromEntries(
