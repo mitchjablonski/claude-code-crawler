@@ -274,6 +274,51 @@ describe('StatusBar', () => {
     expect(lastFrame() ?? '').toContain('-4blk'); // 5 -> 1 absorbed
   });
 
+  it('shows a +1STR player status beat when Strength was gained this action (V6)', () => {
+    const start = combatState({});
+    const buffed: RunState = {
+      ...start,
+      combat: { ...(start.combat as CombatState), playerStatuses: { strength: 1 } },
+    };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked narration={null} relics={[]} characterName="Knight" />,
+    );
+    expect(lastFrame() ?? '').not.toContain('+1STR'); // no prior on first render
+    rerender(<StatusBar state={buffed} linked narration={null} relics={[]} characterName="Knight" />);
+    expect(lastFrame() ?? '').toContain('+1STR');
+  });
+
+  it('shows a -1WK player status beat when a debuff decayed this action (V6)', () => {
+    const start: RunState = {
+      ...combatState({}),
+      combat: { ...(combatState({}).combat as CombatState), playerStatuses: { weak: 2 } },
+    };
+    const decayed: RunState = {
+      ...start,
+      combat: { ...(start.combat as CombatState), playerStatuses: { weak: 1 } },
+    };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked narration={null} relics={[]} characterName="Knight" />,
+    );
+    rerender(<StatusBar state={decayed} linked narration={null} relics={[]} characterName="Knight" />);
+    expect(lastFrame() ?? '').toContain('-1WK');
+  });
+
+  it('shows NO player status beat when statuses are unchanged between actions (V6)', () => {
+    const start = combatState({ strength: 1 });
+    const same: RunState = {
+      ...start,
+      combat: { ...(start.combat as CombatState), playerStatuses: { strength: 1 }, playerBlock: 3 },
+    };
+    const { lastFrame, rerender } = render(
+      <StatusBar state={start} linked narration={null} relics={[]} characterName="Knight" />,
+    );
+    rerender(<StatusBar state={same} linked narration={null} relics={[]} characterName="Knight" />);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('+3blk'); // the block beat still fires
+    expect(frame).not.toContain('+1STR'); // strength unchanged → no spurious beat
+  });
+
   it('shows a +Ng gold beat when gold rose on the last action (V6 juice)', () => {
     const start = createRun(content, 'statusbar-test', DEFAULT_RUN_CONFIG);
     const richer: RunState = { ...start, gold: start.gold + 25 };

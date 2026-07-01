@@ -312,6 +312,24 @@ export function statusChip(
 }
 
 /**
+ * The CANONICAL status-CHANGE beat glyph (V6 juice). Renders a transient stack
+ * delta as a compact `<+/-><N><ICON>` token (e.g. `+2VUL`, `-1STR`, `+3PSN`) —
+ * the signed-magnitude form the resource beats use (`+5blk`, `-4blk`), but for a
+ * status. COLOR is the status' IDENTITY color (same as {@link statusChip} / the
+ * status tags), so a Vulnerable beat reads as the SAME yellow as the `VUL 2` tag
+ * it foreshadows. `delta` must be non-zero (the producer {@link statusBeats}
+ * only emits changes). Pure presentational: returns data, the caller draws it.
+ */
+export function statusBeatChip(
+  id: StatusId,
+  delta: number,
+): { readonly text: string; readonly color: InkColor } {
+  const style = status[id];
+  const sign = delta > 0 ? '+' : '-';
+  return { text: `${sign}${Math.abs(delta)}${style.icon}`, color: style.color };
+}
+
+/**
  * Render an engine `Statuses` map into compact token-styled segments via the
  * canonical {@link statusChip}. Dumb presentational helper: returns data, the
  * screen decides how to draw it.

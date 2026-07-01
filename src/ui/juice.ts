@@ -15,7 +15,7 @@
  * into game logic — beats are ephemeral display only.
  */
 import { useRef } from 'react';
-import type { CombatState } from '../engine/types.js';
+import type { CombatState, StatusId, Statuses } from '../engine/types.js';
 
 /**
  * Hold the value of `current` as it was BEFORE the most recent change, so a
@@ -45,6 +45,59 @@ export interface EnemyBeat {
   readonly damage: number;
   /** True iff this enemy was alive in the prior state and is dead now. */
   readonly slain: boolean;
+}
+
+/**
+ * Damage at/above this earns a punchy emphasis marker (`!`) so a heavy hit READS
+ * harder than a chip — magnitude emphasis that is purely derived from the size of
+ * the damage beat (the prior-vs-current HP delta), never a timer. Kept as a named
+ * threshold so the cue is tunable in one place and unit-testable. {@link bigHit}.
+ */
+export const BIG_HIT_THRESHOLD = 12;
+
+/** True iff a damage beat is a "big hit" (>= {@link BIG_HIT_THRESHOLD}). */
+export function bigHit(damage: number): boolean {
+  return damage >= BIG_HIT_THRESHOLD;
+}
+
+/** A transient status-change beat: one status whose stack count changed. */
+export interface StatusBeat {
+  /** Which status changed (drives the icon + identity color at the call site). */
+  readonly id: StatusId;
+  /** Signed stack delta since the prior state (never 0; + gained, - lost). */
+  readonly delta: number;
+}
+
+/**
+ * Diff a prior status map against the current one to derive per-status change
+ * beats on the LAST action — mirroring {@link enemyBeats} for the status axis.
+ * Returns one beat per status whose stack count rose OR fell (the signed delta),
+ * so a card that applies Vulnerable shows `+2VUL`, a power that grants Strength
+ * shows `+1STR`, poison added shows `+Npsn`, and an end-of-turn decay/tick reads
+ * as `-1`. Ordering is stable (current keys first, then statuses only the prior
+ * had — i.e. ones that dropped to zero/cleared) so renders are deterministic.
+ *
+ * Returns an empty array when there is no prior (first render) or nothing
+ * changed, so callers show no beat. Pure: reads the two maps only, no clock/RNG.
+ */
+export function statusBeats(
+  prior: Statuses | null,
+  current: Statuses,
+): readonly StatusBeat[] {
+  if (!prior) return [];
+  const seen = new Set<StatusId>();
+  const order: StatusId[] = [
+    ...(Object.keys(current) as StatusId[]),
+    ...(Object.keys(prior) as StatusId[]),
+  ];
+  const beats: StatusBeat[] = [];
+  for (const id of order) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const delta = (current[id] ?? 0) - (prior[id] ?? 0);
+    if (delta !== 0) beats.push({ id, delta });
+  }
+  return beats;
 }
 
 /**

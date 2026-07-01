@@ -48,6 +48,16 @@ function withEnemyHp(state: RunState, hp: number): RunState {
   };
 }
 
+/** Same combat with the lone enemy patched (hp/statuses) to simulate an action. */
+function withEnemy(state: RunState, patch: Partial<EnemyInstance>): RunState {
+  const combat = state.combat as CombatState;
+  const enemy = combat.enemies[0] as EnemyInstance;
+  return {
+    ...state,
+    combat: { ...combat, enemies: [{ ...enemy, ...patch }] },
+  };
+}
+
 /** Build a multi-enemy combat RunState (all enemies full HP, on move 0). */
 function multiCombat(defIds: readonly string[], hand: readonly string[] = []): RunState {
   const base = createRun(content, 'multi-test', DEFAULT_RUN_CONFIG);
@@ -300,6 +310,76 @@ describe('CombatScreen juice beats (V6)', () => {
     );
     rerender(<CombatScreen state={withEnemyHp(start, 0)} content={content} dispatch={noop} />);
     expect(lastFrame() ?? '').toContain('DOWN');
+  });
+
+  it('shows a +2VUL status beat on an enemy that gained Vulnerable this action', () => {
+    const start = combatWith('skeleton-intern', 0);
+    const { lastFrame, rerender } = render(
+      <CombatScreen state={start} content={content} dispatch={noop} />,
+    );
+    // First render: no prior → no status beat yet.
+    expect(lastFrame() ?? '').not.toContain('+2VUL');
+    // The action lands Vulnerable 2 on the enemy → the diff surfaces +2VUL.
+    rerender(
+      <CombatScreen state={withEnemy(start, { statuses: { vulnerable: 2 } })} content={content} dispatch={noop} />,
+    );
+    expect(lastFrame() ?? '').toContain('+2VUL');
+  });
+
+  it('shows a big-hit `!` emphasis on a heavy damage beat (not on a chip)', () => {
+    const start = combatWith('lint-goblin', 0);
+    const full = (start.combat as CombatState).enemies[0]!.hp;
+    const { lastFrame, rerender } = render(
+      <CombatScreen state={start} content={content} dispatch={noop} />,
+    );
+    // A 15-damage blow (>= threshold) reads with the punchy marker.
+    rerender(<CombatScreen state={withEnemyHp(start, full - 15)} content={content} dispatch={noop} />);
+    expect(lastFrame() ?? '').toContain('-15!');
+    // A 2-damage chip on the next action carries no emphasis.
+    rerender(<CombatScreen state={withEnemyHp(start, full - 17)} content={content} dispatch={noop} />);
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('-2');
+    expect(frame).not.toContain('-2!');
+  });
+
+  it('reads an end-of-turn poison TICK as both a -N damage beat and a -1PSN beat', () => {
+    // Enemy poisoned for 3: at turn resolution it loses 3 HP and poison decays by
+    // 1 — the prior-vs-current diff captures BOTH (the DoT is legible, not silent).
+    const start = withEnemy(combatWith('lint-goblin', 0), { statuses: { poison: 3 } });
+    const full = (start.combat as CombatState).enemies[0]!.hp;
+    const { lastFrame, rerender } = render(
+      <CombatScreen state={start} content={content} dispatch={noop} />,
+    );
+    rerender(
+      <CombatScreen
+        state={withEnemy(start, { hp: full - 3, statuses: { poison: 2 } })}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('-3'); // HP lost to poison
+    expect(frame).toContain('-1PSN'); // poison stack ticked down
+  });
+
+  it('shows NO status beat when statuses did not change between actions', () => {
+    const start = withEnemy(combatWith('skeleton-intern', 0), { statuses: { vulnerable: 2 } });
+    const full = (start.combat as CombatState).enemies[0]!.hp;
+    const { lastFrame, rerender } = render(
+      <CombatScreen state={start} content={content} dispatch={noop} />,
+    );
+    // A pure-damage action that leaves statuses untouched → no status beat.
+    rerender(
+      <CombatScreen
+        state={withEnemy(start, { hp: full - 4, statuses: { vulnerable: 2 } })}
+        content={content}
+        dispatch={noop}
+      />,
+    );
+    const frame = lastFrame() ?? '';
+    expect(frame).toContain('-4'); // damage still reads
+    expect(frame).not.toContain('+2VUL'); // no spurious status beat
+    expect(frame).not.toContain('-0VUL');
   });
 
   it('surfaces an unplayable-card count in the footer when a card is unaffordable (#60)', () => {
