@@ -177,11 +177,18 @@ const status: Readonly<Record<StatusId, StatusStyle>> = {
   // family and visually links the power to the stat it produces (the STR chip).
   // Compact `OVC` glyph keeps the HUD budget.
   overcharge: { label: 'overcharge', icon: 'OVC', color: 'red' },
-  // #80 hex: the Warlock's life-siphon CURSE. A DISTINCT identity from poison
-  // (magenta) so the two enemy DoTs never read as the same effect — hex takes the
-  // cold, arcane `blue` token (it drains life to the caster rather than just
-  // rotting the target). Compact `HEX` glyph keeps the HUD budget.
-  hex: { label: 'hex', icon: 'HEX', color: 'blue' },
+  // #80/#83 hex: the Warlock's life-siphon CURSE. It must read DISTINCT from BOTH
+  // enemy-side statuses it can share a row with: poison (magenta — the other DoT)
+  // AND weak (blue — a common enemy debuff, e.g. hex-bolt applies Weak+Vulnerable
+  // then curse-brand applies Hex to the SAME enemy). #80 gave hex `blue`, but that
+  // collided with weak's `blue`, so the two blurred together. #83 moves hex to the
+  // cold, spectral `cyan` token — arcane/corruption-glow (on-theme for the
+  // Corrupted Core act) and, crucially, UNUSED by any other status chip: block and
+  // accent also read cyan, but those are RESOURCE/structural tokens rendered in
+  // separate HUD regions, never as a status chip, so hex never collides with
+  // another chip in the status row. (Precedent: #71 overcharge borrows red from
+  // strength/hp/danger.) Compact `HEX` glyph keeps the HUD budget.
+  hex: { label: 'hex', icon: 'HEX', color: 'cyan' },
 };
 
 /** Shared layout constants. */

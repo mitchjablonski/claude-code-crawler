@@ -500,6 +500,92 @@ const defs: readonly NarrativeEventDef[] = [
       loss: 'The duck says nothing, and this time it is definitely judging you. You move on, unsolved.',
     },
   },
+  // --- #83 content: Warlock / Corrupted-Core flavored events (epic capstone) ---
+  {
+    // DARK-PACT GAMBLE → hiddenOnMap (matches #69: the mystery tracks the stakes).
+    // Option ORDER: the greedy bot takes the FIRST ungated option, so option 0 is a
+    // measured, CLASS-AGNOSTIC net-positive trade (bank max HP for a little blood —
+    // the proven overclock-altar/suspicious-healer economics), so being the greedy
+    // pick can never regress a class. The pact GAMBLE (a drain card for blood,
+    // sometimes just the blood) is a SECOND ungated option a human weighs but the
+    // greedy economy never auto-eats — its economics are byte-identical to the
+    // proven overclock-altar redline gamble. "Refuse the pact" is the always-open
+    // safe exit (anti-stall). The card reward is drain-touch: a Warlock-flavored
+    // drain, but shared-pool (for anyone else it is just an attack that heals).
+    id: 'bloodpact-altar',
+    name: 'The Bloodpact Altar',
+    hiddenOnMap: true,
+    prompt:
+      'A basalt altar sweats a slow bead of something darker than water, and the runes around its lip pulse in time with your own heartbeat. A worn brass plate reads: WHAT YOU FEED IT, IT RETURNS WITH INTEREST. RISK: the interest rate is not disclosed.',
+    options: [
+      {
+        // Measured, class-agnostic net-positive: sign a small, honest pact.
+        label: 'Sign in a drop of your own blood',
+        outcomes: [
+          { kind: 'gainMaxHp', amount: 6 },
+          { kind: 'loseHp', amount: 4 },
+        ],
+      },
+      {
+        // RISK/REWARD dark-pact GAMBLE (human choice): let it drink deep for a
+        // drain fang, or just bleed. Economics mirror the proven overclock-altar.
+        label: 'Let the altar drink its fill (risky)',
+        outcomes: [
+          {
+            kind: 'rollOutcomes',
+            branches: [
+              [{ kind: 'gainCard', cardId: 'drain-touch' }],
+              [
+                { kind: 'gainCard', cardId: 'drain-touch' },
+                { kind: 'loseHp', amount: 6 },
+              ],
+              [{ kind: 'loseHp', amount: 12 }],
+            ],
+            weights: [2, 2, 1],
+          },
+        ],
+      },
+      { label: 'Refuse the pact and leave it thirsting', outcomes: [] },
+    ],
+    aftermath: {
+      win: 'The runes ebb, sated, and something cold and patient settles under your ribs. The pact is kept.',
+      loss: 'The altar takes its cut and offers nothing back. WITH INTEREST, the plate insists, as you stagger off.',
+    },
+  },
+  {
+    // DECISION (revealed, Corrupted-Core / hex flavored, stat-gate variant).
+    // Option 0 is a class-agnostic net-positive (siphon a trickle of stored life —
+    // the suspicious-healer/rubber-duck pattern the greedy economy tolerates), so
+    // being the greedy pick can't regress a class. Option 1 is a relics GATE that
+    // grants a hex cantrip (wither: a 0-cost shared-pool curse — thematic for a
+    // Warlock, a fine cheap draw for anyone). Option 2 is the always-open ungated
+    // exit (anti-stall). Revealed (#69 convention: decisions are not map mysteries).
+    id: 'withered-reliquary',
+    name: 'The Withered Reliquary',
+    prompt:
+      'A reliquary half-fused into the corrupted core, its casing weeping a fine grey ash where the life it hoarded has rotted through. It hums when you near it, the way a wound hums. STAT CHECK: the well-warded can read its bindings; the rest just guess.',
+    options: [
+      {
+        // Class-agnostic net-positive: siphon a careful trickle of stored life.
+        label: 'Siphon a careful trickle',
+        outcomes: [
+          { kind: 'gainMaxHp', amount: 5 },
+          { kind: 'loseHp', amount: 2 },
+        ],
+      },
+      {
+        // STAT GATE: only a well-relic'd crawler can safely copy the binding.
+        label: "Copy the reliquary's binding to a page",
+        requires: { check: 'relics', atLeast: 2 },
+        outcomes: [{ kind: 'gainCard', cardId: 'wither' }],
+      },
+      { label: 'Seal it back into the rot', outcomes: [] },
+    ],
+    aftermath: {
+      win: 'The hum settles to a whisper as you take what you came for. The reliquary keeps its ash, and you keep the rest.',
+      loss: 'The bindings squirm out of true and the reliquary gives you nothing but the smell of old rot. You seal it back up.',
+    },
+  },
 ];
 
 export const events: Readonly<Record<string, NarrativeEventDef>> = Object.fromEntries(
