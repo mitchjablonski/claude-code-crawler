@@ -49,6 +49,13 @@ const STATUS_VALUE: Record<StatusId, number> = {
   // proportional to how many `loseHp` cards the deck runs. 0 here so a synergy-
   // blind score (no deck) treats overdrive-core as near-worthless — the point.
   overcharge: 0,
+  // #81 hex (Warlock life-siphon curse): a poison-SHAPED DoT (round-end the hexed
+  // enemy bleeds `hex` HP, decays 1 — same triangular damage as poison) that ALSO
+  // heals the caster floor(hex/2)/round. So it is worth "a poison" (1.6) plus a
+  // small, capped siphon-heal component. Valued just a hair over poison — enough
+  // that greedy drafts the hex cards CONTESTED, not so high the double-sustain
+  // class auto-picks them (the critical balance risk). Context-light (static).
+  hex: 2.0,
 };
 
 /**
@@ -100,8 +107,15 @@ function effectValue(e: Effect): number {
   switch (e.kind) {
     case 'damage': {
       const hits = e.times ?? 1;
-      const raw = (e.amount + scaleBonus(e.scaleMissingHp)) * hits * DAMAGE_VALUE;
-      return e.target === 'allEnemies' ? raw * AOE_MULT : raw;
+      const perTarget = (e.amount + scaleBonus(e.scaleMissingHp)) * hits;
+      let raw = perTarget * DAMAGE_VALUE;
+      if (e.target === 'allEnemies') raw *= AOE_MULT;
+      // #81 drain (lifesteal): the card also heals ~ dealt * fraction. Value that
+      // extra sustain at the heal rate on the SINGLE-target damage worth (NOT the
+      // AoE-multiplied figure) — the heal is capped at maxHp and a splash heal
+      // shouldn't inflate the draft score, so this is deliberately conservative.
+      if (e.lifesteal !== undefined) raw += perTarget * e.lifesteal * HEAL_VALUE;
+      return raw;
     }
     case 'block':
       return (e.amount + scaleBonus(e.scaleMissingHp)) * BLOCK_VALUE;

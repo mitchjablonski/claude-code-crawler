@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 import { UPGRADE_TARGET_IDS } from './cards.js';
 import { resolveEnemyMove } from '../enemyMoves.js';
-import type { Effect, EventOutcome, SimpleEventOutcome } from '../types.js';
+import { applyAction, createRun } from '../run.js';
+import { EngineError, eventRequirementMet } from '../types.js';
+import type { Effect, EventOutcome, RunState, SimpleEventOutcome } from '../types.js';
 
 const COMPOSITE_KINDS = new Set(['rollOutcomes', 'conditional']);
 
@@ -232,6 +234,8 @@ describe('content integrity', () => {
     expect(ids).toContain('apothecary');
     // #63: the Overclocker class ships with its overheat-fueled kit.
     expect(ids).toContain('overclocker');
+    // #81: the Warlock class ships with its drain + hex kit.
+    expect(ids).toContain('warlock');
     for (const c of Object.values(CHARACTERS)) {
       expect(c.starterDeck.length).toBeGreaterThan(0);
       for (const id of c.starterDeck) expect(content.cards[id], `${c.id}:${id}`).toBeDefined();
@@ -508,6 +512,174 @@ describe('content integrity', () => {
     expect(adrenal!.trigger).toBe('turnStart');
     expect(adrenal!.condition).toEqual({ kind: 'hpBelow', pct: 50 });
     expect(adrenal!.effects).toEqual([{ kind: 'draw', count: 1 }]);
+  });
+
+  it('#81: the Warlock class is a fragile drain+hex kit that shows both levers turn one', () => {
+    const wl = CHARACTERS.warlock;
+    expect(wl, 'warlock exists').toBeDefined();
+    // Fragile body — the lowest maxHp of the four (sustain must be EARNED).
+    expect(wl!.maxHp).toBe(56);
+    expect(wl!.maxHp).toBeLessThan(CHARACTERS.overclocker!.maxHp);
+    // Starter relic resolves and is the hex-seeding sigil.
+    expect(wl!.startingRelics).toEqual(['siphon-sigil']);
+    expect(content.relics['siphon-sigil'], 'siphon-sigil exists').toBeDefined();
+    // The deck carries at least one DRAIN (lifesteal) attack AND one HEX card so
+    // both pact levers can open the fight.
+    const deckCards = wl!.starterDeck.map((id) => content.cards[id]!);
+    const hasDrain = deckCards.some((c) =>
+      c.effects.some((e) => e.kind === 'damage' && e.lifesteal !== undefined),
+    );
+    const hasHex = deckCards.some((c) =>
+      c.effects.some((e) => e.kind === 'applyStatus' && e.status === 'hex'),
+    );
+    expect(hasDrain, 'starter deck has a drain attack').toBe(true);
+    expect(hasHex, 'starter deck has a hex card').toBe(true);
+    // Starter cards are exclusive (starter rarity → not draftable).
+    for (const id of ['siphon-fang', 'curse-brand']) {
+      expect(content.cards[id]!.rarity, `${id} is a starter`).toBe('starter');
+      expect(new Set(draftablePool()).has(id), `${id} not draftable`).toBe(false);
+    }
+  });
+
+  it('#81: the Warlock card pack is draftable, well-formed, and uses drain/hex correctly', () => {
+    const bases = [
+      'drain-touch',
+      'wither',
+      'hex-lash',
+      'vampiric-slash',
+      'blight-guard',
+      'life-tap',
+      'hex-nova',
+      'soul-drain',
+      'hex-feast',
+      'hex-siphon',
+      'soul-harvest',
+      'doom-hex',
+      'hex-reaper',
+    ];
+    const pool = new Set(draftablePool());
+    for (const id of bases) {
+      const card = content.cards[id];
+      expect(card, `${id} exists`).toBeDefined();
+      // Draftable by ALL classes (shared pool): a real rarity, not an upgrade target.
+      expect(card!.rarity, `${id} rarity`).not.toBe('starter');
+      expect(UPGRADE_TARGET_IDS.has(id), `${id} not an upgrade target`).toBe(false);
+      expect(pool.has(id), `${id} in draft pool`).toBe(true);
+      // Every effect is well-formed incl. the lifesteal (0,1] + hex-status validators.
+      for (const fx of card!.effects) checkEffect(fx, id);
+    }
+    // Every drain effect in the pack heals HALF (0.5) — no whole-hit lifesteal.
+    for (const id of ['drain-touch', 'vampiric-slash', 'life-tap', 'soul-drain', 'soul-harvest']) {
+      const drain = content.cards[id]!.effects.find(
+        (e) => e.kind === 'damage' && e.lifesteal !== undefined,
+      );
+      expect(drain, `${id} is a drain`).toBeDefined();
+      if (drain?.kind === 'damage') expect(drain.lifesteal).toBe(0.5);
+    }
+    // hex-feast / hex-reaper are the curse->drain PAYOFFS: gate on the target being
+    // Hexed, and the bonus branch both damages AND drains (heals via lifesteal).
+    for (const id of ['hex-feast', 'hex-reaper']) {
+      const cond = content.cards[id]!.effects.find((e) => e.kind === 'conditional');
+      expect(cond, `${id} has a conditional`).toBeDefined();
+      if (cond?.kind === 'conditional' && cond.condition.type === 'targetHasStatus') {
+        expect(cond.condition.status, `${id} gates on hex`).toBe('hex');
+        expect(
+          cond.then.some((e) => e.kind === 'damage' && e.lifesteal !== undefined),
+          `${id} bonus drains`,
+        ).toBe(true);
+      }
+    }
+    // doom-hex is the big-hex AoE rare (mirrors corrosive-mist: no upgrade).
+    const doom = content.cards['doom-hex']!;
+    expect(doom.rarity).toBe('rare');
+    expect(doom.upgradeTo, 'doom-hex is terminal like corrosive-mist').toBeUndefined();
+    expect(
+      doom.effects.some((e) => e.kind === 'applyStatus' && e.status === 'hex' && e.target === 'allEnemies'),
+      'doom-hex hexes the pack',
+    ).toBe(true);
+  });
+
+  it('#81: the Warlock relics use existing triggers, are well-formed, and modest', () => {
+    const sigil = content.relics['siphon-sigil'];
+    expect(sigil, 'siphon-sigil exists').toBeDefined();
+    expect(sigil!.trigger).toBe('combatStart');
+    expect(sigil!.effects).toEqual([
+      { kind: 'applyStatus', status: 'hex', stacks: 1, target: 'allEnemies' },
+    ]);
+    const idol = content.relics['vampiric-idol'];
+    expect(idol, 'vampiric-idol exists').toBeDefined();
+    expect(idol!.trigger).toBe('onKill');
+    expect(idol!.effects).toEqual([{ kind: 'heal', amount: 3 }]);
+  });
+
+  it('#81: a Warlock run is winnable-shape (drain + hex carry a single-mode run to victory)', () => {
+    // Drive the real reducer with a tiny attack-greedy policy over a few seeds and
+    // assert the Warlock kit actually WINS at least one full single-mode run — the
+    // class is playable end-to-end (deck/relic resolve, drain heals, hex ticks).
+    const wl = CHARACTERS.warlock!;
+    const config = {
+      ...DEFAULT_RUN_CONFIG,
+      starterDeck: wl.starterDeck,
+      startingRelics: wl.startingRelics,
+      maxHp: wl.maxHp,
+    };
+    const playOne = (seed: string): 'victory' | 'defeat' => {
+      let s: RunState = createRun(content, seed, config);
+      for (let guard = 0; guard < 5000; guard++) {
+        if (s.phase === 'victory' || s.phase === 'defeat') break;
+        try {
+          if (s.phase === 'combat' && s.combat) {
+            const combat = s.combat;
+            // Prefer the cheapest affordable attack at the lowest-HP living enemy;
+            // else end the turn. Simple, deterministic, no rng.
+            const handIdx = combat.hand.findIndex((id) => {
+              const c = content.cards[id];
+              return c && c.type === 'attack' && c.cost <= combat.energy;
+            });
+            if (handIdx >= 0) {
+              let tgt = -1;
+              let low = Infinity;
+              combat.enemies.forEach((e, i) => {
+                if (e.hp > 0 && e.hp < low) {
+                  low = e.hp;
+                  tgt = i;
+                }
+              });
+              s = applyAction(content, s, { type: 'playCard', handIndex: handIdx, targetIndex: tgt });
+            } else {
+              s = applyAction(content, s, { type: 'endTurn' });
+            }
+          } else if (s.phase === 'map') {
+            const next = s.map.nodes[s.currentNodeId]?.next ?? [];
+            if (next.length === 0) break;
+            s = applyAction(content, s, { type: 'chooseNode', nodeId: next[0]! });
+          } else if (s.phase === 'reward') {
+            s = applyAction(content, s, { type: 'skipReward' });
+          } else if (s.phase === 'shop') {
+            s = applyAction(content, s, { type: 'leaveShop' });
+          } else if (s.phase === 'rest') {
+            s = applyAction(content, s, { type: 'rest' });
+          } else if (s.phase === 'event') {
+            if (s.event?.result) {
+              s = applyAction(content, s, { type: 'continueEvent' });
+            } else {
+              const def = s.event ? content.events[s.event.eventId] : undefined;
+              const idx = (def?.options ?? []).findIndex((o) => eventRequirementMet(s, o.requires));
+              s = applyAction(content, s, { type: 'chooseEventOption', index: idx < 0 ? 0 : idx });
+            }
+          } else {
+            break;
+          }
+        } catch (err) {
+          if (err instanceof EngineError && s.phase === 'combat') {
+            s = applyAction(content, s, { type: 'endTurn' });
+          } else throw err;
+        }
+      }
+      return s.phase === 'victory' ? 'victory' : 'defeat';
+    };
+    const outcomes = ['wl-1', 'wl-2', 'wl-3', 'wl-4', 'wl-5', 'wl-6'].map(playOne);
+    expect(outcomes, 'at least one Warlock run reaches victory').toContain('victory');
   });
 
   it('enemy phases are well-formed (thresholds in (0,1], ascending, valid effects)', () => {

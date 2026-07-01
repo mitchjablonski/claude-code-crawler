@@ -99,6 +99,23 @@ const defs: readonly RelicDef[] = [
   // danger), so it never compounds a winning fight; 1 card/turn while bloodied is
   // a modest dig, not an engine.
   { id: 'adrenal-reserve', name: 'Adrenal Reserve', description: 'At the start of each turn, if below 50% HP, draw 1 card.', trigger: 'turnStart', condition: { kind: 'hpBelow', pct: 50 }, effects: [{ kind: 'draw', count: 1 }] },
+  // --- #81 WARLOCK relics. Built on existing triggers + increment A's `hex`
+  // life-siphon curse. Relics aren't drafted by choice, so these only shift WHICH
+  // relic a seeded elite rewards (expected when adding any relic); existing seeded
+  // runs stay byte-identical (additions only; relics serialize as ids → no
+  // SAVE_VERSION bump).
+  // siphon-sigil (STARTER, Warlock): the class lever from turn one — seed 1 Hex on
+  // the pack at combat start so the curse->drain payoff line (hex-feast/hex-reaper)
+  // has something to detonate on turn one. 1 Hex heals floor(1/2)=0 and decays 1
+  // (~turn-one uptime), so it is a tempo/setup nudge, NOT sustain — peer to
+  // hex-charm (1 Weak all) / pocket-dice (draw 1). Deliberately tiny so the
+  // Warlock's fragile 56 body still has to EARN its sustain by playing cards.
+  { id: 'siphon-sigil', name: 'Siphon Sigil', description: 'At the start of each combat, apply 1 Hex to all enemies.', trigger: 'combatStart', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 1, target: 'allEnemies' }] },
+  // vampiric-idol (DRAFTABLE, core elite pool): aggression->sustain — heal 3 on
+  // each kill a card lands. Bounded by kills (multi-kill AoE turns pay a little
+  // more but never run away); modest (peer to reaper's-tithe heal 3 / trophy-rack).
+  // A shared-pool relic any class can take; only meaningful in a kill-heavy deck.
+  { id: 'vampiric-idol', name: 'Vampiric Idol', description: 'Whenever a card you play kills an enemy, heal 3 HP.', trigger: 'onKill', effects: [{ kind: 'heal', amount: 3 }] },
 ];
 
 export const relics: Readonly<Record<string, RelicDef>> = Object.fromEntries(

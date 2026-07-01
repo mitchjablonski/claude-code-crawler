@@ -161,6 +161,73 @@ describe('scoreCard', () => {
     expect(scoreCard(trollBlood)).toBe(scoreCard(trollBlood));
   });
 
+  it('values a drain (lifesteal) attack above the same attack without it (#81)', () => {
+    // A `lifesteal` fraction adds the sustain of healing from the damage dealt, so
+    // a drain attack must out-score an identical non-drain attack — but only by the
+    // heal component (gated to lifesteal), not by inflating the base damage.
+    const plain: CardDef = {
+      id: 't-plain',
+      name: 'Plain',
+      description: '',
+      type: 'attack',
+      rarity: 'common',
+      cost: 1,
+      target: 'enemy',
+      effects: [{ kind: 'damage', amount: 10, target: 'enemy' }],
+    };
+    const drain: CardDef = {
+      ...plain,
+      id: 't-drain',
+      effects: [{ kind: 'damage', amount: 10, target: 'enemy', lifesteal: 0.5 }],
+    };
+    expect(scoreCard(drain)).toBeGreaterThan(scoreCard(plain));
+    // Real card: drain-touch (7 dmg, lifesteal 0.5) beats a plain 7-dmg 1-cost.
+    const drainTouch = cards['drain-touch'] as CardDef;
+    const plain7: CardDef = { ...plain, id: 't-plain7', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }] };
+    expect(scoreCard(drainTouch)).toBeGreaterThan(scoreCard(plain7));
+  });
+
+  it('lifesteal scoring is gated to lifesteal — non-drain damage unchanged (#81)', () => {
+    // A plain damage card must be scored by the unchanged damage path (the drain
+    // heal bonus must NOT leak onto attacks without lifesteal).
+    const plain: CardDef = {
+      id: 't-plain-gate',
+      name: 'Plain Gate',
+      description: '',
+      type: 'attack',
+      rarity: 'common',
+      cost: 1,
+      target: 'enemy',
+      effects: [{ kind: 'damage', amount: 6, target: 'enemy' }],
+    };
+    expect(scoreCard(plain)).toBe((6 * 1.0) / 1 * 1.0); // DAMAGE_VALUE(1.0), common, cost 1
+  });
+
+  it('values hex as a poison-like DoT that also heals (#81)', () => {
+    // hex is weighted just above poison (it heals too), so a hex card scores a hair
+    // ABOVE the identical poison card and well above zero (drafted, not dead).
+    const hex: CardDef = {
+      id: 't-hex',
+      name: 'Hex',
+      description: '',
+      type: 'attack',
+      rarity: 'common',
+      cost: 1,
+      target: 'enemy',
+      effects: [{ kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }],
+    };
+    const poison: CardDef = {
+      ...hex,
+      id: 't-poison',
+      effects: [{ kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }],
+    };
+    expect(scoreCard(hex)).toBeGreaterThan(0);
+    expect(scoreCard(hex)).toBeGreaterThan(scoreCard(poison));
+    // Deterministic on a real card.
+    const wither = cards['wither'] as CardDef;
+    expect(scoreCard(wither)).toBe(scoreCard(wither));
+  });
+
   it('values AoE damage above the same single-target damage', () => {
     const single: CardDef = {
       id: 't-single',

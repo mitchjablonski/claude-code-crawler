@@ -598,6 +598,78 @@ const defs: readonly CardDef[] = [
   { id: 'whirling-guard-plus', name: 'Whirling Guard+', description: 'Gain 3 Dexterity. Gain 8 Block.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }, { kind: 'block', amount: 8 }] },
   { id: 'finish-the-job-plus', name: 'Finish the Job+', description: 'Deal 12 damage. If the target is Vulnerable, deal 14 more.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'vulnerable', atLeast: 1 }, then: [{ kind: 'damage', amount: 14, target: 'enemy' }] }] },
   { id: 'bladestorm-plus', name: 'Bladestorm+', description: 'Deal 6 damage three times.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 3 }] },
+
+  // --- #81 WARLOCK card pack. Two levers, both from increment A: DRAIN
+  // (`lifesteal` on a damage effect — heal floor(dealt * fraction), capped at
+  // maxHp, 0 when fully blocked) and the HEX life-siphon CURSE (`hex` status: the
+  // hexed enemy bleeds `hex` HP at round end AND the Warlock heals floor(hex/2),
+  // then hex decays 1 — a poison-shaped DoT that ALSO feeds the caster). The class
+  // fantasy is "curse, then drain": hex the enemy, then the payoff cards (hex-feast
+  // / hex-siphon / hex-reaper) cash the curse in for extra damage AND healing.
+  // BALANCE — the critical risk is DOUBLE SUSTAIN (drain + hex) becoming an
+  // unkillable value engine on the fragile 56-HP body. Guardrails: drain fractions
+  // are all 0.5 (heal HALF of dealt, never the whole hit); hex stacks are small
+  // (single 2-3, AoE 2, big-hex rare 4); payoff heals are floored/gated to the
+  // curse actually being down; no card out-damages the rare ceiling (guillotine
+  // 24); NO times+scaleMissingHp (the shared content-test guard — none used here).
+  // Calibrated via scripts/lib/scoreCard.ts so greedy drafts them CONTESTED (not
+  // 0-dead / not 1.0-auto-pick). Shared pool: for knight/apoth/over a drain card
+  // is just an attack that heals a little, and a hex card is just a curse anyone
+  // can lay — all four classes stay ~parity. Meaningful cards carry terminal
+  // `-plus` rest upgrades. Determinism: additions only; existing cards
+  // byte-identical; decks serialize as ids → no SAVE_VERSION bump.
+  // Starters (NOT draftable — starter rarity; exclusive to the Warlock deck). Both
+  // levers so turn one can open with either.
+  { id: 'siphon-fang', name: 'Siphon Fang', description: 'Deal 6 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy', lifesteal: 0.5 }], upgradeTo: 'siphon-fang-plus' },
+  { id: 'curse-brand', name: 'Curse Brand', description: 'Deal 3 damage. Apply 2 Hex.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 3, target: 'enemy' }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }], upgradeTo: 'curse-brand-plus' },
+  // Commons.
+  // drain-touch: the bread-and-butter drain (under torch-jab's 8 dmg, trades the
+  // vuln for sustain). wither: a 0-cost hex cantrip (mirror venom-dart's 0-cost
+  // poison). hex-lash: dmg + hex (mirror tipped-blade). vampiric-slash: a drain
+  // cantrip that cycles. blight-guard: the defensive hex card so the class isn't
+  // one-note (block WHILE cursing — spiked-shield's mirror on the curse side).
+  { id: 'drain-touch', name: 'Drain Touch', description: 'Deal 8 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 }], upgradeTo: 'drain-touch-plus' },
+  { id: 'wither', name: 'Wither', description: 'Apply 3 Hex.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }], upgradeTo: 'wither-plus' },
+  { id: 'hex-lash', name: 'Hex Lash', description: 'Deal 6 damage. Apply 2 Hex.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }], upgradeTo: 'hex-lash-plus' },
+  { id: 'vampiric-slash', name: 'Vampiric Slash', description: 'Deal 6 damage. Heal for half the damage dealt. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy', lifesteal: 0.5 }, { kind: 'draw', count: 1 }], upgradeTo: 'vampiric-slash-plus' },
+  { id: 'blight-guard', name: 'Blight Guard', description: 'Gain 8 Block. Apply 2 Hex.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 8 }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }], upgradeTo: 'blight-guard-plus' },
+  // Uncommons.
+  // life-tap: the dual-lever card (drain AND hex in one). hex-nova: the AoE hex
+  // seeder (mirror toxic-cloud). soul-drain: a bigger drain. hex-feast: the
+  // curse->drain PAYOFF — cold a weak 5-dmg 1-cost, but on a HEXED target it deals
+  // +5 and drains that bonus (the loop). hex-siphon: the sustain PAYOFF — on a
+  // hexed target it heals AND lays more hex (rewards hex, never consumes it).
+  { id: 'life-tap', name: 'Life Tap', description: 'Deal 6 damage. Heal for half the damage dealt. Apply 2 Hex.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy', lifesteal: 0.5 }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }], upgradeTo: 'life-tap-plus' },
+  { id: 'hex-nova', name: 'Hex Nova', description: 'Deal 4 damage to all enemies. Apply 2 Hex to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 4, target: 'allEnemies' }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'allEnemies' }], upgradeTo: 'hex-nova-plus' },
+  { id: 'soul-drain', name: 'Soul Drain', description: 'Deal 12 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 12, target: 'enemy', lifesteal: 0.5 }], upgradeTo: 'soul-drain-plus' },
+  { id: 'hex-feast', name: 'Hex Feast', description: 'Deal 5 damage. If the target is Hexed, deal 5 more and heal for half of it.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'damage', amount: 5, target: 'enemy', lifesteal: 0.5 }] }], upgradeTo: 'hex-feast-plus' },
+  { id: 'hex-siphon', name: 'Hex Siphon', description: 'Deal 5 damage. If the target is Hexed, heal 4 HP and apply 2 Hex.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'heal', amount: 4 }, { kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }] }], upgradeTo: 'hex-siphon-plus' },
+  // Rares.
+  // soul-harvest: the drain RARE — a big self-healing hit (under guillotine 24).
+  // doom-hex: the big-hex AoE rare (mirror corrosive-mist; no upgrade, like it).
+  // hex-reaper: the curse->drain FINISHER — cold a weak 10-dmg 2-cost, but on a
+  // hexed target it detonates (+14) and drains the detonation (mirror
+  // finish-the-job / detonation-vial, but the payoff heals).
+  { id: 'soul-harvest', name: 'Soul Harvest', description: 'Deal 14 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy', lifesteal: 0.5 }], upgradeTo: 'soul-harvest-plus' },
+  { id: 'doom-hex', name: 'Doom Hex', description: 'Apply 4 Hex to all enemies. Gain 1 Energy.', type: 'attack', rarity: 'rare', cost: 2, target: 'allEnemies', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 4, target: 'allEnemies' }, { kind: 'gainEnergy', amount: 1 }] },
+  { id: 'hex-reaper', name: 'Hex Reaper', description: 'Deal 10 damage. If the target is Hexed, deal 12 more and heal for half of it.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'damage', amount: 12, target: 'enemy', lifesteal: 0.5 }] }], upgradeTo: 'hex-reaper-plus' },
+
+  // --- #81 Warlock upgraded variants ('<base>-plus'). NEVER draftable (upgradeTo
+  // targets). Reachable only at a rest. Terminal (no further upgrade).
+  { id: 'siphon-fang-plus', name: 'Siphon Fang+', description: 'Deal 8 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 }] },
+  { id: 'curse-brand-plus', name: 'Curse Brand+', description: 'Deal 4 damage. Apply 3 Hex.', type: 'attack', rarity: 'starter', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] },
+  { id: 'drain-touch-plus', name: 'Drain Touch+', description: 'Deal 11 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 11, target: 'enemy', lifesteal: 0.5 }] },
+  { id: 'wither-plus', name: 'Wither+', description: 'Apply 5 Hex.', type: 'attack', rarity: 'common', cost: 0, target: 'enemy', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 5, target: 'enemy' }] },
+  { id: 'hex-lash-plus', name: 'Hex Lash+', description: 'Deal 8 damage. Apply 3 Hex.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] },
+  { id: 'vampiric-slash-plus', name: 'Vampiric Slash+', description: 'Deal 8 damage. Heal for half the damage dealt. Draw 1 card.', type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 }, { kind: 'draw', count: 1 }] },
+  { id: 'blight-guard-plus', name: 'Blight Guard+', description: 'Gain 11 Block. Apply 3 Hex.', type: 'skill', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'block', amount: 11 }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] },
+  { id: 'life-tap-plus', name: 'Life Tap+', description: 'Deal 8 damage. Heal for half the damage dealt. Apply 3 Hex.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] },
+  { id: 'hex-nova-plus', name: 'Hex Nova+', description: 'Deal 5 damage to all enemies. Apply 3 Hex to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 5, target: 'allEnemies' }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'allEnemies' }] },
+  { id: 'soul-drain-plus', name: 'Soul Drain+', description: 'Deal 16 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 16, target: 'enemy', lifesteal: 0.5 }] },
+  { id: 'hex-feast-plus', name: 'Hex Feast+', description: 'Deal 6 damage. If the target is Hexed, deal 7 more and heal for half of it.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'damage', amount: 7, target: 'enemy', lifesteal: 0.5 }] }] },
+  { id: 'hex-siphon-plus', name: 'Hex Siphon+', description: 'Deal 6 damage. If the target is Hexed, heal 6 HP and apply 3 Hex.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'heal', amount: 6 }, { kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] }] },
+  { id: 'soul-harvest-plus', name: 'Soul Harvest+', description: 'Deal 18 damage. Heal for half the damage dealt.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 18, target: 'enemy', lifesteal: 0.5 }] },
+  { id: 'hex-reaper-plus', name: 'Hex Reaper+', description: 'Deal 12 damage. If the target is Hexed, deal 16 more and heal for half of it.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'hex', atLeast: 1 }, then: [{ kind: 'damage', amount: 16, target: 'enemy', lifesteal: 0.5 }] }] },
 ];
 
 /**

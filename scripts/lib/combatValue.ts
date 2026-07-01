@@ -97,6 +97,19 @@ function poisonLifetime(stacks: number): number {
 }
 
 /**
+ * #81 hex is a poison-SHAPED DoT: at round end the hexed enemy bleeds `hex` HP,
+ * then hex decays 1 — so its cumulative damage over life is identical to poison's
+ * f(q)=q(q+1)/2. It ALSO siphons the caster floor(hex/2) each round; over the
+ * curse's decaying life that heal totals sum_{k=1..q} floor(k/2). Both mirror the
+ * engine's round-end handling so greedy values a hex play against the REAL state.
+ */
+function hexSiphonLifetime(stacks: number): number {
+  let total = 0;
+  for (let k = 1; k <= stacks; k++) total += Math.floor(k / 2);
+  return total;
+}
+
+/**
  * #63 overheat gradient: the bonus a damage/block amount gains from the player's
  * CURRENT missing HP — `floor((maxHp - hp) / divisor)`. Mirrors the engine's
  * missingHpBonus (effects.ts) so greedy values gradient cards against the REAL
@@ -203,13 +216,24 @@ function effectValue(
       // #63: the missing-HP gradient lifts the per-hit base, exactly like the engine.
       const base = effect.amount + missingHpBonus(combat, effect.scaleMissingHp);
       let total = 0;
+      let dealtHp = 0; // #81: post-mitigation HP removed, for lifesteal (drain).
       for (const i of targetIndices(combat, effect.target, targetIndex)) {
         const e = combat.enemies[i];
         if (!e) continue;
         const perHit = attackDamage(base, combat.playerStatuses, e.statuses);
         const raw = perHit * times;
-        total += Math.min(raw, e.hp) * DAMAGE_VALUE;
+        const dealt = Math.min(raw, e.hp);
+        dealtHp += dealt;
+        total += dealt * DAMAGE_VALUE;
         if (raw >= e.hp && e.hp > 0) total += KILL_BONUS; // securing a kill
+      }
+      // #81 drain (lifesteal): heal floor(dealt * fraction), capped at missing HP,
+      // valued at the in-combat heal rate — mirrors the engine so greedy credits
+      // the sustain on drain attacks. Inert (undefined) for every non-drain card.
+      if (effect.lifesteal !== undefined && dealtHp > 0) {
+        const missing = Math.max(0, combat.playerMaxHp - combat.playerHp);
+        const healed = Math.min(Math.floor(dealtHp * effect.lifesteal), missing);
+        total += healed * HEAL_VALUE;
       }
       return total;
     }
@@ -257,6 +281,25 @@ function effectValue(
           // Poison can't remove more HP than the enemy has.
           total += Math.min(marginal, e.hp) * POISON_WEIGHT;
         }
+        return total;
+      }
+      // #81 hex: poison-shaped DoT (same cumulative model, block-bypassing) PLUS a
+      // caster siphon-heal over the curse's life. Value the DoT like poison and add
+      // the siphon at the heal rate, capped at the player's missing HP. Inert for
+      // every existing card (nothing applies hex outside the Warlock pack).
+      if (effect.status === 'hex') {
+        let total = 0;
+        let siphon = 0;
+        for (const i of targetIndices(combat, effect.target, targetIndex)) {
+          const e = combat.enemies[i];
+          if (!e) continue;
+          const have = getStatus(e.statuses, 'hex');
+          const dot = poisonLifetime(have + effect.stacks) - poisonLifetime(have);
+          total += Math.min(dot, e.hp) * POISON_WEIGHT;
+          siphon += hexSiphonLifetime(have + effect.stacks) - hexSiphonLifetime(have);
+        }
+        const missing = Math.max(0, combat.playerMaxHp - combat.playerHp);
+        total += Math.min(siphon, missing) * HEAL_VALUE;
         return total;
       }
       const per = STATUS_VALUE[effect.status] ?? 1.0;
