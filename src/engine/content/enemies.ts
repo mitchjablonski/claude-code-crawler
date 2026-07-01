@@ -246,6 +246,46 @@ const defs: readonly EnemyDef[] = [
       },
     ],
   },
+  // --- #79 content: new enemies with DISTINCT move patterns across tiers ---
+  // A tier-1 DEBUFFER: softens the player with Weak/Vulnerable rather than raw
+  // burst. Low HP/damage in line with tier-1 peers (cave-rat [10,14],
+  // spore-pod [9,12]); its threat is the debuff stack, not the hit.
+  { id: 'tech-debt-imp', name: 'Tech Debt Imp', sigil: 'TODO', hp: [10, 13], tier: 1, moves: [
+    { name: 'Deprecate', effects: [{ kind: 'damage', amount: 3, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 1, target: 'enemy' }] },
+    // Pure debuff telegraph turn — no damage, so it reads as "brace, don't block".
+    { name: 'Legacy Curse', effects: [{ kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'enemy' }] },
+    { name: 'Pile Up', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }] },
+  ] },
+  // A tier-2 RAMPING attacker: gains +1 strength on its Iterate turn so its
+  // output slowly climbs over a fight (distinct from cache-hound's one-shot
+  // Howl). Base damage kept low so the ramp — not the opener — is the pressure;
+  // the block turn paces it so it isn't an unbroken escalation. HP in line with
+  // plague-rat [16,20] / byte-wraith [14,18].
+  { id: 'infinite-loop', name: 'Infinite Loop', sigil: '@>@', hp: [18, 24], tier: 2, moves: [
+    { name: 'Iterate', effects: [{ kind: 'damage', amount: 3, target: 'enemy' }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+    { name: 'Recurse', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }] },
+    { name: 'Cache Warm', effects: [{ kind: 'block', amount: 6 }] },
+  ] },
+  // A tier-2 BLOCKER/turtle: leans on heavy block + self-dexterity, chipping
+  // with modest hits and a Weak to blunt your offense — a wall that outlasts you
+  // rather than out-hits you. HP in line with rust-elemental [22,28] /
+  // cache-hound [26,32].
+  { id: 'firewall', name: 'Firewall', sigil: '[|||]', hp: [24, 30], tier: 2, moves: [
+    { name: 'Raise Shields', effects: [{ kind: 'block', amount: 10 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+    { name: 'Packet Filter', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }] },
+    { name: 'Blacklist', effects: [{ kind: 'damage', amount: 4, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 1, target: 'enemy' }] },
+  ] },
+  // A SWARM/multi-hit ELITE: its signature Segfault fires three small hits (raw
+  // chip that punishes block-light turns without a single lethal spike), backed
+  // by a heavier single hit and a self-defensive beat. No self-inflicted player
+  // Vulnerable (that would let the multi-hit snowball) — deliberately kept a
+  // clean, readable swarm. HP in line with lint-goblin [30,36] and phaseless
+  // like it (not every elite needs phases).
+  { id: 'null-pointer-swarm', name: 'Null Pointer Swarm', sigil: '{0x0}', hp: [32, 38], isElite: true, moves: [
+    { name: 'Segfault', effects: [{ kind: 'damage', amount: 3, target: 'enemy', times: 3 }] },
+    { name: 'Dereference', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }] },
+    { name: 'Garbage Collect', effects: [{ kind: 'block', amount: 8 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+  ] },
 ];
 
 export const enemies: Readonly<Record<string, EnemyDef>> = Object.fromEntries(
