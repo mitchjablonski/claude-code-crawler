@@ -286,6 +286,120 @@ const defs: readonly EnemyDef[] = [
     { name: 'Dereference', effects: [{ kind: 'damage', amount: 9, target: 'enemy' }] },
     { name: 'Garbage Collect', effects: [{ kind: 'block', amount: 8 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
   ] },
+  // --- #82 "Corrupted Core": the deepest arc act (act 3). These are TANKIER,
+  // drain-worthy TIER-4 enemies gated (by tier <= act+1) to appear ONLY in the
+  // new act — so single mode (act 0, maxTier 1) and arc acts 0-2 (maxTier <= 3)
+  // never see them and stay byte-identical. Higher HP means sustain (heal/drain)
+  // actually matters; corrupted/glitch flavor + sigils. ---
+  //
+  // TANKY BRUISER: high HP, a hard single hit + a two-hit + a self-defensive
+  // dexterity beat. The wall you have to grind (or drain) through. HP well above
+  // the tier-3 peers (kernel-panic [34,42]) since the deep act's threat is
+  // attrition, not spikes.
+  { id: 'core-sentinel', name: 'Core Sentinel', sigil: '[#O#]', hp: [40, 50], tier: 4, moves: [
+    { name: 'Purge', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }] },
+    { name: 'Reinforce', effects: [{ kind: 'block', amount: 10 }, { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }] },
+    { name: 'Overload', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 2 }] },
+  ] },
+  // WARLOCK-FLAVORED PLAYER-HEXER: its signature "Curse Brand" applies `hex` to
+  // the PLAYER (target 'enemy' == the player from the enemy's view). Player hex
+  // is a round-end DoT that BYPASSES block (increment A's player-hex round-end
+  // path) — the curse turned back on you, pressuring sustain. It also self-heals
+  // on Siphon (drain), so you must out-damage its leech: a true drain duel.
+  { id: 'hex-daemon', name: 'Hex Daemon', sigil: '{~x~}', hp: [34, 42], tier: 4, moves: [
+    // Pure hex telegraph turn (no damage): "brace + cleanse/out-sustain", not "block".
+    { name: 'Curse Brand', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 3, target: 'enemy' }] },
+    { name: 'Siphon', effects: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'heal', amount: 4 }] },
+    { name: 'Wither', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 1, target: 'enemy' }] },
+  ] },
+  // CORRUPTION/POISON ATTACKER: leans on stacking poison (a player DoT that also
+  // bypasses block) plus a multi-hit and a block breather. Chips you down over a
+  // long fight — the deep act's second attrition vector.
+  { id: 'data-rot', name: 'Data Rot', sigil: '01X10', hp: [30, 38], tier: 4, moves: [
+    { name: 'Corrupt', effects: [{ kind: 'damage', amount: 5, target: 'enemy' }, { kind: 'applyStatus', status: 'poison', stacks: 3, target: 'enemy' }] },
+    { name: 'Fragment', effects: [{ kind: 'damage', amount: 4, target: 'enemy', times: 2 }] },
+    { name: 'Recompile', effects: [{ kind: 'block', amount: 7 }] },
+  ] },
+  // DEEP-ACT ELITE (tier-4, phased): a tanky drain race. Leech Protocol
+  // self-heals (out-damage it), a big hit + a self-buff wall in the base pool.
+  // At <=40% HP it melts down: a three-hit flurry and a Corrupt Ward that hexes
+  // the PLAYER while blocking — the closing window that tests sustain, punctuated
+  // so it reads as beats, not an unbroken wall. HP above the tier-1 elites since
+  // it is the capstone-act elite (and gets the act-3 HP ramp on top).
+  { id: 'corrupted-overseer', name: 'Corrupted Overseer', sigil: '{@X@}', hp: [46, 56], tier: 4, isElite: true, moves: [
+    { name: 'System Purge', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
+    { name: 'Leech Protocol', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'heal', amount: 6 }] },
+    { name: 'Harden Core', effects: [{ kind: 'block', amount: 10 }, { kind: 'applyStatus', status: 'strength', stacks: 1, target: 'self' }] },
+  ],
+    phases: [
+      {
+        hpThreshold: 0.4,
+        name: 'Meltdown',
+        moves: [
+          { name: 'Cascade Failure', effects: [{ kind: 'damage', amount: 5, target: 'enemy', times: 3 }] },
+          { name: 'Corrupt Ward', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 2, target: 'enemy' }, { kind: 'block', amount: 6 }] },
+        ],
+      },
+    ],
+  },
+  // NEW BOSS — the Corrupted Core capstone (act 3's boss; tier 4 so it is chosen
+  // as THE boss only in the deepest act — act 0 / single mode still rolls
+  // the-scope-creep, byte-identical). A phased fight that pressures SUSTAIN:
+  // Malware Injection hexes the PLAYER (a block-bypassing DoT — blocking can't
+  // save you, you must heal/drain/cleanse), Entropy Ward ramps strength so its
+  // hits escalate. At/under 50% it drops the defensive stall for "Total
+  // Corruption": the telegraphed escalating signature "Meltdown", a big Data
+  // Purge, a heavy Curse Cascade (5 hex), and a System Halt block breather so the
+  // enraged phase reads as beats, not an unwinnable wall. Base HP kept a touch
+  // under the act-3 ramp headroom so the effective capstone HP stays fair.
+  {
+    id: 'the-corrupted-core',
+    name: 'The Corrupted Core',
+    sigil: '<[#X#]>',
+    hp: [104, 120],
+    isBoss: true,
+    tier: 4,
+    moves: [
+      { name: 'Corrupting Wave', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }] },
+      {
+        name: 'Entropy Ward',
+        effects: [
+          { kind: 'block', amount: 12 },
+          { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' },
+        ],
+      },
+      {
+        name: 'Malware Injection',
+        effects: [
+          { kind: 'applyStatus', status: 'hex', stacks: 4, target: 'enemy' },
+          { kind: 'damage', amount: 4, target: 'enemy' },
+        ],
+      },
+    ],
+    phases: [
+      {
+        hpThreshold: 0.5,
+        name: 'Total Corruption',
+        moves: [
+          {
+            // Signature escalation (new, not in the base pool): rallies strength
+            // then unloads a telegraphed two-hit. The big swing of the enraged
+            // phase — block/heal the turn it lands.
+            name: 'Meltdown',
+            effects: [
+              { kind: 'applyStatus', status: 'strength', stacks: 2, target: 'self' },
+              { kind: 'damage', amount: 6, target: 'enemy', times: 2 },
+            ],
+          },
+          { name: 'Data Purge', effects: [{ kind: 'damage', amount: 15, target: 'enemy' }] },
+          // Heavy hex denies sustain (block-bypassing DoT) — the sustain test.
+          { name: 'Curse Cascade', effects: [{ kind: 'applyStatus', status: 'hex', stacks: 5, target: 'enemy' }] },
+          // Defensive breather beat so the enraged phase isn't an unbroken wall.
+          { name: 'System Halt', effects: [{ kind: 'block', amount: 10 }] },
+        ],
+      },
+    ],
+  },
 ];
 
 export const enemies: Readonly<Record<string, EnemyDef>> = Object.fromEntries(

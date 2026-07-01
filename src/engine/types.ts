@@ -180,7 +180,12 @@ export interface EnemyDef {
   readonly phases?: readonly EnemyPhase[];
   readonly isElite?: boolean;
   readonly isBoss?: boolean;
-  /** Normal-enemy act tier (1-3, default 1); higher tiers appear deeper in an arc. */
+  /**
+   * Act tier (default 1); higher tiers appear deeper in an arc. Normals/elites
+   * are gated to acts where `tier <= act+1`; the boss node picks the HIGHEST-tier
+   * eligible boss for the act (so act 0 / single mode is byte-identical and the
+   * deepest act gets its own capstone boss). #82 added tier-4 "Corrupted Core".
+   */
   readonly tier?: number;
   /**
    * Optional short ASCII emblem shown next to the enemy in combat (e.g. `>_<`).

@@ -12,7 +12,9 @@ export type RunMode = 'single' | 'arc';
 
 export const RUN_MODES: readonly RunMode[] = ['single', 'arc'];
 export const DEFAULT_RUN_MODE: RunMode = 'single';
-export const ARC_ACTS = 3;
+// #82: arc gained a fourth, deeper act ("Corrupted Core"). Single mode is still
+// one act (act 0), so this ONLY lengthens arc; act 0 stays byte-identical.
+export const ARC_ACTS = 4;
 
 /** Acts in a run for a given mode (single session vs multi-act arc). */
 export function actsForMode(mode: RunMode): number {
@@ -78,14 +80,18 @@ const ARC_ENEMY_HP_MULT: Readonly<Record<Difficulty, number>> = {
  * only) is byte-identical; acts 1 and 2 escalate so deeper acts are meaningfully
  * harder and arc players stop ending vastly healthier than single players.
  */
+// #82: extended with a fourth entry (act 3, "Corrupted Core"). The deepest act
+// already ships TANKIER tier-4 enemies + a heavier boss, so its ramp scalar is
+// only a MODEST step above act 2 — the base HP of the new content does most of
+// the escalation, and the extra act's attrition is itself a difficulty lever.
 const ARC_ACT_HP_RAMP: Readonly<Record<Difficulty, readonly number[]>> = {
-  story: [1.0, 1.1, 1.22],
+  story: [1.0, 1.1, 1.22, 1.3],
   // normal/hard/nightmare intentionally share one ramp shape — the per-tier
   // difficulty is carried by ARC_ENEMY_HP_MULT (the base), not the ramp. Story
   // ramps gentler so its already-low base doesn't over-soften late acts.
-  normal: [1.0, 1.13, 1.27],
-  hard: [1.0, 1.13, 1.27],
-  nightmare: [1.0, 1.13, 1.27],
+  normal: [1.0, 1.13, 1.27, 1.33],
+  hard: [1.0, 1.13, 1.27, 1.33],
+  nightmare: [1.0, 1.13, 1.27, 1.33],
 };
 
 /** Difficulty knobs for a (difficulty, mode) pair so a tier means the same challenge in both modes. */
