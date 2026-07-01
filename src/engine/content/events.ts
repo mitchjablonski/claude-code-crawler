@@ -380,6 +380,126 @@ const defs: readonly NarrativeEventDef[] = [
       loss: 'The valve fights you the whole way and takes its toll in blood. You move on, ticking.',
     },
   },
+  // --- #79 content: new events (a gamble + two decision/stat-check events) ---
+  {
+    // RISK/REWARD GAMBLE → hiddenOnMap (matches #69: mystery tracks stakes).
+    // Option ORDER: the greedy bot takes the FIRST ungated option, so option 0
+    // is the gamble itself with the SAME economics as abandoned-vending-machine
+    // (proven balance-neutral): mostly a gold payout, occasionally a modest bruise.
+    id: 'haunted-arcade-cabinet',
+    name: 'Haunted Arcade Cabinet',
+    hiddenOnMap: true,
+    prompt:
+      'A dead arcade cabinet flickers to life as you pass, its attract screen looping a high-score table full of names that end mid-scream. INSERT COIN, it blinks. RISK: the payout tray bites as often as it pays.',
+    options: [
+      {
+        // RISK/REWARD: a pull jackpots, dribbles, or snaps the tray on your hand.
+        label: 'Feed it a coin and yank the lever (risky)',
+        outcomes: [
+          {
+            kind: 'rollOutcomes',
+            branches: [
+              [{ kind: 'gainGold', amount: 55 }],
+              [{ kind: 'gainGold', amount: 20 }],
+              [{ kind: 'loseHp', amount: 8 }],
+            ],
+            weights: [1, 2, 1],
+          },
+        ],
+      },
+      {
+        label: 'Pocket the loose token in the tray',
+        outcomes: [
+          { kind: 'gainRelic', relicId: 'lucky-coin' },
+          { kind: 'loseHp', amount: 5 },
+        ],
+      },
+      { label: 'Leave it to its ghosts', outcomes: [] },
+    ],
+    aftermath: {
+      win: 'CONGRATULATIONS, the screen crows, and the tray coughs up its prize. You cash out ahead.',
+      loss: 'The tray snaps shut on your fingers. GAME OVER, it gloats, though you are very much alive.',
+    },
+  },
+  {
+    // STAT-CHECK decision (revealed). Option 0 is a class-agnostic net-positive
+    // (bank max HP for a little current HP — the suspicious-healer pattern the
+    // greedy economy tolerates), so being the greedy pick can't regress a class.
+    // Option 1 is the gold GATE; option 2 is the always-available ungated exit.
+    id: 'unpaid-invoice',
+    name: 'The Unpaid Invoice',
+    prompt:
+      'A skeletal accountant slides a bill across a stone desk, tapping a column of red ink with one patient finger. OVERDUE, the ledger reads, in a hand that has clearly outlived several debtors. STAT CHECK: settle up, or work it off in blood.',
+    options: [
+      {
+        // Class-agnostic net-positive: talk it down and firm up your frame.
+        label: 'Haggle the terms down',
+        outcomes: [
+          { kind: 'gainMaxHp', amount: 5 },
+          { kind: 'loseHp', amount: 3 },
+        ],
+      },
+      {
+        // STAT GATE: settle in full — needs the gold on hand, banks max HP clean.
+        label: 'Pay the invoice in full',
+        requires: { check: 'gold', atLeast: 35 },
+        outcomes: [
+          { kind: 'loseGold', amount: 35 },
+          { kind: 'gainMaxHp', amount: 8 },
+        ],
+      },
+      { label: 'Refuse and shoulder past the desk', outcomes: [{ kind: 'loseHp', amount: 7 }] },
+    ],
+    aftermath: {
+      win: 'The accountant stamps the ledger PAID and loses interest in you entirely. Debt: retired.',
+      loss: 'The pen scratches your name onto a longer list. You leave lighter — in the wrong ways.',
+    },
+  },
+  {
+    // DECISION with a CONDITIONAL safety net (revealed, stat-check flavored).
+    // Option 0 is the class-agnostic net-positive the greedy bot eats safely;
+    // option 1 is a gated card grant; option 2 is a human-weighed gamble whose
+    // outcome branches on how battle-worn your deck is. Ungated exit is option 0
+    // (and option 2), so the event never stalls.
+    id: 'the-rubber-duck',
+    name: 'The Rubber Duck',
+    prompt:
+      'A single rubber duck sits on a pedestal in a shaft of light, radiating smug omniscience. A plaque suggests you EXPLAIN YOUR PROBLEM. It has, apparently, solved every problem ever brought before it, and takes no questions. STAT CHECK: the seasoned debug faster.',
+    options: [
+      {
+        // Class-agnostic net-positive: think out loud, steady yourself.
+        label: 'Talk through your problem out loud',
+        outcomes: [
+          { kind: 'gainMaxHp', amount: 5 },
+          { kind: 'loseHp', amount: 2 },
+        ],
+      },
+      {
+        // STAT GATE: only a well-stocked crawler can crib from the duck's archive.
+        label: "Crib a trick from the duck's archive",
+        requires: { check: 'relics', atLeast: 2 },
+        outcomes: [{ kind: 'gainCard', cardId: 'twin-jab' }],
+      },
+      {
+        // CONDITIONAL gamble: a battle-worn (large) deck reads the duck's silence
+        // right; a thin deck guesses wrong and eats the mistake.
+        label: 'Trust your gut and act on the silence',
+        outcomes: [
+          {
+            kind: 'conditional',
+            check: 'deck',
+            atLeast: 12,
+            ifPass: [{ kind: 'gainMaxHp', amount: 6 }],
+            ifFail: [{ kind: 'loseHp', amount: 6 }],
+          },
+        ],
+      },
+    ],
+    aftermath: {
+      win: 'The duck says nothing, but you understand it perfectly. The fix was obvious all along.',
+      loss: 'The duck says nothing, and this time it is definitely judging you. You move on, unsolved.',
+    },
+  },
 ];
 
 export const events: Readonly<Record<string, NarrativeEventDef>> = Object.fromEntries(

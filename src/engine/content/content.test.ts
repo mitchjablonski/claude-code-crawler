@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_RUN_CONFIG, STARTER_DECK, content } from './index.js';
 import { UPGRADE_TARGET_IDS } from './cards.js';
+import { resolveEnemyMove } from '../enemyMoves.js';
 import type { Effect, EventOutcome, SimpleEventOutcome } from '../types.js';
 
 const COMPOSITE_KINDS = new Set(['rollOutcomes', 'conditional']);
@@ -561,6 +562,93 @@ describe('content integrity', () => {
         expect(relic.condition.pct, relic.id).toBeLessThanOrEqual(100);
       }
     }
+  });
+
+  it('#79: the new enemies are well-formed, tiered/elite, and in a spawn pool', () => {
+    const ROLES: { id: string; tier?: number; elite?: boolean }[] = [
+      { id: 'tech-debt-imp', tier: 1 },
+      { id: 'infinite-loop', tier: 2 },
+      { id: 'firewall', tier: 2 },
+      { id: 'null-pointer-swarm', elite: true },
+    ];
+    for (const { id, tier, elite } of ROLES) {
+      const e = content.enemies[id];
+      expect(e, `${id} exists`).toBeDefined();
+      // Well-formed HP range and at least one move (mirrors the generic bounds test).
+      expect(e!.hp[0], `${id} hp min`).toBeGreaterThan(0);
+      expect(e!.hp[0], `${id} hp order`).toBeLessThanOrEqual(e!.hp[1]);
+      expect(e!.moves.length, `${id} has moves`).toBeGreaterThan(0);
+      // Every move resolves through resolveEnemyMove for each cycle index.
+      const inst = {
+        defId: id,
+        name: e!.name,
+        hp: e!.hp[1],
+        maxHp: e!.hp[1],
+        block: 0,
+        statuses: {},
+        nextMoveIndex: 0,
+      };
+      for (let i = 0; i < e!.moves.length; i++) {
+        const move = resolveEnemyMove(e!, { ...inst, nextMoveIndex: i });
+        expect(move, `${id} move ${i} resolves`).toBeDefined();
+        expect(move!.effects.length, `${id} move ${i} has effects`).toBeGreaterThan(0);
+      }
+      if (elite) {
+        expect(e!.isElite, `${id} is elite`).toBe(true);
+      } else {
+        expect(e!.isElite, `${id} is a normal enemy`).toBeFalsy();
+        expect(e!.isBoss, `${id} is not a boss`).toBeFalsy();
+        expect(e!.tier ?? 1, `${id} tier`).toBe(tier);
+      }
+    }
+    // Each is reachable: normals appear in the normal pool at/above their tier,
+    // the elite appears in the elite pool. Mirrors run.ts's enemyPool filter.
+    const normalPool = Object.values(content.enemies)
+      .filter((e) => !e.isBoss && !e.isElite)
+      .map((e) => e.id);
+    const elitePool = Object.values(content.enemies).filter((e) => e.isElite).map((e) => e.id);
+    for (const id of ['tech-debt-imp', 'infinite-loop', 'firewall']) {
+      expect(normalPool, `${id} in normal pool`).toContain(id);
+    }
+    expect(elitePool, 'null-pointer-swarm in elite pool').toContain('null-pointer-swarm');
+    // Quota still met/improved: >= 3 elites now (was 2) and tiered normals abound.
+    expect(elitePool.length, 'at least 3 elites').toBeGreaterThanOrEqual(3);
+  });
+
+  it('#79: the new events resolve, keep an ungated option, and curate hiddenOnMap', () => {
+    const NEW = ['haunted-arcade-cabinet', 'unpaid-invoice', 'the-rubber-duck'];
+    for (const id of NEW) {
+      const ev = content.events[id];
+      expect(ev, `${id} exists`).toBeDefined();
+      // Every grant/cost id resolves (recurses rolls/conditionals).
+      for (const option of ev!.options) {
+        for (const outcome of option.outcomes) checkOutcome(outcome, id);
+      }
+      // Anti-stall: at least one always-selectable (ungated) option.
+      expect(ev!.options.some((o) => !o.requires), `${id} has an ungated option`).toBe(true);
+    }
+    // The gamble is the mystery (hiddenOnMap + rollOutcomes); the decision events
+    // are named/deterministic and stay revealed (#69 curation convention).
+    const arcade = content.events['haunted-arcade-cabinet']!;
+    expect(arcade.hiddenOnMap, 'arcade is a map mystery').toBe(true);
+    expect(
+      arcade.options.some((o) => o.outcomes.some((out) => out.kind === 'rollOutcomes')),
+      'arcade is a rollOutcomes gamble',
+    ).toBe(true);
+    for (const id of ['unpaid-invoice', 'the-rubber-duck']) {
+      expect(content.events[id]!.hiddenOnMap, `${id} stays revealed`).toBeFalsy();
+    }
+    // unpaid-invoice is a gold stat-gate; the-rubber-duck uses a conditional net.
+    expect(
+      content.events['unpaid-invoice']!.options.some((o) => o.requires?.check === 'gold'),
+      'unpaid-invoice has a gold gate',
+    ).toBe(true);
+    expect(
+      content.events['the-rubber-duck']!.options.some((o) =>
+        o.outcomes.some((out) => out.kind === 'conditional'),
+      ),
+      'the-rubber-duck has a conditional decision',
+    ).toBe(true);
   });
 
   it('potions compose only valid effect kinds/targets', () => {
