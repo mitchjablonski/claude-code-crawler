@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import type { RunState } from '../../engine/types.js';
-import { theme, statusSegments, hpTint } from '../theme.js';
-import { usePrevOnChange } from '../juice.js';
+import { theme, statusSegments, statusBeatChip, hpTint } from '../theme.js';
+import { usePrevOnChange, statusBeats } from '../juice.js';
 
 /** The literal prefix the relics line renders before the names. */
 const RELICS_PREFIX = 'relics: ';
@@ -108,6 +108,15 @@ export function StatusBar({
   // in combat and only when the player actually has statuses — additive, so the
   // HUD/narration rows are untouched when there's nothing to show.
   const playerStatusSegs = combat ? statusSegments(combat.playerStatuses) : [];
+  // V6 status beats: diff the player's prior combat statuses against now to
+  // surface a transient `+1STR`/`+2VUL`/`-1WK` next to the status group — a
+  // power granting Strength, a debuff landing, or an end-of-turn decay tick.
+  // Same prior-vs-current diff as the resource beats; null prior (first render)
+  // or out of combat → no beats. Identity-colored via statusBeatChip.
+  const playerStatusBeats =
+    combat && prior?.combat
+      ? statusBeats(prior.combat.playerStatuses, combat.playerStatuses)
+      : [];
   return (
     <Box flexDirection="column">
       <Box width={theme.layout.contentWidth} paddingX={1} justifyContent="space-between">
@@ -174,6 +183,19 @@ export function StatusBar({
               <Text>{']'}</Text>
             </>
           )}
+          {/* Status-change beats: `+1STR` / `-1WK` in the status' identity color,
+              mirroring the enemy rows so a power/debuff/decay on the PLAYER reads
+              the same way. Inline on row 1 (no new HUD row); only present right
+              after an action that changed a status. */}
+          {playerStatusBeats.map((sb) => {
+            const chip = statusBeatChip(sb.id, sb.delta);
+            return (
+              <Text key={sb.id} color={chip.color} bold>
+                {' '}
+                {chip.text}
+              </Text>
+            );
+          })}
         </Text>
         <Text>
           <Text color={theme.colors.gold}>{state.gold}g</Text>

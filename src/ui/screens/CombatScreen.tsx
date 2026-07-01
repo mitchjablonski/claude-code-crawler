@@ -11,10 +11,10 @@ import type {
 } from '../../engine/types.js';
 import type { Effect } from '../../engine/types.js';
 import type { InkColor, IntentKind } from '../theme.js';
-import { theme, statusSegments, statusChip, hpBarSegments, POTION_KEYS } from '../theme.js';
+import { theme, statusSegments, statusChip, statusBeatChip, hpBarSegments, POTION_KEYS } from '../theme.js';
 import { Screen } from '../components/Screen.js';
 import { resolveEnemyMove } from '../../engine/enemyMoves.js';
-import { usePrevOnChange, enemyBeats } from '../juice.js';
+import { usePrevOnChange, enemyBeats, statusBeats, bigHit } from '../juice.js';
 
 /** Render a statuses map as theme-styled segments wrapped in brackets. */
 function StatusTags({ statuses }: { readonly statuses: Statuses }) {
@@ -359,6 +359,16 @@ export function CombatScreen({
           const bar = hpBarSegments(enemy.hp, enemy.maxHp);
           const kind = intentKindFor(content, enemy);
           const beat = beats[i];
+          // V6 status beats: diff this enemy's prior statuses against now to
+          // surface a transient `+2VUL`/`-1PSN` next to its tags — a card that
+          // lands Vulnerable, or an end-of-turn poison/decay tick. Same
+          // prior-vs-current diff as the damage beat (persists until the next
+          // action); a null prior (first render / roster swap) yields no beat.
+          const priorEnemy =
+            priorCombat && priorCombat.enemies.length === combat.enemies.length
+              ? priorCombat.enemies[i]
+              : undefined;
+          const enemyStatusBeats = statusBeats(priorEnemy?.statuses ?? null, enemy.statuses);
           // #72 multi-enemy legibility: a 1-row gap BETWEEN enemy blocks (never
           // after the last — the hand zone's marginTop owns that seam) so each
           // header+detail pair reads as one unit. Gap-between (not after-each)
@@ -403,16 +413,32 @@ export function CombatScreen({
                     {enemy.block > 0 && (
                       <Text color={theme.colors.block}> +{enemy.block}blk</Text>
                     )}
-                    {/* Damage DELTA from the last action (persists until next). */}
+                    {/* Damage DELTA from the last action (persists until next).
+                        A big hit (>= threshold) earns a punchy `!` so heavy
+                        blows READ harder than chip damage — magnitude emphasis
+                        derived purely from the size of the delta, no timer. */}
                     {beat && beat.damage > 0 && (
                       <Text color={theme.colors.danger} bold>
                         {' '}
                         -{beat.damage}
+                        {bigHit(beat.damage) ? '!' : ''}
                       </Text>
                     )}
                   </>
                 )}
                 <StatusTags statuses={enemy.statuses} />
+                {/* Status-change beats: `+2VUL` / `-1PSN` in the status' identity
+                    color, so a debuff landing (or a poison/decay tick) reads
+                    next to the tags it changes. */}
+                {enemyStatusBeats.map((sb) => {
+                  const chip = statusBeatChip(sb.id, sb.delta);
+                  return (
+                    <Text key={sb.id} color={chip.color} bold>
+                      {' '}
+                      {chip.text}
+                    </Text>
+                  );
+                })}
               </Text>
               {/* Detail row: HP bar + telegraphed intent (icon + name + dmg). */}
               {alive && (
