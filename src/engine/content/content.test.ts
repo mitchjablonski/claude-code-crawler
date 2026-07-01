@@ -428,6 +428,80 @@ describe('content integrity', () => {
     }
   });
 
+  it('#78: the Finesse & Control card pack is draftable, well-formed, and calibrated', () => {
+    const bases = [
+      'pile-on',
+      'crowd-control',
+      'quickstep',
+      'hex-bolt',
+      'pressure-point',
+      'whirling-guard',
+      'finish-the-job',
+      'bladestorm',
+    ];
+    const pool = new Set(draftablePool());
+    for (const id of bases) {
+      const card = content.cards[id];
+      expect(card, `${id} exists`).toBeDefined();
+      // Draftable by ALL classes (shared pool): a real rarity, not an upgrade target.
+      expect(card!.rarity, `${id} rarity`).not.toBe('starter');
+      expect(UPGRADE_TARGET_IDS.has(id), `${id} not an upgrade target`).toBe(false);
+      expect(pool.has(id), `${id} in draft pool`).toBe(true);
+      // Each carries a terminal `-plus` upgrade.
+      expect(card!.upgradeTo, `${id} has an upgrade`).toBe(`${id}-plus`);
+      const plus = content.cards[`${id}-plus`];
+      expect(plus, `${id}-plus exists`).toBeDefined();
+      expect(plus!.upgradeTo, `${id}-plus terminal`).toBeUndefined();
+      // Every effect (base + upgrade) is well-formed, incl. the #62/#63 guardrail
+      // (no times>1 with scaleMissingHp) via the shared recursive validator.
+      for (const fx of card!.effects) checkEffect(fx, id);
+      for (const fx of plus!.effects) checkEffect(fx, `${id}-plus`);
+    }
+    // pile-on / finish-the-job are the VULNERABLE payoffs (conditional on vuln).
+    for (const id of ['pile-on', 'finish-the-job']) {
+      const cond = content.cards[id]!.effects.find((e) => e.kind === 'conditional');
+      expect(cond, `${id} has a conditional`).toBeDefined();
+      if (cond?.kind === 'conditional' && cond.condition.type === 'targetHasStatus') {
+        expect(cond.condition.status, `${id} gates on vulnerable`).toBe('vulnerable');
+        expect(cond.then.some((e) => e.kind === 'damage'), `${id} bonus is damage`).toBe(true);
+      }
+    }
+    // crowd-control is a crowd-reward AoE (enemyCount gte 2), never a single nuke.
+    const cc = content.cards['crowd-control']!;
+    const base = cc.effects.find((e) => e.kind === 'damage');
+    expect(base?.kind === 'damage' && base.target).toBe('allEnemies');
+    const ccCond = cc.effects.find((e) => e.kind === 'conditional');
+    if (ccCond?.kind === 'conditional' && ccCond.condition.type === 'enemyCount') {
+      expect(ccCond.condition.op).toBe('gte');
+      expect(ccCond.condition.value).toBe(2);
+    }
+    // bladestorm is the multi-hit strength payoff — times>1 and (guardrail) NO scale.
+    const bs = content.cards['bladestorm']!.effects[0];
+    expect(bs?.kind === 'damage' && (bs.times ?? 1)).toBe(3);
+    expect(bs?.kind === 'damage' && bs.scaleMissingHp).toBeUndefined();
+  });
+
+  it('#78: the new relics use existing triggers, are well-formed, and modest', () => {
+    const hex = content.relics['hex-charm'];
+    expect(hex, 'hex-charm exists').toBeDefined();
+    expect(hex!.trigger).toBe('combatStart');
+    expect(
+      hex!.effects.some((e) => e.kind === 'applyStatus' && e.status === 'weak' && e.target === 'allEnemies'),
+      'hex-charm debuffs the pack',
+    ).toBe(true);
+    const talon = content.relics['serrated-talon'];
+    expect(talon, 'serrated-talon exists').toBeDefined();
+    expect(talon!.trigger).toBe('onKill');
+    expect(talon!.effects).toEqual([
+      { kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' },
+    ]);
+    const adrenal = content.relics['adrenal-reserve'];
+    expect(adrenal, 'adrenal-reserve exists').toBeDefined();
+    expect(adrenal!.trigger).toBe('turnStart');
+    expect(adrenal!.condition).toEqual({ kind: 'hpBelow', pct: 50 });
+    expect(adrenal!.effects).toEqual([{ kind: 'draw', count: 1 }]);
+  });
+
   it('enemy phases are well-formed (thresholds in (0,1], ascending, valid effects)', () => {
     const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
     const TARGETS = ['enemy', 'allEnemies', 'self'];

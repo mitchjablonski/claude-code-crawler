@@ -524,6 +524,80 @@ const defs: readonly CardDef[] = [
   { id: 'overload-blast-plus', name: 'Overload Blast+', description: 'Deal 12 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 12, target: 'enemy', scaleMissingHp: 5 }] },
   { id: 'power-spike-plus', name: 'Power Spike+', description: 'Overheat: lose 2 HP (won\'t kill you). Deal 10 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'loseHp', amount: 2 }, { kind: 'damage', amount: 10, target: 'enemy', scaleMissingHp: 5 }] },
   { id: 'critical-mass-plus', name: 'Critical Mass+', description: 'Deal 14 damage, plus 1 for every 5 HP you are missing.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 14, target: 'enemy', scaleMissingHp: 5 }] },
+
+  // --- #78 CONTENT PACK: "Finesse & Control" (debuffs + dexterity + payoffs).
+  // Class-agnostic draftable variety built ENTIRELY on existing primitives (no
+  // new effect kinds / statuses / triggers). Two design threads the shared pool
+  // under-served: (1) VULNERABLE and WEAK PAYOFFS — poison already had payoff
+  // cards (venom-reprisal, lucky-dagger, detonation-vial) and Weak had twin-jab,
+  // but there was NO card that cashed in VULNERABLE, and only one Weak payoff;
+  // (2) DEXTERITY, thin across the pool (dex scales BLOCK only), gets a cheap
+  // enabler and a defensive payoff. A crowd-reward AoE flex mirrors whirlwind's
+  // single-target floor from the other side. Calibrated against peers via
+  // scripts/lib/scoreCard.ts so greedy drafts them in the CONTESTED band (not
+  // 0-dead, not 1.0-auto-pick), and the greedy-blind scaling/AoE ones are
+  // MCTS-drafted. No scoreCard change needed — every effect uses already-valued
+  // kinds (damage/block/dex/weak/vulnerable/draw + the 0.6-discounted
+  // conditional). Commons + the meaningful uncommons/rares carry `-plus` rest
+  // upgrades (terminal, never draftable). Determinism: additions only; existing
+  // cards byte-identical; decks serialize as ids → no SAVE_VERSION bump.
+  // Commons
+  // pile-on: the VULNERABLE payoff the pool lacked. Cold it is a plain 6-dmg
+  // 1-cost (under torch-jab's 8) so it never auto-picks; once the target is
+  // Vulnerable (torch-jab / goblin-stomp / cleave-the-horde / hex-bolt set it up)
+  // it doubles to 12 — a tempo reward for the debuff line, not a standalone nuke.
+  { id: 'pile-on', name: 'Pile On', description: "Deal 6 damage. If the target is Vulnerable, deal 6 more.", type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'vulnerable', atLeast: 1 }, then: [{ kind: 'damage', amount: 6, target: 'enemy' }] }], upgradeTo: 'pile-on-plus' },
+  // crowd-control: whirlwind's mirror — an AoE that REWARDS a crowd instead of
+  // flooring at one target. 5 to all, +3 to all when 2+ enemies are up. Modest
+  // single-target (5) so it isn't a lone-boss pick; scales its identity in arc.
+  { id: 'crowd-control', name: 'Crowd Control', description: 'Deal 5 damage to all enemies. If there are 2 or more enemies, deal 3 more to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 5, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'gte', value: 2 }, then: [{ kind: 'damage', amount: 3, target: 'allEnemies' }] }], upgradeTo: 'crowd-control-plus' },
+  // quickstep: the cheap DEXTERITY enabler the archetype needed — a 0-cost dex
+  // cantrip that also cycles. Free play + draw keeps it tempo-neutral while it
+  // seeds the dex (block-scaling) engine; 1 dex keeps it well under the dex
+  // powers (caltrops 2/1, iron-stance 3/2).
+  { id: 'quickstep', name: 'Quickstep', description: 'Gain 1 Dexterity. Draw 1 card.', type: 'skill', rarity: 'common', cost: 0, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 1, target: 'self' }, { kind: 'draw', count: 1 }], upgradeTo: 'quickstep-plus' },
+  // Uncommons
+  // hex-bolt: the pool's first dual-debuff AoE SETTER — light damage but seeds
+  // BOTH Weak and Vulnerable across the pack, enabling pile-on / pressure-point /
+  // finish-the-job the following turn. Distinct from cleave-the-horde (dmg + 1
+  // vuln) by trading damage for a richer debuff spread.
+  { id: 'hex-bolt', name: 'Hex Bolt', description: 'Deal 4 damage to all enemies. Apply 1 Weak and 1 Vulnerable to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 4, target: 'allEnemies' }, { kind: 'applyStatus', status: 'weak', stacks: 1, target: 'allEnemies' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 1, target: 'allEnemies' }], upgradeTo: 'hex-bolt-plus' },
+  // pressure-point: a WEAK payoff (parallels venom-reprisal for poison). Cold it
+  // is a modest 6-dmg 1-cost; against a Weak target it deals +6 AND stacks 2 more
+  // Weak — a defensive-tempo engine that compounds enemy-damage reduction. Rewards
+  // Weak (weakening-jab / crippling-blow / hex-bolt), never consumes it.
+  { id: 'pressure-point', name: 'Pressure Point', description: 'Deal 6 damage. If the target is Weak, deal 6 more and apply 2 Weak.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'weak', atLeast: 1 }, then: [{ kind: 'damage', amount: 6, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'enemy' }] }], upgradeTo: 'pressure-point-plus' },
+  // whirling-guard: the DEXTERITY defensive payoff. Order matters — the 2 Dex
+  // lands BEFORE the block, so the 6 block already benefits (+2) the turn it is
+  // played (engine applies effects in order), and every future block card scales
+  // too. Sits between stone-skin (1 dex + 5 block) and rare iron-stance.
+  { id: 'whirling-guard', name: 'Whirling Guard', description: 'Gain 2 Dexterity. Gain 6 Block.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 2, target: 'self' }, { kind: 'block', amount: 6 }], upgradeTo: 'whirling-guard-plus' },
+  // Rares
+  // finish-the-job: the VULNERABLE FINISHER (mirror of detonation-vial for poison
+  // / lucky-dagger for poison). Cold it is a weak 10-dmg 2-cost (under heavy-swing
+  // 14/2), so a deck with no Vulnerable rarely wants it; against a Vulnerable
+  // target it detonates for 22 — guillotine-class burst at a cheaper cost, the
+  // payoff a control deck builds toward. Contested rare (plague/guillotine tier,
+  // under the viral-load ceiling), never an auto-pick cold.
+  { id: 'finish-the-job', name: 'Finish the Job', description: 'Deal 10 damage. If the target is Vulnerable, deal 12 more.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 10, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'vulnerable', atLeast: 1 }, then: [{ kind: 'damage', amount: 12, target: 'enemy' }] }], upgradeTo: 'finish-the-job-plus' },
+  // bladestorm: the multi-hit STRENGTH payoff rare. 5 damage x3 — each hit takes
+  // Strength SEPARATELY (engine adds strength per hit), so it is the biggest
+  // Strength multiplier in the pool (flurry-of-knives is the uncommon 3x3). Cold
+  // 15 for 2 is UNDER guillotine (24/3); with Strength it is the build-defining
+  // scaler — a real pull, but greedy-visible base keeps it a contested (not
+  // auto-pick) draft. NEVER combines times with scaleMissingHp (content guard).
+  { id: 'bladestorm', name: 'Bladestorm', description: 'Deal 5 damage three times.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 5, target: 'enemy', times: 3 }], upgradeTo: 'bladestorm-plus' },
+
+  // --- #78 upgraded variants ('<base>-plus'). NEVER draftable (upgradeTo
+  // targets). Reachable only at a rest. Terminal (no further upgrade).
+  { id: 'pile-on-plus', name: 'Pile On+', description: "Deal 8 damage. If the target is Vulnerable, deal 8 more.", type: 'attack', rarity: 'common', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'vulnerable', atLeast: 1 }, then: [{ kind: 'damage', amount: 8, target: 'enemy' }] }] },
+  { id: 'crowd-control-plus', name: 'Crowd Control+', description: 'Deal 7 damage to all enemies. If there are 2 or more enemies, deal 4 more to all enemies.', type: 'attack', rarity: 'common', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 7, target: 'allEnemies' }, { kind: 'conditional', condition: { type: 'enemyCount', op: 'gte', value: 2 }, then: [{ kind: 'damage', amount: 4, target: 'allEnemies' }] }] },
+  { id: 'quickstep-plus', name: 'Quickstep+', description: 'Gain 2 Dexterity. Draw 1 card.', type: 'skill', rarity: 'common', cost: 0, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 2, target: 'self' }, { kind: 'draw', count: 1 }] },
+  { id: 'hex-bolt-plus', name: 'Hex Bolt+', description: 'Deal 5 damage to all enemies. Apply 2 Weak and 2 Vulnerable to all enemies.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'allEnemies', effects: [{ kind: 'damage', amount: 5, target: 'allEnemies' }, { kind: 'applyStatus', status: 'weak', stacks: 2, target: 'allEnemies' }, { kind: 'applyStatus', status: 'vulnerable', stacks: 2, target: 'allEnemies' }] },
+  { id: 'pressure-point-plus', name: 'Pressure Point+', description: 'Deal 8 damage. If the target is Weak, deal 7 more and apply 3 Weak.', type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy', effects: [{ kind: 'damage', amount: 8, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'weak', atLeast: 1 }, then: [{ kind: 'damage', amount: 7, target: 'enemy' }, { kind: 'applyStatus', status: 'weak', stacks: 3, target: 'enemy' }] }] },
+  { id: 'whirling-guard-plus', name: 'Whirling Guard+', description: 'Gain 3 Dexterity. Gain 8 Block.', type: 'skill', rarity: 'uncommon', cost: 1, target: 'self', effects: [{ kind: 'applyStatus', status: 'dexterity', stacks: 3, target: 'self' }, { kind: 'block', amount: 8 }] },
+  { id: 'finish-the-job-plus', name: 'Finish the Job+', description: 'Deal 12 damage. If the target is Vulnerable, deal 14 more.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 12, target: 'enemy' }, { kind: 'conditional', condition: { type: 'targetHasStatus', status: 'vulnerable', atLeast: 1 }, then: [{ kind: 'damage', amount: 14, target: 'enemy' }] }] },
+  { id: 'bladestorm-plus', name: 'Bladestorm+', description: 'Deal 6 damage three times.', type: 'attack', rarity: 'rare', cost: 2, target: 'enemy', effects: [{ kind: 'damage', amount: 6, target: 'enemy', times: 3 }] },
 ];
 
 /**
