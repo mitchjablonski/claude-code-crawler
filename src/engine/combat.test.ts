@@ -150,6 +150,59 @@ describe('combat flow', () => {
     expect(after.enemies[0]?.statuses.poison).toBe(3);
   });
 
+  it('#80 hex: a hexed enemy loses hex HP at round end and the player heals floor(hex/2)', () => {
+    const c = freshCombat();
+    const hexed = {
+      ...(c.enemies[0] as (typeof c.enemies)[number]),
+      statuses: { hex: 4 },
+    };
+    const after = endTurn(T, { ...c, enemies: [hexed], playerHp: 20 }, new Rng(2));
+    expect(after.enemies[0]?.hp).toBe(10 - 4); // enemy loses `hex` HP, like poison
+    expect(after.enemies[0]?.statuses.hex).toBe(3); // decays by 1
+    // Player siphons floor(4/2)=2. Enemy Slam 5 lands first (playerHp 20 -> 15),
+    // then the round-end siphon heals +2 -> 17 — the distinctive caster feed.
+    expect(after.playerHp).toBe(17);
+  });
+
+  it('#80 hex bypasses PLAYER block (generic/safe round-end DoT if the player is hexed)', () => {
+    // The player is never hexed in normal play, but the handling stays generic:
+    // hex damages the player bypassing block, exactly like poison.
+    const c = { ...freshCombat(), playerBlock: 10, playerStatuses: { hex: 3 }, playerHp: 30 };
+    const after = endTurn(T, c, new Rng(2));
+    // Slam 5 absorbed by block; round-end hex 3 bypasses block -> hp 27; hex 3->2.
+    expect(after.playerHp).toBe(27);
+    expect(after.playerStatuses.hex).toBe(2);
+  });
+
+  it('#80 hex: the caster siphon is capped at playerMaxHp', () => {
+    const c = freshCombat();
+    const hexed = {
+      ...(c.enemies[0] as (typeof c.enemies)[number]),
+      // No move damage this test: give enemy a harmless move via HP-0? Instead
+      // rely on the cap. Slam deals 5; start at maxHp so the net stays at cap.
+      statuses: { hex: 10 },
+    };
+    // Start the player at max HP with high max so the +5 siphon can't exceed it.
+    const after = endTurn(
+      T,
+      { ...c, enemies: [hexed], playerHp: 30, playerMaxHp: 30 },
+      new Rng(2),
+    );
+    // Slam 5 -> 25, siphon floor(10/2)=5 -> 30, capped at maxHp 30.
+    expect(after.playerHp).toBe(30);
+    expect(after.enemies[0]?.hp).toBe(0); // 10 - 10 hex
+  });
+
+  it('#80 hex draws no rng (round end is byte-identical vs a re-run)', () => {
+    const c = freshCombat();
+    const hexed = {
+      ...(c.enemies[0] as (typeof c.enemies)[number]),
+      statuses: { hex: 3 },
+    };
+    const run = () => endTurn(T, { ...c, enemies: [hexed], playerHp: 20 }, new Rng(42));
+    expect(run()).toEqual(run());
+  });
+
   it('detects win and loss', () => {
     const c = freshCombat();
     expect(isCombatWon(c)).toBe(false);

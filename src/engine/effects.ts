@@ -92,6 +92,9 @@ export function applyPlayerEffect(
       // it is intentionally avoided in content (no card carries both).
       const base = effect.amount + missingHpBonus(combat, effect.scaleMissingHp);
       let next = combat;
+      // #80 drain: sum HP actually removed from enemies across ALL hits/targets
+      // (post-mitigation) so lifesteal heals from the true dealt total.
+      let totalDealt = 0;
       for (let t = 0; t < times; t++) {
         const indices = targetIndices(next, effect.target, targetIndex);
         // Passive, deterministic stat tracking (no rng, no behavior change):
@@ -106,7 +109,16 @@ export function applyPlayerEffect(
           if (hit.hp <= 0) slain += 1;
           return hit;
         });
+        totalDealt += dealt;
         next = { ...next, enemies, dealt: next.dealt + dealt, slain: next.slain + slain };
+      }
+      // #80 drain (lifesteal): heal the PLAYER a fraction of the post-mitigation
+      // damage actually dealt, capped at maxHp. Pure, draws no rng; a strict no-op
+      // when `lifesteal` is absent (every existing card) or nothing was dealt
+      // (fully blocked / 0 damage), so old content stays byte-identical.
+      if (effect.lifesteal !== undefined && totalDealt > 0) {
+        const healed = Math.floor(totalDealt * effect.lifesteal);
+        next = { ...next, playerHp: Math.min(next.playerMaxHp, next.playerHp + healed) };
       }
       return next;
     }

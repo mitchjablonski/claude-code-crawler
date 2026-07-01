@@ -18,7 +18,8 @@ const EFFECT_KINDS = [
   'loseHp',
 ];
 const EFFECT_TARGETS = ['enemy', 'allEnemies', 'self'];
-const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity', 'overcharge'];
+// #80: 'hex' is the Warlock's life-siphon curse status.
+const EFFECT_STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity', 'overcharge', 'hex'];
 const CONDITION_TYPES = ['targetHasStatus', 'enemyCount'];
 
 /**
@@ -40,6 +41,12 @@ function checkEffect(effect: Effect, where: string): void {
     if (effect.kind === 'damage') {
       expect(effect.times ?? 1, `${where}: times>1 with scaleMissingHp is degenerate`).toBe(1);
     }
+  }
+  // #80: where the optional drain fraction is present (damage only), it must be a
+  // fraction in (0, 1] — a lifesteal that heals from the damage actually dealt.
+  if (effect.kind === 'damage' && effect.lifesteal !== undefined) {
+    expect(effect.lifesteal, `${where}:lifesteal > 0`).toBeGreaterThan(0);
+    expect(effect.lifesteal, `${where}:lifesteal <= 1`).toBeLessThanOrEqual(1);
   }
   if (effect.kind === 'applyStatus') {
     expect(EFFECT_STATUSES, `${where}:${effect.status}`).toContain(effect.status);
