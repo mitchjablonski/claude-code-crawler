@@ -685,7 +685,7 @@ describe('content integrity', () => {
   it('enemy phases are well-formed (thresholds in (0,1], ascending, valid effects)', () => {
     const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
     const TARGETS = ['enemy', 'allEnemies', 'self'];
-    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity', 'hex'];
     for (const enemy of Object.values(content.enemies)) {
       const phases = enemy.phases;
       if (!phases) continue;
@@ -833,7 +833,7 @@ describe('content integrity', () => {
   it('potions compose only valid effect kinds/targets', () => {
     const KINDS = ['damage', 'block', 'draw', 'gainEnergy', 'heal', 'applyStatus'];
     const TARGETS = ['enemy', 'allEnemies', 'self'];
-    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity'];
+    const STATUSES = ['strength', 'vulnerable', 'weak', 'regen', 'poison', 'dexterity', 'hex'];
     for (const potion of Object.values(content.potions)) {
       expect(potion.id).toMatch(/^[a-z0-9-]+$/);
       expect(potion.effects.length, potion.id).toBeGreaterThan(0);

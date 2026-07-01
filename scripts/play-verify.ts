@@ -156,11 +156,18 @@ function narrationLine(text: string): string {
 }
 
 function runBalance(): void {
+  // #82: sweep ALL FOUR classes (was knight/apothecary only) so the gate covers
+  // the overclocker and warlock too — the warlock's drain/hex kit especially, now
+  // that the deeper "Corrupted Core" act gives it a longer proving ground.
   const matrix = [
     { mode: 'single', character: 'knight' },
     { mode: 'arc', character: 'knight' },
     { mode: 'single', character: 'apothecary' },
     { mode: 'arc', character: 'apothecary' },
+    { mode: 'single', character: 'overclocker' },
+    { mode: 'arc', character: 'overclocker' },
+    { mode: 'single', character: 'warlock' },
+    { mode: 'arc', character: 'warlock' },
   ];
   for (const { mode, character } of matrix) {
     try {

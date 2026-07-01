@@ -317,9 +317,32 @@ function enemyPool(content: ContentRegistry, kind: PoolKind, maxTier = Infinity)
       const typeOk =
         kind === 'boss' ? e.isBoss : kind === 'elite' ? e.isElite : !e.isBoss && !e.isElite;
       if (!typeOk) return false;
-      if (kind === 'normal') return (e.tier ?? 1) <= maxTier;
-      return true;
+      // Normals AND elites are act-tier-gated (tier <= maxTier). This keeps
+      // single-mode act 0 (maxTier 1) byte-identical when deeper-tier enemies are
+      // added — a new tier-4 elite/normal is invisible to act 0 — and naturally
+      // gates #82's "Corrupted Core" tier-4 content to the deepest act. Bosses are
+      // chosen by `bossPoolForAct` instead (highest eligible tier per act).
+      if (kind === 'boss') return true;
+      return (e.tier ?? 1) <= maxTier;
     })
+    .map((e) => e.id)
+    .sort();
+}
+
+/**
+ * The boss(es) eligible for `act`: the HIGHEST-tier boss whose `tier <= act+1`.
+ * Single mode / act 0 → only tier-1 bosses (the-scope-creep), so its `r.pick`
+ * draw is byte-identical to the pre-#82 single-boss pool. The deepest act admits
+ * the tier-4 capstone (the-corrupted-core), which — being the highest eligible
+ * tier — is picked deterministically as THE final boss (never the-scope-creep).
+ */
+export function bossPoolForAct(content: ContentRegistry, act: number): string[] {
+  const bosses = Object.values(content.enemies).filter((e) => e.isBoss);
+  const eligible = bosses.filter((e) => (e.tier ?? 1) <= act + 1);
+  const pool = eligible.length > 0 ? eligible : bosses;
+  const maxTier = Math.max(...pool.map((e) => e.tier ?? 1));
+  return pool
+    .filter((e) => (e.tier ?? 1) === maxTier)
     .map((e) => e.id)
     .sort();
 }
@@ -329,7 +352,9 @@ function enterRolledCombat(
   state: RunState,
   kind: Exclude<PoolKind, 'normal'>,
 ): RunState {
-  const pool = enemyPool(content, kind);
+  const act = state.map.nodes[state.currentNodeId]?.act ?? 0;
+  const pool =
+    kind === 'boss' ? bossPoolForAct(content, act) : enemyPool(content, kind, act + 1);
   if (pool.length === 0) throw new EngineError(`no ${kind} enemies in content`);
   const [enemyId, rng] = withStream(state.rng, 'combat', (r) => r.pick(pool));
   return enterCombat(content, { ...state, rng }, [enemyId]);
@@ -550,11 +575,18 @@ export const RARITY_WEIGHTS_BY_ACT: readonly (readonly [Rarity, number][])[] = [
     ['uncommon', 0.34],
     ['rare', 0.14],
   ],
-  // act 2 (deepest authored act; any higher act clamps to this row) — a touch more
+  // act 2 — a touch more
   [
     ['common', 0.46],
     ['uncommon', 0.36],
     ['rare', 0.18],
+  ],
+  // act 3 (#82 "Corrupted Core", the deepest authored act; any higher act clamps
+  // to this row) — richest loot to reward surviving the extra attrition act.
+  [
+    ['common', 0.4],
+    ['uncommon', 0.37],
+    ['rare', 0.23],
   ],
 ];
 

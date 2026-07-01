@@ -3,6 +3,7 @@ import {
   applyAction,
   createRun,
   rollCardChoices,
+  bossPoolForAct,
   ACT_TRANSITION_EXHAUSTION_HP,
   RARITY_WEIGHTS_BY_ACT,
 } from './run.js';
@@ -1091,5 +1092,90 @@ describe('onCombatEnd relics (D9 post-victory sustain)', () => {
     s = applyAction(content, s, { type: 'endTurn' });
     expect(s.phase).toBe('defeat');
     expect(s.hp).toBe(0); // killed, onCombatEnd never runs
+  });
+});
+
+describe('#82 Corrupted Core — deepest arc act wiring + single-mode invariance', () => {
+  // The tier-4 content that must be gated to the deepest act only.
+  const CORE_NORMALS = ['core-sentinel', 'hex-daemon', 'data-rot'];
+  const CORE_ELITE = 'corrupted-overseer';
+  const CORE_BOSS = 'the-corrupted-core';
+
+  // Mirror run.ts's tier-gated pools (normals/elites: tier <= act+1).
+  const normalPool = (act: number) =>
+    Object.values(content.enemies)
+      .filter((e) => !e.isBoss && !e.isElite && (e.tier ?? 1) <= act + 1)
+      .map((e) => e.id);
+  const elitePool = (act: number) =>
+    Object.values(content.enemies)
+      .filter((e) => e.isElite && (e.tier ?? 1) <= act + 1)
+      .map((e) => e.id);
+
+  it('the new tier-4 enemies + boss exist, are well-formed, and correctly roled', () => {
+    for (const id of [...CORE_NORMALS, CORE_ELITE, CORE_BOSS]) {
+      const e = content.enemies[id];
+      expect(e, `${id} exists`).toBeDefined();
+      expect(e!.tier, `${id} is tier 4`).toBe(4);
+      expect(e!.hp[0], `${id} hp order`).toBeLessThanOrEqual(e!.hp[1]);
+      expect(e!.moves.length, `${id} has moves`).toBeGreaterThan(0);
+    }
+    for (const id of CORE_NORMALS) {
+      expect(content.enemies[id]!.isElite, `${id} not elite`).toBeFalsy();
+      expect(content.enemies[id]!.isBoss, `${id} not boss`).toBeFalsy();
+    }
+    expect(content.enemies[CORE_ELITE]!.isElite).toBe(true);
+    expect(content.enemies[CORE_BOSS]!.isBoss).toBe(true);
+  });
+
+  it('SINGLE MODE (act 0): tier-4 content is invisible — pools byte-identical', () => {
+    // maxTier = act+1 = 1 at act 0, so no tier-4 normal/elite can appear.
+    for (const id of CORE_NORMALS) expect(normalPool(0)).not.toContain(id);
+    expect(elitePool(0)).not.toContain(CORE_ELITE);
+    // The act-0 boss is still ONLY the-scope-creep (single-element pool → same
+    // r.pick draw as pre-#82). The new capstone boss never spawns in single mode.
+    expect(bossPoolForAct(content, 0)).toEqual(['the-scope-creep']);
+  });
+
+  it('arc acts 1-2 also exclude the tier-4 content (only the new act 3 gets it)', () => {
+    for (const act of [1, 2]) {
+      for (const id of CORE_NORMALS) expect(normalPool(act)).not.toContain(id);
+      expect(elitePool(act)).not.toContain(CORE_ELITE);
+      expect(bossPoolForAct(content, act)).toEqual(['the-scope-creep']);
+    }
+  });
+
+  it('the deepest act (3) admits the tier-4 normals/elite and the new boss', () => {
+    for (const id of CORE_NORMALS) expect(normalPool(3)).toContain(id);
+    expect(elitePool(3)).toContain(CORE_ELITE);
+    // Highest eligible tier at act 3 is 4 → the capstone boss is chosen
+    // DETERMINISTICALLY (never the-scope-creep).
+    expect(bossPoolForAct(content, 3)).toEqual([CORE_BOSS]);
+  });
+
+  it('hex-daemon applies hex to the PLAYER, and the boss pressures sustain with hex', () => {
+    // The player-hex round-end path (increment A) is engine-tested; this asserts
+    // the FIRST content that drives it: an enemy move applying hex with a
+    // non-self target (== the player).
+    const daemon = content.enemies['hex-daemon']!;
+    const hexesPlayer = daemon.moves.some((m) =>
+      m.effects.some(
+        (fx) => fx.kind === 'applyStatus' && fx.status === 'hex' && fx.target !== 'self',
+      ),
+    );
+    expect(hexesPlayer, 'hex-daemon hexes the player').toBe(true);
+    // The capstone boss is phased and also uses player-hex to deny sustain.
+    const boss = content.enemies['the-corrupted-core']!;
+    expect(boss.phases?.length, 'boss is phased').toBeGreaterThan(0);
+    const allMoves = [...boss.moves, ...(boss.phases ?? []).flatMap((p) => p.moves)];
+    const bossHexesPlayer = allMoves.some((m) =>
+      m.effects.some(
+        (fx) => fx.kind === 'applyStatus' && fx.status === 'hex' && fx.target !== 'self',
+      ),
+    );
+    expect(bossHexesPlayer, 'boss hexes the player').toBe(true);
+    // Signature phase move not present in the base pool (dynamic fight contract).
+    const baseNames = new Set(boss.moves.map((m) => m.name));
+    const phaseNames = boss.phases!.flatMap((p) => p.moves.map((m) => m.name));
+    expect(phaseNames.some((n) => !baseNames.has(n))).toBe(true);
   });
 });
