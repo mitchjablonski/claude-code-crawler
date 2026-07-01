@@ -85,13 +85,13 @@ const ARC_ENEMY_HP_MULT: Readonly<Record<Difficulty, number>> = {
 // only a MODEST step above act 2 — the base HP of the new content does most of
 // the escalation, and the extra act's attrition is itself a difficulty lever.
 const ARC_ACT_HP_RAMP: Readonly<Record<Difficulty, readonly number[]>> = {
-  story: [1.0, 1.1, 1.22, 1.3],
+  story: [1.0, 1.1, 1.22, 1.27],
   // normal/hard/nightmare intentionally share one ramp shape — the per-tier
   // difficulty is carried by ARC_ENEMY_HP_MULT (the base), not the ramp. Story
   // ramps gentler so its already-low base doesn't over-soften late acts.
-  normal: [1.0, 1.13, 1.27, 1.33],
-  hard: [1.0, 1.13, 1.27, 1.33],
-  nightmare: [1.0, 1.13, 1.27, 1.33],
+  normal: [1.0, 1.13, 1.27, 1.3],
+  hard: [1.0, 1.13, 1.27, 1.3],
+  nightmare: [1.0, 1.13, 1.27, 1.3],
 };
 
 /** Difficulty knobs for a (difficulty, mode) pair so a tier means the same challenge in both modes. */

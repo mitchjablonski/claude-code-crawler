@@ -356,7 +356,7 @@ const defs: readonly EnemyDef[] = [
     id: 'the-corrupted-core',
     name: 'The Corrupted Core',
     sigil: '<[#X#]>',
-    hp: [104, 120],
+    hp: [100, 114],
     isBoss: true,
     tier: 4,
     moves: [

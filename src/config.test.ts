@@ -132,19 +132,19 @@ describe('knobsFor', () => {
   it('pins the tuned arc HP mults + per-act ramp', () => {
     expect(knobsFor('story', 'arc')).toMatchObject({
       enemyHpMult: 0.74,
-      actHpRamp: [1.0, 1.1, 1.22, 1.3],
+      actHpRamp: [1.0, 1.1, 1.22, 1.27],
     });
     expect(knobsFor('normal', 'arc')).toMatchObject({
       enemyHpMult: 0.96,
-      actHpRamp: [1.0, 1.13, 1.27, 1.33],
+      actHpRamp: [1.0, 1.13, 1.27, 1.3],
     });
     expect(knobsFor('hard', 'arc')).toMatchObject({
       enemyHpMult: 1.15,
-      actHpRamp: [1.0, 1.13, 1.27, 1.33],
+      actHpRamp: [1.0, 1.13, 1.27, 1.3],
     });
     expect(knobsFor('nightmare', 'arc')).toMatchObject({
       enemyHpMult: 1.43,
-      actHpRamp: [1.0, 1.13, 1.27, 1.33],
+      actHpRamp: [1.0, 1.13, 1.27, 1.3],
     });
   });
 
