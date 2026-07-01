@@ -71,6 +71,26 @@ const OVERCLOCKER_DECK: readonly string[] = [
   'meltdown-jab',
 ];
 
+// #81 Warlock: sustain-through-aggression. Two levers, both shown turn one:
+// DRAIN (siphon-fang — a `lifesteal` attack that heals from the damage it deals)
+// and the HEX life-siphon CURSE (curse-brand — round-end the hexed enemy bleeds
+// and the Warlock heals half of it). A fragile 56-HP body (lowest of the four)
+// kept alive by taking, not by armor: 3 shortswords + 3 bucklers for a floor,
+// then 2x siphon-fang (drain) + 1x curse-brand (hex) so BOTH pact levers can open
+// the fight. 9 cards, 1 cost each. Starter relic siphon-sigil seeds 1 Hex on the
+// pack at combat start (the curse->drain payoff line online from turn one).
+const WARLOCK_DECK: readonly string[] = [
+  'rusty-shortsword',
+  'rusty-shortsword',
+  'rusty-shortsword',
+  'battered-buckler',
+  'battered-buckler',
+  'battered-buckler',
+  'siphon-fang',
+  'siphon-fang',
+  'curse-brand',
+];
+
 export const CHARACTERS: Readonly<Record<string, Character>> = {
   knight: {
     id: 'knight',
@@ -102,7 +122,20 @@ export const CHARACTERS: Readonly<Record<string, Character>> = {
     // kept to +3 and offensive cards left untouched.
     maxHp: 63,
   },
+  warlock: {
+    id: 'warlock',
+    name: 'Warlock',
+    description: 'Drains enemies to heal and hexes what won\'t die. Your HP is a shared resource now.',
+    starterDeck: WARLOCK_DECK,
+    startingRelics: ['siphon-sigil'],
+    // #81 approved 56 — the lowest maxHp of the four. The Warlock is a fragile
+    // body kept alive by DRAINING and HEXING, not by armor: too low to face-tank,
+    // so its sustain must be earned by landing hits/curses, not by soaking. If
+    // hard/nightmare greedy shows it face-tanking (endHp pinned near max / win-rate
+    // above peers), the sustain — not this number — comes down (56 stays).
+    maxHp: 56,
+  },
 };
 
 export const DEFAULT_CHARACTER = 'knight';
-export const CHARACTER_IDS: readonly string[] = ['knight', 'apothecary', 'overclocker'];
+export const CHARACTER_IDS: readonly string[] = ['knight', 'apothecary', 'overclocker', 'warlock'];
