@@ -182,21 +182,39 @@ export function endTurn(
     }
   }
 
-  // Round end: poison damages (bypassing block), regen heals, timed statuses decay.
-  const afterPoison = Math.max(0, next.playerHp - getStatus(next.playerStatuses, 'poison'));
+  // Round end: poison + hex damage (bypassing block), regen heals, the hex
+  // siphon feeds the caster, timed statuses decay.
+  // #80 hex siphon: each hexed ENEMY loses `hex` HP alongside poison (bypassing
+  // block) AND feeds the PLAYER floor(hex/2) — the life-siphon that makes hex
+  // distinct from poison. Sum the siphon from all LIVING hexed enemies; pure, no
+  // rng. Byte-identical for existing content (no enemy carries hex → siphon 0).
+  let hexSiphon = 0;
+  for (const e of next.enemies) {
+    if (e.hp <= 0) continue;
+    hexSiphon += Math.floor(getStatus(e.statuses, 'hex') / 2);
+  }
+  // The player is never hexed in normal play, but subtracting player hex here (0
+  // for all existing content) keeps the round-end DoT generic/safe.
+  const afterDot = Math.max(
+    0,
+    next.playerHp - getStatus(next.playerStatuses, 'poison') - getStatus(next.playerStatuses, 'hex'),
+  );
   next = {
     ...next,
     playerHp: Math.min(
       next.playerMaxHp,
-      afterPoison + getStatus(next.playerStatuses, 'regen'),
+      afterDot + getStatus(next.playerStatuses, 'regen') + hexSiphon,
     ),
     playerStatuses: decayStatuses(next.playerStatuses),
     enemies: next.enemies.map((e) => {
       if (e.hp <= 0) return e;
-      const poisoned = Math.max(0, e.hp - getStatus(e.statuses, 'poison'));
+      const damaged = Math.max(
+        0,
+        e.hp - getStatus(e.statuses, 'poison') - getStatus(e.statuses, 'hex'),
+      );
       return {
         ...e,
-        hp: Math.min(e.maxHp, poisoned + getStatus(e.statuses, 'regen')),
+        hp: Math.min(e.maxHp, damaged + getStatus(e.statuses, 'regen')),
         statuses: decayStatuses(e.statuses),
       };
     }),
@@ -259,7 +277,9 @@ function decayStatuses(statuses: Statuses): Statuses {
   // persist for the whole fight (overcharge keeps converting overheat to Strength
   // every round, mirroring how strength/dexterity already stick around).
   let next = statuses;
-  for (const id of ['vulnerable', 'weak', 'regen', 'poison'] as const) {
+  // #80 `hex` decays like the other timed DoTs/debuffs (it is NOT a permanent
+  // power). No content applies it yet, so this is inert for existing runs.
+  for (const id of ['vulnerable', 'weak', 'regen', 'poison', 'hex'] as const) {
     if (getStatus(next, id) > 0) next = addStatus(next, id, -1);
   }
   return next;

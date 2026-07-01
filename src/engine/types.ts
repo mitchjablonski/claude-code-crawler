@@ -17,7 +17,19 @@ export type StatusId =
    * makes `overdrive-core` class-asymmetric: it only pays off in a deck that
    * overheats (the Overclocker), and is inert for Knight/Apothecary (no loseHp).
    */
-  | 'overcharge';
+  | 'overcharge'
+  /**
+   * `hex` (#80, Warlock life-siphon CURSE): a timed DoT applied to ENEMIES that,
+   * unlike `poison`, FEEDS the caster. At round end each hexed enemy loses `hex`
+   * HP (bypassing block, like poison) AND the PLAYER heals `floor(hex/2)` (capped
+   * at maxHp) — the siphon that makes it distinct from poison. Then it decays by 1
+   * (timed, like poison/vulnerable). Applied via `applyStatus` target enemy/all-
+   * Enemies; the player is never hexed in normal play, but the round-end/decay
+   * handling stays generic/safe. Pure, draws no rng. No card uses it yet (B), so
+   * it is inert for existing content — every seeded run stays byte-identical and
+   * SAVE_VERSION is unchanged (a new optional key in the Statuses map).
+   */
+  | 'hex';
 
 export type Effect =
   /**
@@ -36,7 +48,17 @@ export type Effect =
    * every card), so they are inert for old content and every existing seeded run
    * stays byte-identical: `run(seed) === run(seed)`.
    */
-  | { kind: 'damage'; amount: number; target: TargetKind; times?: number; scaleMissingHp?: number }
+  /**
+   * `lifesteal` (#80, Warlock DRAIN sustain): an OPTIONAL fraction in (0, 1] by
+   * which a PLAYER damage effect heals the player from the damage it ACTUALLY
+   * deals (post-mitigation: after strength/vulnerable/block, summed across
+   * `times` and `allEnemies`). The player heals `floor(totalDealt × lifesteal)`,
+   * capped at maxHp; a fully-blocked / 0-dealt hit heals 0. Player-only — enemy
+   * attacks never lifesteal (ignored on the enemy-effect path). Pure, draws no
+   * rng. Absent on every existing card, so old content is byte-identical and no
+   * SAVE_VERSION bump (effects live in static content, not serialized RunState).
+   */
+  | { kind: 'damage'; amount: number; target: TargetKind; times?: number; scaleMissingHp?: number; lifesteal?: number }
   | { kind: 'block'; amount: number; scaleMissingHp?: number }
   | { kind: 'draw'; count: number }
   | { kind: 'gainEnergy'; amount: number }

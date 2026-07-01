@@ -177,6 +177,11 @@ const status: Readonly<Record<StatusId, StatusStyle>> = {
   // family and visually links the power to the stat it produces (the STR chip).
   // Compact `OVC` glyph keeps the HUD budget.
   overcharge: { label: 'overcharge', icon: 'OVC', color: 'red' },
+  // #80 hex: the Warlock's life-siphon CURSE. A DISTINCT identity from poison
+  // (magenta) so the two enemy DoTs never read as the same effect — hex takes the
+  // cold, arcane `blue` token (it drains life to the caster rather than just
+  // rotting the target). Compact `HEX` glyph keeps the HUD budget.
+  hex: { label: 'hex', icon: 'HEX', color: 'blue' },
 };
 
 /** Shared layout constants. */

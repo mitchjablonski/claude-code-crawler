@@ -147,6 +147,110 @@ describe('scaleMissingHp gradient (#62)', () => {
   });
 });
 
+describe('drain / lifesteal (#80 Warlock sustain)', () => {
+  it('heals floor(dealt × lifesteal) from post-mitigation damage', () => {
+    // 8 dealt × 0.5 = heal 4.
+    const c = combatWith([enemy(40)], { playerHp: 30, playerMaxHp: 50 });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 },
+      0,
+      new Rng(1),
+    );
+    expect(next.enemies[0]!.hp).toBe(32); // 40 - 8
+    expect(next.playerHp).toBe(34); // 30 + floor(8*0.5)
+  });
+
+  it('heals from the ACTUAL (post-strength/vulnerable) damage dealt', () => {
+    // base 6 + 2 str = 8, ×1.5 vulnerable = 12 dealt; heal floor(12*0.5)=6.
+    const c = combatWith([enemy(40, { vulnerable: 1 })], {
+      playerHp: 30,
+      playerMaxHp: 50,
+      playerStatuses: { strength: 2 },
+    });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 6, target: 'enemy', lifesteal: 0.5 },
+      0,
+      new Rng(1),
+    );
+    expect(next.enemies[0]!.hp).toBe(28); // 40 - 12
+    expect(next.playerHp).toBe(36); // 30 + floor(12*0.5)
+  });
+
+  it('caps the heal at maxHp', () => {
+    const c = combatWith([enemy(40)], { playerHp: 48, playerMaxHp: 50 });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 20, target: 'enemy', lifesteal: 1 },
+      0,
+      new Rng(1),
+    );
+    expect(next.playerHp).toBe(50); // 48 + 20 -> capped at 50
+  });
+
+  it('heals 0 when the hit is fully blocked (0 dealt)', () => {
+    // Enemy has 10 block, damage 8 -> 0 HP removed -> heal 0.
+    const withBlock: EnemyInstance = { ...enemy(40), block: 10 };
+    const c = combatWith([withBlock], { playerHp: 30, playerMaxHp: 50 });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 },
+      0,
+      new Rng(1),
+    );
+    expect(next.enemies[0]!.hp).toBe(40); // unharmed behind block
+    expect(next.playerHp).toBe(30); // no heal
+  });
+
+  it('sums dealt across a multi-hit drain (times)', () => {
+    // 3 hits × 5 = 15 dealt; heal floor(15*0.5) = 7.
+    const c = combatWith([enemy(40)], { playerHp: 20, playerMaxHp: 50 });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 5, target: 'enemy', times: 3, lifesteal: 0.5 },
+      0,
+      new Rng(1),
+    );
+    expect(next.enemies[0]!.hp).toBe(25); // 40 - 15
+    expect(next.playerHp).toBe(27); // 20 + floor(15*0.5)
+  });
+
+  it('sums dealt across an AoE drain (allEnemies)', () => {
+    // 6 to each of two enemies = 12 dealt; heal floor(12*0.5) = 6.
+    const c = combatWith([enemy(40), enemy(40)], { playerHp: 20, playerMaxHp: 50 });
+    const next = applyPlayerEffect(
+      c,
+      { kind: 'damage', amount: 6, target: 'allEnemies', lifesteal: 0.5 },
+      0,
+      new Rng(1),
+    );
+    expect(next.enemies[0]!.hp).toBe(34);
+    expect(next.enemies[1]!.hp).toBe(34);
+    expect(next.playerHp).toBe(26); // 20 + floor(12*0.5)
+  });
+
+  it('consumes no rng', () => {
+    const c = combatWith([enemy(40)], { playerHp: 30, playerMaxHp: 50 });
+    const rng = new Rng(77);
+    const before = rng.state();
+    applyPlayerEffect(c, { kind: 'damage', amount: 8, target: 'enemy', lifesteal: 0.5 }, 0, rng);
+    expect(rng.state()).toBe(before);
+  });
+
+  it('enemy attacks never lifesteal (player-only path)', () => {
+    // lifesteal on an enemy damage effect is ignored — enemies never heal the player.
+    const c = combatWith([enemy(30)], { playerHp: 40, playerMaxHp: 50 });
+    const hit = applyEnemyEffect(c, 0, {
+      kind: 'damage',
+      amount: 6,
+      target: 'enemy',
+      lifesteal: 0.5,
+    });
+    expect(hit.playerHp).toBe(34); // took 6, no heal
+  });
+});
+
 describe('additions are inert for existing-kind content (#62 determinism)', () => {
   it('a damage/block resolution with no new fields is byte-identical', () => {
     // Same fight, same rng — the new code paths must not change old behavior.

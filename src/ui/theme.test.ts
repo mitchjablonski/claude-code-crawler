@@ -30,6 +30,17 @@ describe('hpTint (#64 player-HP legibility gradient)', () => {
   });
 });
 
+describe('#80 hex chip (Warlock life-siphon curse)', () => {
+  it('reads DISTINCT from poison so the two enemy DoTs never blur together', () => {
+    expect(theme.status.hex.color).not.toBe(theme.status.poison.color);
+  });
+
+  it('has a HEX glyph/label', () => {
+    expect(theme.status.hex.icon).toBe('HEX');
+    expect(theme.status.hex.label).toBe('hex');
+  });
+});
+
 describe('#71 overcharge color reads apart from the yellow heat family', () => {
   it('is NOT the heat/yellow tone (so OVC does not vanish into HP/HEAT/gradient)', () => {
     expect(theme.status.overcharge.color).not.toBe(theme.colors.heat);
