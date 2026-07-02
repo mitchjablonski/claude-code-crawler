@@ -23,7 +23,7 @@
     "url": "https://github.com/mitchjablonski/claude-code-crawler/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19"
   },
   "bin": {
     "ccc": "./dist/cli.js",
@@ -32,13 +32,19 @@
   "files": [
     "dist"
   ],
+  "workspaces": [
+    "web"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && npm run build --workspace web",
     "dev": "tsx src/cli.tsx",
-    "test": "vitest run",
+    "test": "vitest run && npm run test --workspace web",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace web",
+    "web:dev": "npm run dev --workspace web",
+    "web:build": "npm run build --workspace web",
+    "web:serve": "npm run serve --workspace web",
     "gif": "tsx scripts/make-gif.ts",
     "play-verify": "tsx scripts/play-verify.ts",
     "visual-snapshot": "tsx scripts/visual-snapshot.ts",
