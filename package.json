@@ -23,7 +23,7 @@
     "url": "https://github.com/mitchjablonski/claude-code-crawler/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19"
   },
   "bin": {
     "ccc": "./dist/cli.js",
