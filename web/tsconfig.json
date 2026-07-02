@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    // Bundler resolution: Vite (not Node) resolves the graph at runtime. TS
+    // still applies its universal `.js -> .ts` specifier substitution here, so
+    // the engine's NodeNext-style `./x.js` imports typecheck unchanged.
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    // `@game/*` points at the SHARED terminal-repo source (the pure engine +
+    // data-only modules). Mirrored by the alias + js->ts plugin in
+    // vite.config.ts; see the "one engine, two renderers" note in README.md.
+    "paths": {
+      "@game/*": ["../src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

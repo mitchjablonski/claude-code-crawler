@@ -1,7 +1,7 @@
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'coverage/**'] },
+  { ignores: ['dist/**', 'coverage/**', 'web/dist/**'] },
   ...tseslint.configs.recommended,
   {
     // REQ-1: the engine is pure — no IO, no clock, no ambient randomness,
