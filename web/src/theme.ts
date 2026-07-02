@@ -9,7 +9,7 @@
  * stays consistent across renderers (hp/block/energy/gold/accent/danger/success/
  * muted/heat + the rarity/cardType/nodeKind/intent/status maps).
  */
-import type { StatusId } from '@game/engine/types.js';
+import type { StatusId, Statuses } from '@game/engine/types.js';
 import {
   theme as sharedTheme,
   palette,
@@ -17,6 +17,11 @@ import {
   background,
   hpTint,
   intentIcons,
+  statusSegments,
+  statusChip,
+  statusBeatChip,
+  hpBarSegments,
+  POTION_KEYS,
   type InkColor,
 } from '@game/ui/theme.js';
 
@@ -67,9 +72,38 @@ export const status: Readonly<Record<StatusId, WebStatusStyle>> = (() => {
   return out;
 })();
 
-export { defaultFg, background, intentIcons };
+export { defaultFg, background, intentIcons, hpBarSegments, POTION_KEYS };
 
 /** #64 HP legibility gradient as a CSS value (same thresholds as terminal). */
 export function hpTintCss(hp: number, maxHp: number): string {
   return css(hpTint(hp, maxHp));
+}
+
+/** One colored text token (a status tag, intent chip, or beat). */
+export interface WebChip {
+  readonly text: string;
+  readonly color: string;
+}
+
+/**
+ * The CANONICAL status glyphs/beats from the terminal theme, with the identity
+ * color mapped to CSS. Same producers (`statusSegments`/`statusChip`/
+ * `statusBeatChip`) so a status reads byte-identically in both renderers.
+ */
+export function statusSegmentsCss(statuses: Statuses): readonly WebChip[] {
+  return statusSegments(statuses).map((s) => ({ text: s.text, color: css(s.color) }));
+}
+
+export function statusChipCss(
+  id: StatusId,
+  stacks: number,
+  opts?: { readonly sign?: boolean },
+): WebChip {
+  const chip = statusChip(id, stacks, opts);
+  return { text: chip.text, color: css(chip.color) };
+}
+
+export function statusBeatChipCss(id: StatusId, delta: number): WebChip {
+  const chip = statusBeatChip(id, delta);
+  return { text: chip.text, color: css(chip.color) };
 }

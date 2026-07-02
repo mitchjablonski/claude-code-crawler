@@ -128,7 +128,15 @@ describe('MapScreen', () => {
     if (after.phase === 'map') {
       expect(screen.getByText(`Depth ${target.row}/`, { exact: false })).toBeTruthy();
     } else {
-      expect(screen.getByText(/coming in A2/)).toBeTruthy();
+      // A2: the destination phase renders its REAL screen (never a stub).
+      const label: Record<string, string> = {
+        combat: 'combat',
+        event: 'event',
+        shop: 'the shop',
+        rest: 'the rest site',
+        reward: 'reward',
+      };
+      expect(screen.getByLabelText(label[after.phase] ?? after.phase)).toBeTruthy();
     }
     // Depth in the HUD moved off the start row either way.
     expect(screen.getByLabelText('run status').textContent).toContain(`depth ${target.row}/`);
@@ -155,7 +163,7 @@ describe('MapScreen', () => {
     expect(first.length).toBeGreaterThan(0);
   });
 
-  it('entering a combat node renders the A2 stub, not a crash', () => {
+  it('entering a combat node renders the REAL combat screen (A2)', () => {
     // Drive the REAL run to its first combat entry via the engine, then mirror
     // the same choices through the UI.
     let probe = engineRun();
@@ -179,14 +187,16 @@ describe('MapScreen', () => {
       );
       expected = applyAction(content, expected, { type: 'chooseNode', nodeId });
     }
-    expect(screen.getByText('Combat — coming in A2')).toBeTruthy();
-    // The stub lists the engine's actual enemies for this seeded fight.
+    // The real combat screen: the engine's actual enemies for this seeded
+    // fight, each telegraphing a next move, plus the player's dealt hand.
+    const stage = screen.getByRole('list', { name: 'enemies' });
     for (const enemy of expected.combat!.enemies) {
-      expect(screen.getByText(enemy.name)).toBeTruthy();
+      expect(stage.textContent).toContain(enemy.name);
+      expect(stage.textContent).toContain(`${enemy.hp}/${enemy.maxHp}`);
     }
-    // Back to the surface works.
-    fireEvent.click(screen.getByText('Back to the surface (title)'));
-    expect(screen.getByText('[n] New delve')).toBeTruthy();
+    expect(stage.textContent).toContain('next:');
+    const hand = screen.getByRole('list', { name: 'hand' });
+    expect(within(hand).getAllByRole('listitem')).toHaveLength(expected.combat!.hand.length);
   });
 
   it('opens and closes the deck overlay with [v]', () => {
