@@ -3,9 +3,11 @@
  * GameOverScreen's run report — outcome banner, score (the shared pure
  * `runScore`), class, depth reached, final HP, deck size, gold, the per-run
  * stat line (turns/dealt/taken/slain), relics, and the seed. Keys: [n] new
- * delve, [t] back to title (both clickable). Terminal-only affordances that
- * need persistence (personal best, daily tag, unlock fanfare) are out of
- * scope until web persistence lands; [q] quit has no browser analogue.
+ * delve, [t] back to title (both clickable). Phase B (shared saves): the
+ * persistence-backed lines the terminal shows now render here too — the #28
+ * personal-best chase (NEW BEST! vs Score · Best) and the #46 "NEW UNLOCKED"
+ * fanfare. [q] quit has no browser analogue; the daily tag stays terminal-only
+ * until the web grows a daily entry point.
  */
 import type { ContentRegistry, RunState } from '@game/engine/types.js';
 import { runScore } from '@game/progression/daily.js';
@@ -20,12 +22,22 @@ export function GameOverScreen({
   characterName,
   onNew,
   onTitle,
+  priorBest,
+  unlockedNames = [],
 }: {
   readonly state: RunState;
   readonly content: ContentRegistry;
   readonly characterName: string;
   readonly onNew: () => void;
   readonly onTitle: () => void;
+  /**
+   * #28 mirror: personal best for this (character, mode) among PRIOR runs —
+   * null when this is the first such run (reads as a NEW BEST), undefined when
+   * there is no persistence (plain score line, exactly the A2 report).
+   */
+  readonly priorBest?: number | null;
+  /** #46 mirror: display names of cross-run unlocks EARNED BY THIS RUN. */
+  readonly unlockedNames?: readonly string[];
 }) {
   const won = state.phase === 'victory';
 
@@ -54,9 +66,28 @@ export function GameOverScreen({
           ? 'The dungeon grumbles and starts drafting new requirements.'
           : 'The dungeon thanks you for your engagement.'}
       </p>
-      <p>
-        <span style={{ color: colors.accent, fontWeight: 700 }}>Score {score}</span>
-      </p>
+      {priorBest === undefined ? (
+        <p>
+          <span style={{ color: colors.accent, fontWeight: 700 }}>Score {score}</span>
+        </p>
+      ) : priorBest === null || score > priorBest ? (
+        // A run beats its personal best when there is no prior best (first such
+        // run) or it strictly exceeds it — same rule as the terminal report.
+        <p>
+          <span style={{ color: colors.success, fontWeight: 700 }}>NEW BEST! {score}</span>
+          {priorBest !== null && <span style={mutedText}> (prev {priorBest})</span>}
+        </p>
+      ) : (
+        <p>
+          <span style={{ color: colors.accent, fontWeight: 700 }}>Score {score}</span>
+          <span style={mutedText}> · Best {priorBest}</span>
+        </p>
+      )}
+      {unlockedNames.length > 0 && (
+        <p style={{ color: colors.success, fontWeight: 700 }}>
+          NEW UNLOCKED: {unlockedNames.join(', ')}
+        </p>
+      )}
       <div style={{ margin: '0.5rem 0' }}>
         <p style={{ margin: '0.15rem 0' }}>
           <span style={mutedText}>Class </span>

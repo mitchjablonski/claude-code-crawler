@@ -27,6 +27,31 @@ npx --yes npm@latest run web:dev   # any npm >= 7 workspace-aware runner works
 
 Fully offline; no cloud calls.
 
+## Shared saves (phase B)
+
+Terminal and browser are **one progression**: `web:dev` and `web:serve` mount a
+tiny local save-bridge API (`GET/PUT/DELETE /api/run`, `GET /api/meta`,
+`POST /api/meta/record`, `PUT /api/meta/settings`) that delegates straight to
+the terminal's file-based SaveStore (`src/persistence/saves.ts`) — same files,
+same `SAVE_VERSION`, same quarantine-on-mismatch, same meta migration. Win a
+run in the browser and the terminal Title shows the unlock; save in the
+terminal and the browser Title offers "[c] Continue your delve".
+
+- **Save location**: `~/.claude-code-crawler`, or the `CCC_SAVE_DIR` env
+  override — the same knob the terminal honors. Sandboxing the bridge is just
+  `CCC_SAVE_DIR=/tmp/somewhere npm run web:serve`.
+- **Concurrency**: both clients may write the run save. This is deliberately
+  **last-write-wins** — no locking. The store already quarantines anything
+  unreadable or version-mismatched, and an in-progress run is transient; run
+  HISTORY only ever appends. Play one client at a time for sane resumes.
+- **Fallback**: if `dist/` is hosted statically (no API), the client degrades
+  to localStorage with the identical payload shapes (`src/persistence/format.ts`
+  is the shared pure core) and shows a "local-only saves" note on the Title.
+- The web shell mirrors the terminal's cadence exactly: autosave at every
+  engine-defined safe boundary, record + clear on victory/defeat (score,
+  difficulty/mode/class for milestones), settings persisted per cycle, stale
+  saves (>24h) retired as `abandoned` at connect.
+
 ### Seeded runs
 
 Append `?seed=<anything>` to the URL to pin the next "New delve" to that seed —

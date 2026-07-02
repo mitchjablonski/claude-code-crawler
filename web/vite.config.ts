@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vitest/config';
+import { createSaveStore } from '../src/persistence/saves.js';
+import { resolveSaveDir, saveBridgeMiddleware } from '../src/persistence/bridge.js';
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(webRoot, '..');
@@ -48,8 +50,31 @@ function gameJsToTs(): Plugin {
   };
 }
 
+/**
+ * SHARED SAVES (Web epic, phase B): mount the save-bridge API on BOTH the dev
+ * server (`web:dev`) and the preview server (`web:serve`, built mode), so the
+ * browser reads/writes the SAME save files the terminal uses — one progression
+ * across both clients. All routing/serialization delegates to the real
+ * `SaveStore` (src/persistence/saves.ts + bridge.ts); the save dir honors the
+ * same `CCC_SAVE_DIR` env override the terminal's config does. Fully local.
+ * (A statically-hosted `dist/` has no API — the web client then degrades to
+ * its localStorage fallback with a visible "local-only saves" note.)
+ */
+function saveBridge(): Plugin {
+  const middleware = () => saveBridgeMiddleware(createSaveStore(resolveSaveDir()));
+  return {
+    name: 'ccc:save-bridge',
+    configureServer(server) {
+      server.middlewares.use(middleware());
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(middleware());
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [gameJsToTs()],
+  plugins: [gameJsToTs(), saveBridge()],
   resolve: {
     // Belt-and-braces alias for any @game import the plugin declines (e.g. a
     // future extensionless import). Kept in lockstep with tsconfig `paths`.

@@ -28,25 +28,34 @@ export function TitleScreen({
   difficulty,
   runMode,
   seedLocked,
+  hasSave = false,
+  localOnlySaves = false,
   onSelectCharacter,
   onCycleCharacter,
   onCycleDifficulty,
   onCycleRunMode,
   onNew,
+  onContinue,
 }: {
   readonly characterId: string;
   readonly difficulty: Difficulty;
   readonly runMode: RunMode;
   /** True when a `?seed=` param pins the next run (shown so it's no surprise). */
   readonly seedLocked: string | null;
+  /** A saved run exists — offer "[c] Continue your delve" (terminal mirror). */
+  readonly hasSave?: boolean;
+  /** Save bridge unreachable: saves are browser-local only (say so visibly). */
+  readonly localOnlySaves?: boolean;
   readonly onSelectCharacter: (id: string) => void;
   readonly onCycleCharacter: () => void;
   readonly onCycleDifficulty: () => void;
   readonly onCycleRunMode: () => void;
   readonly onNew: () => void;
+  readonly onContinue?: () => void;
 }) {
   useKeys((key) => {
     if (key === 'n') onNew();
+    else if (key === 'c' && hasSave) onContinue?.();
     else if (key === 'k') onCycleCharacter();
     else if (key === 'd') onCycleDifficulty();
     else if (key === 'm') onCycleRunMode();
@@ -107,6 +116,15 @@ export function TitleScreen({
       </section>
 
       <section style={{ ...ui.panel, borderColor: colors.success }} aria-label="start">
+        {hasSave && (
+          <button
+            type="button"
+            style={{ ...ui.button, borderColor: colors.accent }}
+            onClick={onContinue}
+          >
+            <span style={{ color: colors.accent, fontWeight: 700 }}>[c] Continue your delve</span>
+          </button>
+        )}
         <button
           type="button"
           style={{ ...ui.button, borderColor: colors.success, marginBottom: 0 }}
@@ -114,9 +132,16 @@ export function TitleScreen({
         >
           <span style={{ color: colors.success, fontWeight: 700 }}>[n] New delve</span>
         </button>
+        {localOnlySaves && (
+          <p style={{ ...mutedText, margin: '0.4rem 0 0 0' }}>
+            local-only saves — the save bridge is unreachable, so this browser keeps its own
+            progression (run <code>npm run web:serve</code> to share saves with the terminal)
+          </p>
+        )}
       </section>
 
       <p style={ui.footer}>
+        {hasSave ? '[c] continue · ' : ''}
         [n] new delve · [k] class · [d] difficulty · [m] mode — or just click
       </p>
     </div>

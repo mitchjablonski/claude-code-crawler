@@ -9,7 +9,7 @@ import { DEFAULT_RUN_CONFIG, CHARACTERS } from '@game/engine/content/index.js';
 import { createRun, applyAction } from '@game/engine/run.js';
 import { content } from '@game/engine/content/index.js';
 import { knobsFor } from '@game/difficulty.js';
-import { runConfigFor } from './game.js';
+import { runConfigFor, stepRun } from './game.js';
 
 describe('runConfigFor', () => {
   it('neutral knight config matches DEFAULT_RUN_CONFIG on shared fields', () => {
@@ -42,5 +42,30 @@ describe('runConfigFor', () => {
     const a2 = applyAction(content, a, { type: 'chooseNode', nodeId: first });
     const b2 = applyAction(content, b, { type: 'chooseNode', nodeId: first });
     expect(JSON.stringify(a2)).toBe(JSON.stringify(b2));
+  });
+
+  it('threads earned unlocks like the terminal: present when earned, ABSENT when empty', () => {
+    // Empty => the key is omitted entirely (core-only pool, byte-identical to
+    // a fresh terminal profile).
+    expect('allowedUnlockIds' in runConfigFor('knight', 'normal', 'single')).toBe(false);
+    expect(runConfigFor('knight', 'normal', 'single', []).allowedUnlockIds).toBeUndefined();
+    expect(
+      runConfigFor('knight', 'normal', 'single', ['heroic-second-wind']).allowedUnlockIds,
+    ).toEqual(['heroic-second-wind']);
+  });
+});
+
+describe('stepRun (the web dispatch reducer)', () => {
+  it('applies a legal action through the shared engine', () => {
+    const start = createRun(content, 'web-step', runConfigFor('knight', 'normal', 'single'));
+    const nodeId = start.map.nodes[start.currentNodeId]!.next[0]!;
+    const next = stepRun(start, { type: 'chooseNode', nodeId });
+    expect(next).toEqual(applyAction(content, start, { type: 'chooseNode', nodeId }));
+  });
+
+  it('treats invalid input as a NO-OP (same reference back), never a crash', () => {
+    const start = createRun(content, 'web-step', runConfigFor('knight', 'normal', 'single'));
+    expect(stepRun(start, { type: 'chooseNode', nodeId: '__nope__' })).toBe(start);
+    expect(stepRun(start, { type: 'endTurn' })).toBe(start); // not in combat
   });
 });
