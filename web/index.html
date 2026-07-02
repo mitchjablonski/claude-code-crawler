@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Code Crawler</title>
+    <style>
+      /* Pre-hydration base so there is no white flash; the app itself styles
+         everything through the semantic theme tokens (src/theme.ts). */
+      html,
+      body {
+        margin: 0;
+        background: #0b0e14;
+        color: #cdd3de;
+        font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo,
+          Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
